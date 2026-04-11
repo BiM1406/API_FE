@@ -6,7 +6,7 @@ import HomePage from './pages/HomePage/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
 import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
-// import Dashboard from './pages/Dashboard/Dashboard';
+import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
 
 function App() {
   return (
@@ -36,8 +36,8 @@ function App() {
         {/* Workspace */}
         <Route path="/AiWorkspace" element={<AiWorkspace />} />
 
-        {/* Ví dụ dashboard */}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {/* Reset Password */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Redirect mọi route sai về homepage */}
         <Route path="*" element={<Navigate to="/" replace />} />
