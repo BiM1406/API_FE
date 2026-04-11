@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Login from './Login';
 import Register from './Register';
 import OtpVerification from './OtpVerification';
+import ForgotPassword from './ForgotPassword';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -26,7 +27,10 @@ export default function AuthPage() {
               animate={{ opacity: view === 'login' ? 1 : 0, x: view === 'login' ? 0 : -50 }}
               transition={{ duration: 0.3 }}
             >
-              <Login onSwitch={() => setView('register')} />
+              <Login 
+                onSwitch={() => setView('register')} 
+                onForgot={() => setView('forgot')}
+              />
             </motion.div>
           </div>
 
@@ -56,6 +60,18 @@ export default function AuthPage() {
                 email={registeredEmail}
                 onBack={() => setView('login')}
                 onVerified={() => setView('login')}
+              />
+            </motion.div>
+          </div>
+
+          <div style={{ display: view === 'forgot' ? 'block' : 'none' }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: view === 'forgot' ? 1 : 0, scale: view === 'forgot' ? 1 : 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ForgotPassword 
+                onBack={() => setView('login')}
               />
             </motion.div>
           </div>

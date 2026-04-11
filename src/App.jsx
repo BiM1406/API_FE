@@ -5,14 +5,13 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
-
 import MenuHome from './pages/MenuHome/MenuHome';
-
 import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
 import AiDatabase from './pages/AiWorkspace/AiDatabase';
 import History from './pages/AiWorkspace/History';
 import Profile from './pages/AiWorkspace/Profile';
 import TestApi from './pages/AiWorkspace/TestApi';
+import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
 
 function App() {
   return (
@@ -39,6 +38,9 @@ function App() {
 
         {/* Pricing */}
         <Route path="/pricing" element={<PricingPage />} />
+
+        {/* Reset Password */}
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* MenuHome = layout cha */}
         <Route path="/MenuHome" element={<MenuHome />}>
