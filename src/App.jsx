@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import AuthPage from './pages/Auth/AuthPage';
+import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
 
 // Trang tạm thời - dev khác sẽ tự thay bằng trang thật của mình
 function HomePage() {
@@ -30,6 +31,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* Dev khác thêm route của mình vào đây */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="*" element={<Navigate to="/" replace />} />
