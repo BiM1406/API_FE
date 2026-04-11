@@ -5,13 +5,20 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
+
+import MenuHome from './pages/MenuHome/MenuHome';
+
 import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
-// import Dashboard from './pages/Dashboard/Dashboard';
+import AiDatabase from './pages/AiWorkspace/AiDatabase';
+import History from './pages/AiWorkspace/History';
+import Profile from './pages/AiWorkspace/Profile';
+import TestApi from './pages/AiWorkspace/TestApi';
 
 function App() {
   return (
     <BrowserRouter>
-      
+
+      {/* Toast config */}
       <Toaster 
         position="top-center" 
         toastOptions={{
@@ -32,14 +39,21 @@ function App() {
 
         {/* Pricing */}
         <Route path="/pricing" element={<PricingPage />} />
-        
-        {/* Workspace */}
-        <Route path="/AiWorkspace" element={<AiWorkspace />} />
 
-        {/* Ví dụ dashboard */}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {/* MenuHome = layout cha */}
+        <Route path="/MenuHome" element={<MenuHome />}>
+          {/* default khi vào MenuHome */}
+          <Route index element={<AiWorkspace />} />
 
-        {/* Redirect mọi route sai về homepage */}
+          {/* các trang con */}
+          <Route path="workspace" element={<AiWorkspace />} />
+          <Route path="database" element={<AiDatabase />} />
+          <Route path="history" element={<History />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="test-api" element={<TestApi />} />
+        </Route>
+
+        {/* Redirect mọi route sai */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
