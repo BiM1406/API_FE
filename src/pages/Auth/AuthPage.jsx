@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Login from './Login';
 import Register from './Register';
 import OtpVerification from './OtpVerification';
 
 export default function AuthPage() {
-  const [view, setView] = useState('login'); // 'login' | 'register' | 'otp'
+  const [searchParams] = useSearchParams();
+  const [view, setView] = useState(searchParams.get('mode') === 'register' ? 'register' : 'login');
   const [registeredEmail, setRegisteredEmail] = useState('');
 
   return (

@@ -1,85 +1,117 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bot, Terminal, Rocket, CheckCircle2, ChevronRight, Menu, X, Code2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Bot, Terminal, Rocket, CheckCircle2, ChevronRight, Code2, Zap, Database, Shield, Cloud, Globe, Cpu } from 'lucide-react';
+import Header from './Header';
+import Footer from './Footer';
+
+// ─── Dữ liệu danh sách tính năng ──────────────────────────────────────────
+const featureList = [
+  {
+    title: 'Tạo API Thần Tốc',
+    description: 'Chỉ cần mô tả ý tưởng bằng ngôn ngữ tự nhiên, AI sẽ sinh ra toàn bộ mã nguồn API hoàn chỉnh (Node.js, Python, Go) trong tích tắc.',
+    icon: Zap,
+    color: 'from-violet-500 to-purple-600'
+  },
+  {
+    title: 'Kiến Trúc Dữ Liệu Thông Minh',
+    description: 'Tự động thiết kế Database Schema tối ưu, thiết lập các mối quan hệ phức tạp và tạo các câu truy vấn hiệu quả nhất.',
+    icon: Database,
+    color: 'from-blue-500 to-cyan-600'
+  },
+  {
+    title: 'Bảo Mật Đa Tầng',
+    description: 'Mọi dòng code tạo ra đều được AI kiểm tra lỗ hổng bảo mật tự động, đảm bảo tuân thủ các tiêu chuẩn OWASP và mã hóa dữ liệu.',
+    icon: Shield,
+    color: 'from-emerald-500 to-teal-600'
+  },
+  {
+    title: 'Deploy Một Chạm',
+    description: 'Kết nối trực tiếp với AWS, Google Cloud hoặc Vercel. Triển khai ứng dụng của bạn lên môi trường production chỉ với 1 cú nhấp chuột.',
+    icon: Cloud,
+    color: 'from-orange-500 to-pink-600'
+  },
+  {
+    title: 'Đa Ngôn Ngữ & Framework',
+    description: 'Hỗ trợ xuất mã nguồn theo nhiều ngôn ngữ và framework phổ biến nhất hiện nay, phù hợp với mọi dự án của bạn.',
+    icon: Globe,
+    color: 'from-indigo-500 to-blue-600'
+  },
+  {
+    title: 'Tối Ưu Hiệu Năng',
+    description: 'AI không chỉ viết code mà còn tối ưu hóa tài nguyên hệ thống, giúp Backend của bạn chịu tải hàng triệu request mỗi ngày.',
+    icon: Cpu,
+    color: 'from-rose-500 to-orange-600'
+  }
+];
+
+// ─── Dữ liệu các bước hướng dẫn ──────────────────────────────────────────
+const guideSteps = [
+  {
+    number: '01',
+    title: 'Khơi nguồn ý tưởng',
+    description: 'Nhập yêu cầu của bạn bằng ngôn ngữ tự nhiên (Tiếng Việt/Anh). AI sẽ bóc tách yêu cầu và lên kịch bản hệ thống sơ bộ.',
+    icon: Bot,
+    color: 'from-blue-500 to-indigo-600'
+  },
+  {
+    number: '02',
+    title: 'AI Kiến tạo & Sinh mã',
+    description: 'Hệ thống tự động thiết kế Database Schema, API Endpoints và viết code xử lý nghiệp vụ chuẩn xác theo yêu cầu.',
+    icon: Code2,
+    color: 'from-violet-500 to-purple-600'
+  },
+  {
+    number: '03',
+    title: 'Sẵn sàng cất cánh',
+    description: 'Kiểm thử các Endpoint ngay trên trình duyệt, sau đó tải mã nguồn về hoặc Deploy trực tiếp lên Cloud chỉ với 1-click.',
+    icon: Rocket,
+    color: 'from-indigo-600 to-indigo-800'
+  }
+];
+
+// ─── Animation Variants ──────────────────────────────────────────────────
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1 }
+};
 
 export default function HomePage() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  // Hàm hỗ trợ chuyển trang và đóng menu mobile (nếu đang mở)
-  const handleNavigation = (path) => {
-    setIsMobileMenuOpen(false);
-    navigate(path);
+  // Xử lý cuộn trang khi có hash trên URL (ví dụ: #features)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const id = hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  // Nút "Tạo dự án ngay": nếu đã login → workspace, chưa → login
+  const handleGetStarted = () => {
+    const isLoggedIn = !!localStorage.getItem('token');
+    navigate(isLoggedIn ? '/workspace' : '/auth');
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-cyan-500/30">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-[#0a0a0a]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          {/* Left: Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl tracking-tight">AI Backend Builder</span>
-          </div>
-
-          {/* Center: Links (Desktop) */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
-            <a href="#features" className="hover:text-white transition-colors">Tính năng</a>
-            <a href="#guide" className="hover:text-white transition-colors">Hướng dẫn</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Bảng giá</a>
-          </nav>
-
-          {/* Right: Actions (Desktop) */}
-          <div className="hidden md:flex items-center gap-4">
-            <button 
-              onClick={() => handleNavigation('/auth')}
-              className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
-            >
-              Đăng nhập
-            </button>
-            <button 
-              onClick={() => handleNavigation('/auth?mode=register')}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-            >
-              Bắt đầu miễn phí
-            </button>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden p-2 text-gray-400 hover:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 bg-[#0a0a0a] px-6 py-4 space-y-4">
-            <a href="#features" onClick={() => setIsMobileMenuOpen(false)} className="block text-gray-300 hover:text-white py-2">Tính năng</a>
-            <a href="#guide" onClick={() => setIsMobileMenuOpen(false)} className="block text-gray-300 hover:text-white py-2">Hướng dẫn</a>
-            <a href="#pricing" onClick={() => setIsMobileMenuOpen(false)} className="block text-gray-300 hover:text-white py-2">Bảng giá</a>
-            <div className="pt-4 flex flex-col gap-3 border-t border-white/10">
-              <button
-                onClick={() => handleNavigation('/auth')}
-                className="w-full px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
-              >
-                Đăng nhập
-              </button>
-              <button 
-                onClick={() => handleNavigation('/auth?mode=register')}
-                className="w-full px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full hover:opacity-90 transition-opacity"
-              >
-                Bắt đầu miễn phí
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30">
+      <Header />
 
       <main className="pt-32 pb-20">
         {/* Hero Section */}
@@ -87,7 +119,7 @@ export default function HomePage() {
           <div className="text-center max-w-4xl mx-auto mb-16">
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
               Tự động hóa Backend với <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-500">
                 sức mạnh AI.
               </span>
             </h1>
@@ -95,23 +127,14 @@ export default function HomePage() {
               Nền tảng giúp bạn sinh mã nguồn chuẩn xác từ ngôn ngữ tự nhiên và kiểm thử API ngay lập tức mà không cần rời khỏi trình duyệt.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button className="w-full sm:w-auto px-8 py-4 text-base font-medium text-white bg-white/10 border border-white/20 rounded-full hover:bg-white/20 transition-all flex items-center justify-center gap-2 group">
-                Xem Demo
-              </button>
-              <button 
-                onClick={() => navigate('/auth')}
-                className="w-full sm:w-auto px-8 py-4 text-base font-medium text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full hover:opacity-90 transition-all shadow-[0_0_30px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2 group"
-              >
-                Tạo dự án ngay
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
+              
             </div>
           </div>
 
           {/* Split Screen Illustration */}
-          <div className="relative rounded-2xl md:rounded-[2rem] border border-white/10 bg-[#141414] overflow-hidden shadow-2xl shadow-cyan-900/20">
+          <div className="relative rounded-2xl md:rounded-[2rem] border border-white/10 bg-slate-900 overflow-hidden shadow-2xl shadow-violet-900/20">
             {/* Top Bar */}
-            <div className="h-12 border-b border-white/10 flex items-center px-4 gap-2 bg-[#0a0a0a]/50">
+            <div className="h-12 border-b border-white/10 flex items-center px-4 gap-2 bg-slate-950/50">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
@@ -125,9 +148,9 @@ export default function HomePage() {
 
             <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
               {/* Left: AI Chat */}
-              <div className="p-6 bg-[#0f0f0f]">
+              <div className="p-6 bg-slate-900">
                 <div className="flex items-center gap-3 mb-6 text-sm font-medium text-gray-400">
-                  <Bot className="w-4 h-4 text-cyan-400" />
+                  <Bot className="w-4 h-4 text-violet-400" />
                   AI Assistant
                 </div>
                 <div className="space-y-4 font-mono text-sm">
@@ -140,11 +163,11 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="flex gap-4">
-                    <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center shrink-0">
-                      <Bot className="w-3 h-3 text-cyan-400" />
+                    <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0">
+                      <Bot className="w-3 h-3 text-violet-400" />
                     </div>
-                    <div className="bg-cyan-500/5 rounded-lg p-4 text-gray-300 border border-cyan-500/20 w-full">
-                      <p className="mb-3 text-cyan-200">Đã tạo xong cấu trúc dự án. Đang sinh mã nguồn...</p>
+                    <div className="bg-violet-500/5 rounded-lg p-4 text-gray-300 border border-violet-500/20 w-full">
+                      <p className="mb-3 text-violet-300">Đã tạo xong cấu trúc dự án. Đang sinh mã nguồn...</p>
                       <div className="space-y-2 text-xs text-gray-400">
                         <div className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-green-400"/> src/controllers/todo.controller.js</div>
                         <div className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-green-400"/> src/routes/todo.routes.js</div>
@@ -157,7 +180,7 @@ export default function HomePage() {
               </div>
 
               {/* Right: API Test */}
-              <div className="p-6 bg-[#141414]">
+              <div className="p-6 bg-slate-900/60">
                 <div className="flex items-center gap-3 mb-6 text-sm font-medium text-gray-400">
                   <Terminal className="w-4 h-4 text-green-400" />
                   API Tester
@@ -170,13 +193,13 @@ export default function HomePage() {
                     <div className="flex-1 px-3 py-2 bg-white/5 text-gray-300 font-mono text-xs rounded border border-white/10 flex items-center truncate">
                       https://api.local/v1/todos
                     </div>
-                    <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-500 transition-colors">
+                    <button className="px-4 py-2 bg-violet-600 text-white text-xs font-bold rounded hover:bg-violet-500 transition-colors">
                       Send
                     </button>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded border border-white/10 bg-[#0a0a0a] overflow-hidden">
+                    <div className="rounded border border-white/10 bg-slate-950 overflow-hidden">
                       <div className="px-3 py-1.5 border-b border-white/10 text-xs text-gray-500 font-medium bg-white/5">
                         Body (JSON)
                       </div>
@@ -187,7 +210,7 @@ export default function HomePage() {
                         <span className="text-blue-400">{'}'}</span>
                       </div>
                     </div>
-                    <div className="rounded border border-green-500/20 bg-[#0a0a0a] overflow-hidden relative">
+                    <div className="rounded border border-green-500/20 bg-slate-950 overflow-hidden relative">
                       <div className="px-3 py-1.5 border-b border-white/10 text-xs text-gray-500 font-medium bg-white/5 flex justify-between items-center">
                         <span>Response</span>
                         <span className="text-green-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> 200 OK</span>
@@ -209,62 +232,154 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Core Features Section */}
-        <section id="features" className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Tính năng cốt lõi</h2>
-            <p className="text-gray-400 max-w-2xl mx-auto">Mọi công cụ bạn cần để xây dựng và kiểm thử Backend trong một nền tảng duy nhất.</p>
+        {/* ─── PHẦN TÍNH NĂNG (FEATURES SECTION) ───────────────────────── */}
+        <section id="features" className="py-24 bg-slate-950 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="text-center mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="inline-block px-4 py-1.5 mb-4 rounded-full bg-violet-500/10 border border-violet-500/20"
+              >
+                <span className="text-sm font-bold text-violet-400 uppercase tracking-widest">Tính năng nổi bật</span>
+              </motion.div>
+              
+              <motion.h2 
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-3xl md:text-5xl font-bold text-white mb-6"
+              >
+                Sức mạnh AI định nghĩa lại <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-500">Quy trình Backend</span>
+              </motion.h2>
+              
+              <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+                Cung cấp mọi công cụ bạn cần để xây dựng, quản lý và vận hành hệ thống Backend mạnh mẽ mà không cần viết hàng ngàn dòng code thủ công.
+              </p>
+            </div>
+
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            >
+              {featureList.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  variants={itemVariants}
+                  whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                  className="group relative p-8 rounded-[2rem] bg-slate-900/40 border border-white/5 hover:border-violet-500/30 transition-all duration-300 backdrop-blur-sm"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-600/0 to-indigo-600/0 group-hover:from-violet-600/5 group-hover:to-indigo-600/5 rounded-[2rem] transition-all duration-300" />
+                  
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-300`}>
+                    <feature.icon className="w-7 h-7 text-white" />
+                  </div>
+
+                  <h3 className="text-xl font-bold text-white mb-4 group-hover:text-violet-400 transition-colors">
+                    {feature.title}
+                  </h3>
+                  
+                  <p className="text-gray-400 leading-relaxed text-sm">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
+        </section>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Feature 1 */}
-            <div className="group p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -mr-32 -mt-32 transition-opacity group-hover:opacity-100 opacity-50"></div>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center mb-6 relative z-10">
-                <Code2 className="w-7 h-7 text-cyan-400" />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 relative z-10">AI Sinh Code Thông Minh</h3>
-              <p className="text-gray-400 leading-relaxed relative z-10">
-                Nhập yêu cầu (prompt), hệ thống tự động bóc tách và tạo ra cấu trúc thư mục, Controller, Service, Database chuẩn xác. Tiết kiệm hàng giờ code boilerplate.
-              </p>
+        {/* ─── PHẦN HƯỚNG DẪN (GUIDE SECTION) ───────────────────────────── */}
+        <section id="guide" className="py-24 bg-slate-950 relative">
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <div className="text-center mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="inline-block px-4 py-1.5 mb-4 rounded-full bg-indigo-500/10 border border-indigo-500/20"
+              >
+                <span className="text-sm font-bold text-indigo-400 uppercase tracking-widest">Quy trình làm việc</span>
+              </motion.div>
+              
+              <motion.h2 
+                initial={{ opacity: 0, y: -20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="text-3xl md:text-5xl font-bold text-white mb-6"
+              >
+                Xây dựng Backend <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-500">Dễ như ăn kẹo</span>
+              </motion.h2>
             </div>
 
-            {/* Feature 2 */}
-            <div className="group p-8 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32 transition-opacity group-hover:opacity-100 opacity-50"></div>
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30 flex items-center justify-center mb-6 relative z-10">
-                <Rocket className="w-7 h-7 text-blue-400" />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 relative z-10">Kiểm thử API Tích hợp</h3>
-              <p className="text-gray-400 leading-relaxed relative z-10">
-                Chạy thử các endpoint vừa được AI tạo ra với giao diện tương tự Postman, lưu lịch sử test và debug dễ dàng ngay trên trình duyệt của bạn.
-              </p>
+            <div className="relative">
+              {/* Connecting line (Desktop) */}
+              <div className="hidden lg:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent -translate-y-1/2 z-0" />
+
+              <motion.div 
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="grid grid-cols-1 lg:grid-cols-3 gap-12 relative z-10"
+              >
+                {guideSteps.map((step, index) => (
+                  <motion.div
+                    key={index}
+                    variants={itemVariants}
+                    className="flex flex-col items-center text-center group"
+                  >
+                    <div className="relative mb-8">
+                      {/* Step Number Background */}
+                      <div className="absolute -top-4 -left-4 text-7xl font-black text-white/[0.03] select-none group-hover:text-indigo-500/10 transition-colors">
+                        {step.number}
+                      </div>
+                      
+                      {/* Icon Circle */}
+                      <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${step.color} flex items-center justify-center relative z-10 shadow-xl shadow-indigo-900/20 group-hover:scale-110 transition-transform duration-500`}>
+                        <step.icon className="w-10 h-10 text-white" />
+                      </div>
+
+                      {/* Connector dot */}
+                      <div className="hidden lg:block absolute top-1/2 -right-6 w-3 h-3 rounded-full bg-indigo-500/30 border border-indigo-500/50 -translate-y-1/2 z-20" />
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-white mb-4">
+                      {step.title}
+                    </h3>
+                    
+                    <p className="text-gray-400 leading-relaxed max-w-sm">
+                      {featureList.find(f => f.title === step.title)?.description || step.description}
+                    </p>
+                  </motion.div>
+                ))}
+              </motion.div>
             </div>
+
+            {/* CTA in Guide */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              className="mt-20 p-12 rounded-[3rem] bg-gradient-to-b from-white/5 to-transparent border border-white/10 text-center"
+            >
+              <h4 className="text-2xl font-bold text-white mb-6">Bạn đã sẵn sàng tạo Backend đầu tiên?</h4>
+              <button
+                onClick={handleGetStarted}
+                className="px-10 py-5 text-lg font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:shadow-[0_0_50px_rgba(139,92,246,0.5)] transition-all flex items-center gap-3 mx-auto"
+              >
+                Tạo dự án ngay
+                <Rocket className="w-5 h-5" />
+              </button>
+            </motion.div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#050505] py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <Bot className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">AI Backend Builder</span>
-          </div>
-          
-          <div className="flex gap-6 text-sm text-gray-500">
-            <a href="#" className="hover:text-white transition-colors">Chính sách bảo mật</a>
-            <a href="#" className="hover:text-white transition-colors">Điều khoản dịch vụ</a>
-            <a href="#" className="hover:text-white transition-colors">Liên hệ</a>
-          </div>
-
-          <div className="text-sm text-gray-600">
-            &copy; {new Date().getFullYear()} AI Backend Builder. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

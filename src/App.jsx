@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast';
 
 import HomePage from './pages/HomePage/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
+import PricingPage from './pages/HomePage/PricingPage';
+import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
 // import Dashboard from './pages/Dashboard/Dashboard';
 
 function App() {
@@ -27,6 +29,12 @@ function App() {
 
         {/* Auth */}
         <Route path="/auth" element={<AuthPage />} />
+
+        {/* Pricing */}
+        <Route path="/pricing" element={<PricingPage />} />
+        
+        {/* Workspace */}
+        <Route path="/AiWorkspace" element={<AiWorkspace />} />
 
         {/* Ví dụ dashboard */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
