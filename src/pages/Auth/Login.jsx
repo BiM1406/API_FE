@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login({ onSwitch, onForgot }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,10 +28,17 @@ export default function Login({ onSwitch, onForgot }) {
     
     setErrors({});
     setIsLoading(true);
-    // Giả lập API gọi backend mất 1.5 giây
+    
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Đăng nhập thành công!');
+      const res = login(email, password);
+      if (res.success) {
+        if (res.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/user');
+        }
+      }
     }, 1500);
   };
 

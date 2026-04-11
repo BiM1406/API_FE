@@ -7,43 +7,70 @@ import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
 import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
 import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
+import Dashboard from './pages/Dashboard/Dashboard';
+import { AuthProvider } from './contexts/AuthContext.jsx';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
-    <BrowserRouter>
-      
-      <Toaster 
-        position="top-center" 
-        toastOptions={{
-          style: {
-            background: '#1e293b',
-            color: '#fff',
-            border: '1px solid #334155'
-          }
-        }} 
-      />
+    <AuthProvider>
+      <BrowserRouter>
 
-      <Routes>
-        {/* Trang mặc định */}
-        <Route path="/" element={<HomePage />} />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: '#1e293b',
+              color: '#fff',
+              border: '1px solid #334155'
+            }
+          }}
+        />
 
-        {/* Auth */}
-        <Route path="/auth" element={<AuthPage />} />
+        <Routes>
+          {/* Trang mặc định */}
+          <Route path="/" element={<HomePage />} />
 
-        {/* Pricing */}
-        <Route path="/pricing" element={<PricingPage />} />
-        
-        {/* Workspace */}
-        <Route path="/AiWorkspace" element={<AiWorkspace />} />
+          {/* Auth */}
+          <Route path="/auth" element={<AuthPage />} />
 
-        {/* Reset Password */}
-        <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Pricing */}
+          <Route path="/pricing" element={<PricingPage />} />
 
-        {/* Redirect mọi route sai về homepage */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Workspace */}
+          <Route path="/AiWorkspace" element={
+            <ProtectedRoute>
+              <AiWorkspace />
+            </ProtectedRoute>
+          } />
 
-    </BrowserRouter>
+          {/* Aliases mapping to generic protected router */}
+          <Route path="/workspace" element={<Navigate to="/admin" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+
+          {/* Dashboard Admin */}
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Dashboard User */}
+          <Route path="/user" element={
+            <ProtectedRoute allowedRoles={['user']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Reset Password */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Redirect mọi route sai về homepage */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
