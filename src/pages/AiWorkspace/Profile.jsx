@@ -6,70 +6,94 @@ export default function Profile() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-sans flex flex-col">
-      <header className="h-14 bg-[#141414] border-b border-[#262626] flex items-center px-4 gap-4 shrink-0">
-        <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white transition">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="font-semibold text-white">Account Management</h1>
+    <div className="min-h-screen bg-slate-950 text-slate-300 font-sans flex flex-col relative overflow-hidden">
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[20%] left-[10%] w-[30%] h-[30%] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <header className="h-16 bg-slate-900/40 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-6 shrink-0 z-20">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="p-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-white transition-all active:scale-95"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
+            <h1 className="font-bold text-white tracking-tight">Account Management</h1>
+          </div>
+        </div>
       </header>
 
-      <div className="p-6 max-w-2xl mx-auto w-full space-y-8 overflow-y-auto custom-scrollbar flex-1">
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-6">Account Profile</h2>
-        <div className="bg-[#141414] p-6 rounded-lg border border-[#262626] flex items-center gap-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg shrink-0">
-            AD
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-bold text-white">Admin User</h3>
-            <p className="text-gray-400 text-sm mb-3">admin@example.com</p>
-            <span className="px-3 py-1 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-500 border border-amber-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
-              Pro Plan
-            </span>
-          </div>
-          <button className="px-4 py-2 bg-[#1a1a1a] border border-[#262626] hover:border-cyan-500 text-white rounded-md text-sm transition">
-            Edit Profile
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-4">Team Members</h3>
-        <div className="bg-[#141414] border border-[#262626] rounded-lg overflow-hidden">
-          <div className="p-4 border-b border-[#262626] flex justify-between items-center">
-            <span className="text-sm text-gray-400">Manage your team access</span>
-            <button className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-              <Plus size={16} /> Invite Member
+      <div className="p-8 max-w-3xl mx-auto w-full space-y-10 overflow-y-auto custom-scrollbar flex-1 z-10">
+        <section>
+          <h2 className="text-xl font-bold text-white mb-6 tracking-tight flex items-center gap-3 px-1">
+            <div className="p-2 bg-violet-500/10 rounded-lg text-violet-400">
+              <User size={18} />
+            </div>
+            Account Profile
+          </h2>
+          <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl flex items-center gap-8 relative group overflow-hidden">
+            <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 shrink-0 relative z-10">
+              AD
+            </div>
+            <div className="flex-1 relative z-10">
+              <h3 className="text-2xl font-bold text-white tracking-tight">Admin User</h3>
+              <p className="text-slate-400 text-sm mb-4 font-medium">admin@example.com</p>
+              <span className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
+                Pro Plan
+              </span>
+            </div>
+            <button className="px-5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-violet-500/50 text-white rounded-xl text-xs font-bold transition-all active:scale-95 relative z-10">
+              Edit Profile
             </button>
           </div>
-          <div className="divide-y divide-[#262626]">
-            <div className="p-4 flex items-center justify-between hover:bg-[#1a1a1a] transition">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-xs text-white">AD</div>
-                <div>
-                  <p className="text-sm font-medium text-white">Admin User</p>
-                  <p className="text-xs text-gray-500">admin@example.com</p>
-                </div>
-              </div>
-              <span className="text-xs text-gray-400 bg-[#262626] px-2 py-1 rounded">Owner</span>
+        </section>
+
+        <section>
+          <h3 className="text-lg font-bold text-white mb-6 tracking-tight flex items-center gap-3 px-1">
+            <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
+              <Zap size={18} />
             </div>
-            <div className="p-4 flex items-center justify-between hover:bg-[#1a1a1a] transition">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-cyan-900 rounded-full flex items-center justify-center text-xs text-cyan-400">DV</div>
-                <div>
-                  <p className="text-sm font-medium text-white">Developer One</p>
-                  <p className="text-xs text-gray-500">dev1@example.com</p>
+            Team Members
+          </h3>
+          <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-5 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/40">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Workspace Access</span>
+              <button className="text-xs font-bold text-violet-400 hover:text-violet-300 flex items-center gap-2 transition-colors">
+                <Plus size={16} /> Invite Member
+              </button>
+            </div>
+            <div className="divide-y divide-slate-800/50">
+              <div className="p-5 flex items-center justify-between hover:bg-slate-800/20 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-slate-800/80 rounded-xl flex items-center justify-center text-xs font-bold text-white border border-slate-700">AD</div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Admin User</p>
+                    <p className="text-[11px] text-slate-500 font-medium">admin@example.com</p>
+                  </div>
                 </div>
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">Owner</span>
               </div>
-              <select className="bg-transparent text-xs text-gray-400 border border-[#262626] rounded px-2 py-1 outline-none focus:border-cyan-500">
-                <option>Editor</option>
-                <option>Viewer</option>
-              </select>
+              <div className="p-5 flex items-center justify-between hover:bg-slate-800/20 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center text-xs font-bold text-indigo-400 border border-indigo-500/20">DV</div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Developer One</p>
+                    <p className="text-[11px] text-slate-500 font-medium">dev1@example.com</p>
+                  </div>
+                </div>
+                <select className="bg-slate-950/50 text-[11px] font-bold text-slate-400 border border-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-violet-500/50 transition-all cursor-pointer">
+                  <option>Editor</option>
+                  <option>Viewer</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
       </div>
     </div>
   );
