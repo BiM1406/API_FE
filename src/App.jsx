@@ -14,11 +14,12 @@ import History from './pages/AiWorkspace/History';
 import Profile from './pages/AiWorkspace/Profile';
 import TestApi from './pages/AiWorkspace/TestApi';
 
+import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
+
 function App() {
   return (
     <BrowserRouter>
 
-      {/* Toast config */}
       <Toaster 
         position="top-center" 
         toastOptions={{
@@ -31,21 +32,12 @@ function App() {
       />
 
       <Routes>
-        {/* Trang mặc định */}
         <Route path="/" element={<HomePage />} />
-
-        {/* Auth */}
         <Route path="/auth" element={<AuthPage />} />
-
-        {/* Pricing */}
         <Route path="/pricing" element={<PricingPage />} />
 
-        {/* MenuHome = layout cha */}
         <Route path="/MenuHome" element={<MenuHome />}>
-          {/* default khi vào MenuHome */}
           <Route index element={<AiWorkspace />} />
-
-          {/* các trang con */}
           <Route path="workspace" element={<AiWorkspace />} />
           <Route path="database" element={<AiDatabase />} />
           <Route path="history" element={<History />} />
@@ -53,7 +45,9 @@ function App() {
           <Route path="test-api" element={<TestApi />} />
         </Route>
 
-        {/* Redirect mọi route sai */}
+        {/* ADMIN ROUTE */}
+        <Route path="/AdminDashboard" element={<AdminDashboard />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
