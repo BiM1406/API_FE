@@ -83,20 +83,13 @@ export default function TestApi() {
   const removeHeader = (id) => setHeaders(headers.filter(h => h.id !== id));
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-300 font-sans overflow-hidden relative">
+    <div className="flex flex-col h-full bg-slate-950 text-slate-300 font-sans overflow-hidden relative">
       {/* Background Orbs */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[20%] left-[10%] w-[30%] h-[30%] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <header className="h-16 bg-slate-900/40 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-6 shrink-0 z-10">
         <div className="flex items-center gap-6">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="p-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 hover:text-white transition-all active:scale-95"
-            title="Back to Dashboard"
-          >
-            <ArrowLeft size={18} />
-          </button>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
             <h1 className="font-bold text-white tracking-tight">API Tester</h1>
