@@ -5,13 +5,20 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage/HomePage';
 import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
-import AiWorkspace from './pages/AiWorkspace/AiWorkspace';
+import DashboardLayout from './pages/Dashboard/DashboardLayout';
+import MyProject from './pages/Dashboard/MyProject';
+import AiWorkspace from './pages/Dashboard/AiWorkspace';
+import AiDatabase from './pages/Dashboard/AiDatabase';
+import History from './pages/Dashboard/History';
+import Profile from './pages/Dashboard/Profile';
+import TestApi from './pages/Dashboard/TestApi';
 import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
 
 function App() {
   return (
     <BrowserRouter>
-      
+
+      {/* Toast config */}
       <Toaster 
         position="top-center" 
         toastOptions={{
@@ -24,7 +31,7 @@ function App() {
       />
 
       <Routes>
-        {/* Trang mặc định */}
+        {/* Trang mặc định (Landing) */}
         <Route path="/" element={<HomePage />} />
 
         {/* Auth */}
@@ -32,15 +39,22 @@ function App() {
 
         {/* Pricing */}
         <Route path="/pricing" element={<PricingPage />} />
-        
-        {/* Workspace */}
-        <Route path="/AiWorkspace" element={<AiWorkspace />} />
 
         {/* Reset Password */}
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Redirect mọi route sai về homepage */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Dashboard Layout for Main View */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/dashboard" element={<MyProject />} />
+          <Route path="/workspace" element={<AiWorkspace />} />
+          <Route path="/database" element={<AiDatabase />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/test-api" element={<TestApi />} />
+        </Route>
+
+        {/* Redirect mọi route sai */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
 
     </BrowserRouter>
