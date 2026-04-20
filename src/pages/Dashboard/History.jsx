@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Terminal, Database, Zap, Folder, Eye, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function History() {
   const navigate = useNavigate();
-  const historyItems = [
+  const [historyItems, setHistoryItems] = useState([
     { id: 1, action: 'Đã tạo User Controller', time: '10 phút trước', type: 'code', icon: Terminal, color: 'text-violet-400' },
     { id: 2, action: 'Đã cập nhật ERD: Thêm bảng posts', time: '1 giờ trước', type: 'db', icon: Database, color: 'text-indigo-400' },
     { id: 3, action: 'Đã kiểm thử API Login (Status: 200)', time: '2 giờ trước', type: 'api', icon: Zap, color: 'text-amber-400' },
     { id: 4, action: 'Đã tạo dự án mới', time: '1 ngày trước', type: 'system', icon: Folder, color: 'text-emerald-400' },
-  ];
+  ]);
+
+  const handleHide = (id) => {
+    setHistoryItems(prev => prev.filter(item => item.id !== id));
+  };
 
   return (
     <div className="h-full bg-slate-950 text-slate-300 font-sans flex flex-col relative overflow-hidden">
@@ -39,12 +43,21 @@ export default function History() {
                 <p className="text-white font-semibold text-lg tracking-tight group-hover:text-violet-400 transition-colors uppercase text-sm">{item.action}</p>
                 <p className="text-xs text-slate-500 font-medium tracking-wide mt-1">{item.time}</p>
               </div>
-              <button className="p-2 text-slate-500 hover:text-violet-400 bg-slate-950/50 rounded-lg border border-slate-800 transition-all opacity-0 group-hover:opacity-100">
+              <button 
+                onClick={() => handleHide(item.id)}
+                className="p-2 text-slate-500 hover:text-violet-400 hover:bg-violet-500/10 bg-slate-950/50 rounded-lg border border-slate-800 transition-all opacity-0 group-hover:opacity-100"
+                title="Ẩn mục này"
+              >
                 <Eye size={18} />
               </button>
             </div>
           );
         })}
+        {historyItems.length === 0 && (
+          <div className="text-center py-10 text-slate-500">
+            Không có lịch sử hoạt động nào
+          </div>
+        )}
       </div>
       </div>
     </div>

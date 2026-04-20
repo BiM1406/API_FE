@@ -12,6 +12,12 @@
   #root {
     height: 100%;
   }
+
+  /* Hide native password reveal/clear icons in Edge and IE */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
 }
 @layer utilities {
   .hide-scrollbar::-webkit-scrollbar { display: none; }

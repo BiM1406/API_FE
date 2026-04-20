@@ -11,16 +11,31 @@ import {
   Zap,
   Bot,
   PanelLeft,
-  Settings
+  Settings,
+  LogOut,
+  HelpCircle,
+  ChevronUp,
+  Activity,
+  Users,
+  DollarSign
 } from 'lucide-react';
+import { PolicyModal } from '../HomePage/Footer';
 
-// 3. Tránh re-render không cần thiết: Đưa menuItems ra ngoài component
-const menuItems = [
+// Menu dành cho User
+const userMenuItems = [
   { label: 'Dự án của tôi', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'ChatDMP', icon: Terminal, path: '/workspace' },
   { label: 'Thiết kế CSDL', icon: Database, path: '/database' },
   { label: 'Kiểm thử API', icon: Zap, path: '/test-api' },
   { label: 'Lịch sử hoạt động', icon: History, path: '/history' },
+  { label: 'Hồ sơ cá nhân', icon: User, path: '/profile' },
+];
+
+// Menu dành cho Admin
+const adminMenuItems = [
+  { label: 'Tổng quan hệ thống', icon: Activity, path: '/admin/overview' },
+  { label: 'Quản lý người dùng', icon: Users, path: '/admin/users' },
+  { label: 'Quản lý doanh thu', icon: DollarSign, path: '/admin/revenue' },
   { label: 'Hồ sơ cá nhân', icon: User, path: '/profile' },
 ];
 
@@ -61,6 +76,11 @@ export default function DashboardLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [supportModalOpen, setSupportModalOpen] = useState(false);
+
+  const userRole = localStorage.getItem('userRole') || 'user';
+  const menuItems = userRole === 'admin' ? adminMenuItems : userMenuItems;
 
   const currentPath = location.pathname;
 
@@ -82,7 +102,7 @@ export default function DashboardLayout() {
             {/* Anchored Logo - Fixed at Left-5 (20px) of the 260px container */}
             <div 
               className="absolute left-5 top-1/2 -translate-y-1/2 z-20 group/logo cursor-pointer"
-              onClick={() => collapsed && setCollapsed(false)}
+              onClick={() => navigate('/')}
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-600/20 border border-white/10 transition-all duration-200 group-hover/logo:scale-95 group-hover/logo:rotate-3">
                 <Bot 
@@ -96,6 +116,10 @@ export default function DashboardLayout() {
                 <button 
                   className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-all duration-200 scale-75 group-hover/logo:scale-100"
                   aria-label="Mở rộng thanh bên"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCollapsed(false);
+                  }}
                 >
                   <PanelLeft size={20} className="text-white rotate-180" />
                 </button>
@@ -106,7 +130,10 @@ export default function DashboardLayout() {
             <div className={`absolute left-16 right-5 top-1/2 -translate-y-1/2 transition-all duration-300 flex items-center justify-between ${
               collapsed ? 'opacity-0 pointer-events-none -translate-x-2' : 'opacity-100 translate-x-0'
             }`}>
-              <span className="font-bold text-white tracking-tight text-sm truncate whitespace-nowrap ml-2">
+              <span 
+                className="font-bold text-white tracking-tight text-sm truncate whitespace-nowrap ml-2 cursor-pointer hover:text-indigo-300 transition-colors"
+                onClick={() => navigate('/')}
+              >
                 ChatDMP
               </span>
               
@@ -137,18 +164,56 @@ export default function DashboardLayout() {
         </nav>
 
         {/* 4. Sửa lại khối User Profile ở dưới cùng */}
-        <div className="p-3 border-t border-white/5 overflow-hidden">
-          <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group/user">
+        <div className="p-3 border-t border-white/5 overflow-visible relative">
+          
+          {/* Profile Menu Popup */}
+          {isProfileMenuOpen && (
+            <div className={`absolute bottom-full left-3 mb-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[60] transition-all ${collapsed ? 'w-56' : 'w-[calc(100%-24px)]'}`}>
+              <div className="p-4 border-b border-white/5 bg-slate-900/50">
+                <p className="text-sm font-bold text-white truncate">{userRole === 'admin' ? 'Admin User' : 'Khách Hàng'}</p>
+                <p className="text-xs text-slate-400 truncate mt-0.5">{userRole === 'admin' ? 'admin@example.com' : 'user@example.com'}</p>
+              </div>
+              <div className="p-1.5">
+                <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
+                  <User size={16} className="text-indigo-400" />
+                  Hồ sơ cá nhân
+                </button>
+                <button onClick={() => { navigate('/profile/edit'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
+                  <Settings size={16} className="text-violet-400" />
+                  Cài đặt
+                </button>
+                <button onClick={() => { setSupportModalOpen(true); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
+                  <HelpCircle size={16} className="text-emerald-400" />
+                  Trợ giúp
+                </button>
+                <div className="h-px bg-white/5 my-1"></div>
+                <button onClick={() => navigate('/auth')} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex items-center gap-3">
+                  <LogOut size={16} />
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Transparent overlay to close menu when clicking outside */}
+          {isProfileMenuOpen && (
+            <div className="fixed inset-0 z-50" onClick={() => setIsProfileMenuOpen(false)}></div>
+          )}
+
+          <div 
+            className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group/user relative z-[60]"
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+          >
             <div className={`rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-indigo-400 font-bold shadow-inner group-hover/user:border-indigo-500/50 transition-all shrink-0 ${collapsed ? 'w-10 h-10' : 'w-9 h-9'}`}>
-              AD
+              {userRole === 'admin' ? 'AD' : 'US'}
             </div>
             
             <div className={`flex-1 flex items-center justify-between overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">Quản trị viên</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">Thành viên Pro</p>
+                <p className="text-xs font-bold text-white truncate">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">{userRole === 'admin' ? 'Hệ thống' : 'Thành viên Pro'}</p>
               </div>
-              <Settings size={14} className="text-slate-600 group-hover/user:text-white transition-colors shrink-0" />
+              <ChevronUp size={14} className={`text-slate-600 group-hover/user:text-white transition-transform duration-300 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
             </div>
           </div>
         </div>
@@ -168,11 +233,11 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="p-5 flex items-center justify-between h-20">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg">
+          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => { setMobileOpen(false); navigate('/'); }}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-95 group-hover:rotate-3">
               <Bot size={22} className="text-white" />
             </div>
-            <span className="font-bold text-white tracking-widest text-lg">ChatDMP</span>
+            <span className="font-bold text-white tracking-widest text-lg group-hover:text-indigo-300 transition-colors">ChatDMP</span>
           </div>
           <button 
             onClick={() => setMobileOpen(false)} 
@@ -197,8 +262,8 @@ export default function DashboardLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 bg-transparent relative z-10 overflow-hidden">
         <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 md:hidden">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center transition-transform duration-200 group-hover:scale-95 group-hover:rotate-3">
               <Bot size={18} className="text-white" />
             </div>
           </div>
@@ -217,6 +282,9 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Support Modal */}
+      <PolicyModal item={supportModalOpen ? 'Hỗ trợ kỹ thuật' : null} onClose={() => setSupportModalOpen(false)} />
     </div>
   );
 }

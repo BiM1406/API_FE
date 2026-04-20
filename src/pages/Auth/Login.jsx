@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login({ onSwitch, onForgot }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,13 +23,43 @@ export default function Login({ onSwitch, onForgot }) {
       toast.error('Vui lòng điền đủ thông tin hợp lệ!');
       return;
     }
-    
+
+    const validAccounts = {
+      'admin': { role: 'admin', password: '123456' },
+      'admin@example.com': { role: 'admin', password: '123456' },
+      'user': { role: 'user', password: '123456' },
+      'user@example.com': { role: 'user', password: '123456' }
+    };
+
+    const account = validAccounts[email];
+
+    if (!account) {
+      setErrors({ email: 'Tài khoản không tồn tại!' });
+      toast.error('Đăng nhập thất bại!');
+      return;
+    }
+
+    if (password !== account.password) {
+      setErrors({ password: 'Mật khẩu không chính xác!' });
+      toast.error('Đăng nhập thất bại!');
+      return;
+    }
+
     setErrors({});
     setIsLoading(true);
+    
     // Giả lập API gọi backend mất 1.5 giây
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Đăng nhập thành công!');
+      localStorage.setItem('userRole', account.role);
+      toast.success(`Đăng nhập thành công với quyền ${account.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}!`);
+      
+      // Chuyển hướng
+      if (account.role === 'admin') {
+        navigate('/admin/overview');
+      } else {
+        navigate('/dashboard');
+      }
     }, 1500);
   };
 
@@ -45,7 +77,7 @@ export default function Login({ onSwitch, onForgot }) {
             <input
               type="text"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({...prev, email: ''})); }}
+              onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: '' })); }}
               className={`w-full bg-slate-800/50 border ${errors.email ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder="Nhập tên tài khoản hoặc email"
             />
@@ -60,7 +92,7 @@ export default function Login({ onSwitch, onForgot }) {
             <input
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({...prev, password: ''})); }}
+              onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: '' })); }}
               className={`w-full bg-slate-800/50 border ${errors.password ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-10 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder="••••••••"
             />
@@ -80,7 +112,7 @@ export default function Login({ onSwitch, onForgot }) {
             <input type="checkbox" className="w-4 h-4 bg-slate-800 border-slate-700 rounded text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900" />
             <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Ghi nhớ đăng nhập</span>
           </label>
-          <button 
+          <button
             type="button"
             onClick={onForgot}
             className="text-sm text-violet-400 font-medium hover:text-violet-300 transition-colors"

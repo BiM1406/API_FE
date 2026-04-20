@@ -40,7 +40,10 @@ export default function Profile() {
                 Gói Pro
               </span>
             </div>
-            <button className="px-5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-violet-500/50 text-white rounded-xl text-xs font-bold transition-all active:scale-95 relative z-10">
+            <button 
+              onClick={() => navigate('/profile/edit')}
+              className="px-5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-violet-500/50 text-white rounded-xl text-xs font-bold transition-all active:scale-95 relative z-10"
+            >
               Chỉnh sửa hồ sơ
             </button>
           </div>

@@ -11,7 +11,11 @@ import ChatDMP from './pages/Dashboard/ChatDMP';
 import Database from './pages/Dashboard/Database';
 import History from './pages/Dashboard/History';
 import Profile from './pages/Dashboard/Profile';
+import EditProfile from './pages/Dashboard/EditProfile';
 import TestApi from './pages/Dashboard/TestApi';
+import AdminOverview from './pages/Dashboard/AdminOverview';
+import UserManagement from './pages/Dashboard/UserManagement';
+import RevenueManagement from './pages/Dashboard/RevenueManagement';
 import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
 
 function App() {
@@ -50,7 +54,13 @@ function App() {
           <Route path="/database" element={<Database />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/test-api" element={<TestApi />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin/overview" element={<AdminOverview />} />
+          <Route path="/admin/users" element={<UserManagement />} />
+          <Route path="/admin/revenue" element={<RevenueManagement />} />
         </Route>
 
         {/* Redirect mọi route sai */}
