@@ -21,8 +21,8 @@ const DEFAULT_PROJECTS = [
     id: 'mp-1',
     name: 'E-commerce API', 
     desc: 'Main microservice for the storefront', 
-    updated: '2 hours ago', 
-    status: 'Active', 
+    updated: '2 giờ trước', 
+    status: 'Hoạt động', 
     tech: ['Node', 'PostgreSQL', 'Redis'], 
     color: 'from-blue-500 to-indigo-500',
     activeColor: 'bg-emerald-500'
@@ -31,8 +31,8 @@ const DEFAULT_PROJECTS = [
     id: 'mp-2',
     name: 'Support AI Bot', 
     desc: 'RAG-based customer support assistant', 
-    updated: '5 hours ago', 
-    status: 'Active', 
+    updated: '5 giờ trước', 
+    status: 'Hoạt động', 
     tech: ['Python', 'Vector DB', 'LLM'], 
     color: 'from-violet-500 to-purple-500',
     activeColor: 'bg-emerald-500'
@@ -41,8 +41,8 @@ const DEFAULT_PROJECTS = [
     id: 'mp-3',
     name: 'Auth Service', 
     desc: 'Centralized SSO authentication', 
-    updated: '2 days ago', 
-    status: 'Paused', 
+    updated: '2 ngày trước', 
+    status: 'Tạm dừng', 
     tech: ['Go', 'MySQL'], 
     color: 'from-emerald-500 to-teal-500',
     activeColor: 'bg-amber-500'
@@ -51,8 +51,8 @@ const DEFAULT_PROJECTS = [
     id: 'mp-4',
     name: 'Analytics Engine', 
     desc: 'Data aggregation and reporting', 
-    updated: '1 week ago', 
-    status: 'Active', 
+    updated: '1 tuần trước', 
+    status: 'Hoạt động', 
     tech: ['GraphQL', 'MongoDB'], 
     color: 'from-orange-500 to-amber-500',
     activeColor: 'bg-emerald-500'
@@ -60,10 +60,10 @@ const DEFAULT_PROJECTS = [
 ];
 
 const STATS_DATA = [
-  { label: 'Total Projects', value: '12', icon: FolderKanban, color: 'text-indigo-400', shadow: 'shadow-indigo-500/20' },
-  { label: 'Active APIs', value: '34', icon: Zap, color: 'text-amber-400', shadow: 'shadow-amber-500/20' },
-  { label: 'Database Storage', value: '1.2 GB', icon: Database, color: 'text-emerald-400', shadow: 'shadow-emerald-500/20' },
-  { label: 'AI Computations', value: '8.4k', icon: Activity, color: 'text-violet-400', shadow: 'shadow-violet-500/20' },
+  { label: 'Tổng dự án', value: '12', icon: FolderKanban, color: 'text-indigo-400', shadow: 'shadow-indigo-500/20' },
+  { label: 'API hoạt động', value: '34', icon: Zap, color: 'text-amber-400', shadow: 'shadow-amber-500/20' },
+  { label: 'Dung lượng DB', value: '1.2 GB', icon: Database, color: 'text-emerald-400', shadow: 'shadow-emerald-500/20' },
+  { label: 'Tính toán AI', value: '8.4k', icon: Activity, color: 'text-violet-400', shadow: 'shadow-violet-500/20' },
 ];
 
 
@@ -91,10 +91,10 @@ export default function MyProject() {
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
             <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">
-              My Projects
+              Dự án của tôi
             </h1>
             <p className="text-slate-400 text-base font-medium max-w-xl">
-              Manage your deployments, monitor APIs, and configure AI workspaces from one unified command center.
+              Quản lý triển khai, giám sát API và cấu hình không gian làm việc AI từ một trung tâm điều khiển hợp nhất.
             </p>
           </div>
           
@@ -104,7 +104,7 @@ export default function MyProject() {
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0"
             >
               <Plus size={20} strokeWidth={3} className={`transition-transform duration-300 ${isNewMenuOpen ? 'rotate-45' : ''}`} />
-              New Project
+              Dự án mới
             </button>
 
             {/* Dropdown Menu */}
@@ -121,8 +121,8 @@ export default function MyProject() {
                         <FolderPlus size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white tracking-tight">Create Blank Project</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Start from scratch</p>
+                        <p className="text-sm font-bold text-white tracking-tight">Tạo dự án trống</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Bắt đầu từ đầu</p>
                       </div>
                     </button>
                     <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
@@ -130,8 +130,8 @@ export default function MyProject() {
                         <UploadCloud size={18} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white tracking-tight">Import Local Project</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Upload folder or .zip</p>
+                        <p className="text-sm font-bold text-white tracking-tight">Nhập dự án cục bộ</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Tải lên thư mục hoặc .zip</p>
                       </div>
                     </button>
                   </div>
@@ -164,7 +164,7 @@ export default function MyProject() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <FolderKanban size={20} className="text-indigo-400" />
-              Recent Projects
+              Dự án gần đây
             </h2>
             
             {/* Search Bar */}
@@ -174,7 +174,7 @@ export default function MyProject() {
               </div>
               <input 
                 type="text" 
-                placeholder="Search projects..." 
+                placeholder="Tìm kiếm dự án..." 
                 className="w-full sm:w-64 bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
               />
             </div>
@@ -222,7 +222,7 @@ export default function MyProject() {
                   <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-1.5">
                       <Clock size={14} />
-                      Updated {project.updated}
+                      Cập nhật {project.updated}
                     </div>
                   </div>
                 </div>

@@ -7,8 +7,8 @@ import AuthPage from './pages/Auth/AuthPage';
 import PricingPage from './pages/HomePage/PricingPage';
 import DashboardLayout from './pages/Dashboard/DashboardLayout';
 import MyProject from './pages/Dashboard/MyProject';
-import AiWorkspace from './pages/Dashboard/AiWorkspace';
-import AiDatabase from './pages/Dashboard/AiDatabase';
+import ChatDMP from './pages/Dashboard/ChatDMP';
+import Database from './pages/Dashboard/Database';
 import History from './pages/Dashboard/History';
 import Profile from './pages/Dashboard/Profile';
 import TestApi from './pages/Dashboard/TestApi';
@@ -46,8 +46,8 @@ function App() {
         {/* Dashboard Layout for Main View */}
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<MyProject />} />
-          <Route path="/workspace" element={<AiWorkspace />} />
-          <Route path="/database" element={<AiDatabase />} />
+          <Route path="/workspace" element={<ChatDMP />} />
+          <Route path="/database" element={<Database />} />
           <Route path="/history" element={<History />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/test-api" element={<TestApi />} />

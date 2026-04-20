@@ -16,12 +16,12 @@ import {
 
 // 3. Tránh re-render không cần thiết: Đưa menuItems ra ngoài component
 const menuItems = [
-  { label: 'My Project', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Dự án của tôi', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'ChatDMP', icon: Terminal, path: '/workspace' },
-  { label: 'DB Designer', icon: Database, path: '/database' },
-  { label: 'API Tester', icon: Zap, path: '/test-api' },
-  { label: 'Activity History', icon: History, path: '/history' },
-  { label: 'Account Profile', icon: User, path: '/profile' },
+  { label: 'Thiết kế CSDL', icon: Database, path: '/database' },
+  { label: 'Kiểm thử API', icon: Zap, path: '/test-api' },
+  { label: 'Lịch sử hoạt động', icon: History, path: '/history' },
+  { label: 'Hồ sơ cá nhân', icon: User, path: '/profile' },
 ];
 
 const SidebarItem = ({ icon: Icon, label, path, active, collapsed, onClick }) => {
@@ -145,8 +145,8 @@ export default function DashboardLayout() {
             
             <div className={`flex-1 flex items-center justify-between overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">Administrator</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">Pro Member</p>
+                <p className="text-xs font-bold text-white truncate">Quản trị viên</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">Thành viên Pro</p>
               </div>
               <Settings size={14} className="text-slate-600 group-hover/user:text-white transition-colors shrink-0" />
             </div>

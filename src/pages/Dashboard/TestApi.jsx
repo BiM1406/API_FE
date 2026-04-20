@@ -10,7 +10,7 @@ export default function TestApi() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('ai_projects');
-    return saved ? JSON.parse(saved) : [{ id: generateId(), name: 'Default Project', envs: [], apiHistory: [] }];
+    return saved ? JSON.parse(saved) : [{ id: generateId(), name: 'Dự án mặc định', envs: [], apiHistory: [] }];
   });
   const [activeId, setActiveId] = useState(projects[0]?.id);
   
@@ -92,7 +92,7 @@ export default function TestApi() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
-            <h1 className="font-bold text-white tracking-tight">API Tester</h1>
+            <h1 className="font-bold text-white tracking-tight">Kiểm thử API</h1>
           </div>
         </div>
         <div className="flex items-center gap-3 bg-slate-950/50 p-1.5 rounded-xl border border-slate-800/50 group">
@@ -128,7 +128,7 @@ export default function TestApi() {
             disabled={loading} 
             className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-bold text-sm transition-all shadow-lg shadow-indigo-600/20 active:scale-95 disabled:opacity-50"
           >
-            {loading ? <RefreshCw size={18} className="animate-spin" /> : <Play size={18} />} Send
+            {loading ? <RefreshCw size={18} className="animate-spin" /> : <Play size={18} />} Gửi
           </button>
         </div>
 
@@ -156,7 +156,7 @@ export default function TestApi() {
                     <button onClick={() => removeHeader(h.id)} className="p-2 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                   </div>
                 ))}
-                <button onClick={addHeader} className="text-[10px] font-bold uppercase tracking-widest text-violet-400 hover:text-violet-300 flex items-center gap-2 mt-4 px-2 transition-colors"><Plus size={14} /> Add Header</button>
+                <button onClick={addHeader} className="text-[10px] font-bold uppercase tracking-widest text-violet-400 hover:text-violet-300 flex items-center gap-2 mt-4 px-2 transition-colors"><Plus size={14} /> Thêm Header</button>
               </div>
             )}
             {activeSubTab === 'body' && (
@@ -173,7 +173,7 @@ export default function TestApi() {
         {/* Response Panel */}
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-950/20 backdrop-blur-sm">
           <div className="p-3 border-b border-slate-800/50 bg-slate-900/50 flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-500 px-6">
-            <span>Response Panel</span>
+            <span>Bảng kết quả</span>
             {response && (
               <div className="flex gap-6">
                 <span className={response.status >= 200 && response.status < 300 ? 'text-emerald-400' : 'text-red-400'}>
@@ -203,7 +203,7 @@ export default function TestApi() {
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-4 opacity-40">
                 <RefreshCw size={48} className="animate-pulse" />
-                <p className="text-xs font-bold uppercase tracking-[0.2em]">Ready to Receive Response</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em]">Sẵn sàng nhận kết quả</p>
               </div>
             )}
           </div>
