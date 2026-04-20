@@ -5,10 +5,10 @@ import { useNavigate } from 'react-router-dom';
 export default function History() {
   const navigate = useNavigate();
   const historyItems = [
-    { id: 1, action: 'Generated User Controller', time: '10 mins ago', type: 'code', icon: Terminal, color: 'text-violet-400' },
-    { id: 2, action: 'Updated ERD: Added posts table', time: '1 hour ago', type: 'db', icon: Database, color: 'text-indigo-400' },
-    { id: 3, action: 'Tested Login API (Status: 200)', time: '2 hours ago', type: 'api', icon: Zap, color: 'text-amber-400' },
-    { id: 4, action: 'Created new project', time: '1 day ago', type: 'system', icon: Folder, color: 'text-emerald-400' },
+    { id: 1, action: 'Đã tạo User Controller', time: '10 phút trước', type: 'code', icon: Terminal, color: 'text-violet-400' },
+    { id: 2, action: 'Đã cập nhật ERD: Thêm bảng posts', time: '1 giờ trước', type: 'db', icon: Database, color: 'text-indigo-400' },
+    { id: 3, action: 'Đã kiểm thử API Login (Status: 200)', time: '2 giờ trước', type: 'api', icon: Zap, color: 'text-amber-400' },
+    { id: 4, action: 'Đã tạo dự án mới', time: '1 ngày trước', type: 'system', icon: Folder, color: 'text-emerald-400' },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function History() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
-            <h1 className="font-bold text-white tracking-tight">Activity History</h1>
+            <h1 className="font-bold text-white tracking-tight">Lịch sử hoạt động</h1>
           </div>
         </div>
       </header>

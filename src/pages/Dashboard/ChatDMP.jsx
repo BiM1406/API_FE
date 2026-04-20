@@ -15,7 +15,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 const initialChat = {
   id: generateId(),
-  title: 'New Chat',
+  title: 'Đoạn chat mới',
   messages: [],
   createdAt: Date.now()
 };
@@ -23,7 +23,7 @@ const initialChat = {
 const initialProject = {
   id: generateId(),
   name: 'Project 1',
-  description: 'Default project',
+  description: 'Dự án mặc định',
   status: 'active',
   envs: [],
   chats: [initialChat],
@@ -79,7 +79,7 @@ const Sidebar = ({
     const isProj = type === 'project';
 
     const doPin = (e) => { e.stopPropagation(); if (isProj) updateProject(id, { pinned: !isPinned }); else updateChat(activeProject.id, id, { pinned: !isPinned }); closeMenu(); };
-    const doRename = (e) => { e.stopPropagation(); setMenuType(type); setEditingId(id); setEditName(isProj ? item.name : item.title || 'New Chat'); closeMenu(); };
+    const doRename = (e) => { e.stopPropagation(); setMenuType(type); setEditingId(id); setEditName(isProj ? item.name : item.title || 'Đoạn chat mới'); closeMenu(); };
     const doArchive = (e) => { e.stopPropagation(); if (isProj) updateProject(id, { archived: true }); else updateChat(activeProject.id, id, { archived: true }); if (activeId === id && isProj) setActiveId(projects.find(p => p.id !== id)?.id || projects[0]?.id); closeMenu(); };
     const doDelete = (e) => { e.stopPropagation(); onConfirmDelete(isProj ? 'project' : 'chat', id); closeMenu(); };
 
@@ -136,7 +136,7 @@ const Sidebar = ({
         <div className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors" onClick={() => setIsProjectsOpen(!isProjectsOpen)}>
           <div className="flex items-center gap-2">
             <Folder size={16} className="text-indigo-400"/> 
-            <span className="font-bold text-white text-sm tracking-wide">My Projects</span>
+            <span className="font-bold text-white text-sm tracking-wide">Dự án của tôi</span>
           </div>
           <ChevronDown size={14} className={`text-slate-400 transition-transform ${isProjectsOpen ? 'rotate-180' : ''}`} />
         </div>
@@ -166,7 +166,7 @@ const Sidebar = ({
               );
             })}
             <button onClick={() => setShowAddProject(true)} className="w-full mt-2 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-all border border-dashed border-indigo-500/30 active:scale-95">
-              <Plus size={14} /> Add Project
+              <Plus size={14} /> Thêm dự án
             </button>
           </div>
         )}
@@ -178,7 +178,7 @@ const Sidebar = ({
           <div className="bg-white/10 text-white p-1.5 rounded-lg group-hover:bg-white/15 transition-colors">
             <Plus size={16} strokeWidth={3} />
           </div>
-          New Chat
+          Đoạn chat mới
         </button>
       </div>
 
@@ -186,12 +186,12 @@ const Sidebar = ({
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
         <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 shrink-0 bg-black/20 shadow-inner">
           <HistoryIcon size={14} className="text-slate-400" />
-          <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">History</span>
+          <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">Lịch sử</span>
         </div>
         
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           {(!activeProject?.chats || activeProject.chats.length === 0) ? (
-             <div className="text-center text-xs text-slate-500 p-4">No chats yet</div>
+             <div className="text-center text-xs text-slate-500 p-4">Chưa có đoạn chat nào</div>
           ) : (
             getSortedItems(activeProject.chats).map(chat => {
               const isActive = activeProject.activeChatId === chat.id;
@@ -205,7 +205,7 @@ const Sidebar = ({
                         <input autoFocus value={editName} onChange={e => setEditName(e.target.value)} onBlur={handleRenameSubmit} className="w-full bg-slate-950 text-white text-xs px-2 py-0.5 rounded outline-none border border-indigo-500/50" />
                       </form>
                     ) : (
-                      <span className="truncate text-xs font-medium">{chat.title || 'New Chat'}</span>
+                      <span className="truncate text-xs font-medium">{chat.title || 'Đoạn chat mới'}</span>
                     )}
                   </div>
                   {!isEditing && (
@@ -226,7 +226,7 @@ const Sidebar = ({
 
 
 
-const ChatTab = ({ activeChat, updateChat }) => {
+const ChatTab = ({ activeChat, updateChat, onClear }) => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollContainerRef = useRef(null);
@@ -245,7 +245,7 @@ const ChatTab = ({ activeChat, updateChat }) => {
     return (
       <div className="flex flex-col flex-1 items-center justify-center text-slate-500">
         <Bot size={32} className="text-indigo-400 mb-4 opacity-50" />
-        <p>Select or create a chat to begin</p>
+        <p>Chọn hoặc tạo đoạn chat để bắt đầu</p>
       </div>
     );
   }
@@ -265,16 +265,14 @@ const ChatTab = ({ activeChat, updateChat }) => {
     setIsTyping(true);
     
     setTimeout(() => {
-      const aiMsg = { id: generateId(), role: 'assistant', content: `Here is a mock response to: "${newMsg.content}"\n\n\`\`\`javascript\nconsole.log("Hello, World!");\n\`\`\``, timestamp: Date.now() };
+      const aiMsg = { id: generateId(), role: 'assistant', content: `Đây là phản hồi mẫu cho: "${newMsg.content}"\n\n\`\`\`javascript\nconsole.log("Hello, World!");\n\`\`\``, timestamp: Date.now() };
       updateChat({ messages: [...updatedMessages, aiMsg] });
       setIsTyping(false);
     }, 1500);
   };
 
   const handleClear = () => {
-    if (window.confirm('Clear all messages for this chat?')) {
-      updateChat({ messages: [] });
-    }
+    onClear();
   };
 
   const renderMessage = (msg) => {
@@ -335,7 +333,7 @@ const ChatTab = ({ activeChat, updateChat }) => {
           <h2 className="text-lg font-bold text-white tracking-tight">{activeChat.title || 'ChatDMP'}</h2>
         </div>
         <button onClick={handleClear} className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-400 px-3 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 transition-all">
-          <Trash2 size={14} /> Clear Messages
+          <Trash2 size={14} /> Xóa tin nhắn
         </button>
       </div>
       
@@ -345,8 +343,8 @@ const ChatTab = ({ activeChat, updateChat }) => {
             <div className="w-20 h-20 bg-slate-900 rounded-3xl border border-white/5 flex items-center justify-center shadow-2xl mb-6 shadow-black/50 ring-1 ring-white/10">
               <Bot size={32} className="text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2 tracking-tight">How can ChatDMP help you?</h3>
-            <p className="text-sm">Start by typing your prompt or paste some code.</p>
+            <h3 className="text-xl font-bold text-white mb-2 tracking-tight">ChatDMP có thể giúp gì cho bạn?</h3>
+            <p className="text-sm">Bắt đầu bằng cách nhập yêu cầu hoặc dán mã code vào đây.</p>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto w-full">
@@ -358,7 +356,7 @@ const ChatTab = ({ activeChat, updateChat }) => {
                       <Bot size={18} className="text-indigo-400" />
                     </div>
                     <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 text-slate-400 text-sm flex items-center gap-3 shadow-xl">
-                      <RefreshCw size={16} className="animate-spin text-indigo-400" /> ChatDMP is thinking...
+                      <RefreshCw size={16} className="animate-spin text-indigo-400" /> ChatDMP đang suy nghĩ...
                     </div>
                  </div>
               </div>
@@ -379,7 +377,7 @@ const ChatTab = ({ activeChat, updateChat }) => {
                   handleSend();
                 }
               }}
-              placeholder="Ask ChatDMP..."
+              placeholder="Hỏi ChatDMP..."
               className="w-full bg-slate-950/60 border border-white/10 rounded-2xl pl-5 pr-5 py-4 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none custom-scrollbar shadow-inner text-white placeholder-slate-500"
               rows={1}
               style={{ minHeight: '56px', maxHeight: '200px' }}
@@ -395,7 +393,7 @@ const ChatTab = ({ activeChat, updateChat }) => {
           </button>
         </div>
         <div className="max-w-4xl mx-auto text-center mt-3">
-          <p className="text-[10px] text-slate-500 font-medium">ChatDMP can make mistakes. Consider verifying critical information.</p>
+          <p className="text-[10px] text-slate-500 font-medium">ChatDMP có thể mắc lỗi. Hãy kiểm tra lại các thông tin quan trọng.</p>
         </div>
       </div>
     </div>
@@ -417,20 +415,20 @@ const EnvTab = ({ project, updateProject }) => {
               <Server size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Environment Variables</h2>
-              <p className="text-xs text-slate-400 mt-1">Manage secrets and keys for this workspace.</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">Biến môi trường</h2>
+              <p className="text-xs text-slate-400 mt-1">Quản lý các khóa bí mật và môi trường cục bộ.</p>
             </div>
           </div>
           <button onClick={addEnv} className="bg-white/5 hover:bg-white/10 border border-white/5 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold transition-all active:scale-95">
-            <Plus size={18} /> Add Variable
+            <Plus size={18} /> Thêm biến
           </button>
         </div>
 
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
           <div className="grid grid-cols-12 gap-4 p-5 border-b border-white/5 bg-slate-950/40 text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <div className="col-span-4 pl-2">Key</div>
-            <div className="col-span-6">Value</div>
-            <div className="col-span-2 text-right pr-2">Actions</div>
+            <div className="col-span-4 pl-2">Khóa (Key)</div>
+            <div className="col-span-6">Giá trị (Value)</div>
+            <div className="col-span-2 text-right pr-2">Thao tác</div>
           </div>
           
           {project.envs.length === 0 ? (
@@ -438,8 +436,8 @@ const EnvTab = ({ project, updateProject }) => {
               <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-white/5 mb-4 shadow-inner">
                 <Database size={24} className="text-slate-600" />
               </div>
-              <p className="text-slate-400 font-medium text-sm">No environment variables defined yet.</p>
-              <p className="text-slate-500 text-xs mt-1">Click "Add Variable" to get started.</p>
+              <p className="text-slate-400 font-medium text-sm">Chưa có biến môi trường nào.</p>
+              <p className="text-slate-500 text-xs mt-1">Nhấn "Thêm biến" để bắt đầu.</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
@@ -450,7 +448,7 @@ const EnvTab = ({ project, updateProject }) => {
                       type="text" 
                       value={env.key} 
                       onChange={e => updateEnv(env.id, 'key', e.target.value)} 
-                      placeholder="e.g. API_KEY"
+                      placeholder="vd: API_KEY"
                       className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3 py-2 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none text-sm font-mono text-emerald-300 transition-all"
                     />
                   </div>
@@ -460,7 +458,7 @@ const EnvTab = ({ project, updateProject }) => {
                         type={env.hidden ? "password" : "text"} 
                         value={env.value} 
                         onChange={e => updateEnv(env.id, 'value', e.target.value)} 
-                        placeholder="Enter value..."
+                        placeholder="Nhập giá trị..."
                         className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3 py-2 pr-10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none text-sm font-mono text-slate-300 transition-all"
                       />
                       <button onClick={() => updateEnv(env.id, 'hidden', !env.hidden)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
@@ -480,7 +478,7 @@ const EnvTab = ({ project, updateProject }) => {
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-400 bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl">
           <Zap size={16} className="text-amber-500 shrink-0" />
-          <span>Use variables in API requests with <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono font-bold tracking-wider">{`{{KEY}}`}</code> syntax.</span>
+          <span>Sử dụng biến trong các yêu cầu API với cú pháp <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono font-bold tracking-wider">{`{{KEY}}`}</code>.</span>
         </div>
       </div>
     </div>
@@ -519,12 +517,12 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
               </div>
               Project Configuration
             </h2>
-            <p className="text-sm text-slate-400 ml-[52px]">Update naming and export functions.</p>
+            <p className="text-sm text-slate-400 ml-[52px]">Cập nhật tên và các chức năng xuất dữ liệu.</p>
           </div>
 
           <div className="space-y-6 bg-slate-900/40 backdrop-blur-2xl p-8 rounded-3xl border border-white/5 shadow-2xl">
             <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Project Name</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Tên dự án</label>
               <input 
                 type="text" 
                 value={name} 
@@ -533,7 +531,7 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
               />
             </div>
             <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Description</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Mô tả</label>
               <textarea 
                 value={desc} 
                 onChange={e => setDesc(e.target.value)} 
@@ -543,41 +541,41 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
             </div>
             <button onClick={handleSave} className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
               {saved ? <Check size={18} className="text-emerald-300" /> : <Save size={18} />} 
-              {saved ? 'Settings Saved' : 'Update Configuration'}
+              {saved ? 'Đã lưu cài đặt' : 'Cập nhật cấu hình'}
             </button>
           </div>
         </section>
 
         <section className="pt-4">
-          <h3 className="text-lg font-bold text-white mb-6 tracking-tight pl-1">Data Management</h3>
+          <h3 className="text-lg font-bold text-white mb-6 tracking-tight pl-1">Quản lý dữ liệu</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between p-5 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:bg-slate-800/40 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white tracking-tight">Export Project</p>
-                <p className="text-xs text-slate-400 mt-0.5">Download all chats, environments as JSON</p>
+                <p className="text-sm font-bold text-white tracking-tight">Xuất dự án</p>
+                <p className="text-xs text-slate-400 mt-0.5">Tải xuống tất cả đoạn chat và cấu hình dưới dạng JSON</p>
               </div>
               <button onClick={handleExport} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95">
-                <Download size={16} /> Export
+                <Download size={16} /> Xuất
               </button>
             </div>
             
             <div className="flex items-center justify-between p-5 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:bg-slate-800/40 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white tracking-tight">Duplicate Project</p>
-                <p className="text-xs text-slate-400 mt-0.5">Create an exact clone of this project</p>
+                <p className="text-sm font-bold text-white tracking-tight">Nhân bản dự án</p>
+                <p className="text-xs text-slate-400 mt-0.5">Tạo một bản sao chính xác của dự án này</p>
               </div>
               <button onClick={handleDuplicate} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95">
-                <Copy size={16} /> Clone
+                <Copy size={16} /> Nhân bản
               </button>
             </div>
 
             <div className="flex items-center justify-between p-6 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-2xl transition-all">
               <div>
-                <p className="text-sm font-bold text-red-400 tracking-tight">Danger Zone</p>
-                <p className="text-xs text-red-500/70 mt-0.5 font-medium">Permanently delete this project and all its data</p>
+                <p className="text-sm font-bold text-red-400 tracking-tight">Khu vực nguy hiểm</p>
+                <p className="text-xs text-red-500/70 mt-0.5 font-medium">Xóa vĩnh viễn dự án này và toàn bộ dữ liệu của nó</p>
               </div>
               <button onClick={handleDelete} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95 shadow-lg shadow-red-500/10">
-                <Trash2 size={16} /> Delete Project
+                <Trash2 size={16} /> Xóa dự án
               </button>
             </div>
           </div>
@@ -590,7 +588,7 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
 
 // --- Main Component ---
 
-export default function AiWorkspace() {
+export default function ChatDMP() {
   const location = useLocation();
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('ai_projects_v2');
@@ -663,8 +661,8 @@ export default function AiWorkspace() {
     const newProj = { 
       ...initialProject, 
       id: generateId(), 
-      name: `Project ${projects.length + 1}`,
-      chats: [{ id: newChatId, title: 'New Chat', messages: [], createdAt: Date.now() }],
+      name: `Dự án ${projects.length + 1}`,
+      chats: [{ id: newChatId, title: 'Đoạn chat mới', messages: [], createdAt: Date.now() }],
       activeChatId: newChatId,
       createdAt: Date.now()
     };
@@ -683,7 +681,7 @@ export default function AiWorkspace() {
       description: mpProject.desc || '',
       status: mpProject.status || 'active',
       envs: [],
-      chats: [{ id: newChatId, title: 'New Chat', messages: [], createdAt: Date.now() }],
+      chats: [{ id: newChatId, title: 'Đoạn chat mới', messages: [], createdAt: Date.now() }],
       activeChatId: newChatId,
       createdAt: Date.now()
     };
@@ -707,7 +705,7 @@ export default function AiWorkspace() {
   };
 
   const handleNewChat = () => {
-    const newChat = { id: generateId(), title: 'New Chat', messages: [], createdAt: Date.now() };
+    const newChat = { id: generateId(), title: 'Đoạn chat mới', messages: [], createdAt: Date.now() };
     const updatedChats = [newChat, ...activeProject.chats];
     updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
   };
@@ -715,7 +713,7 @@ export default function AiWorkspace() {
   const handleDeleteChat = (chatId) => {
     const updatedChats = activeProject.chats.filter(c => c.id !== chatId);
     if (updatedChats.length === 0) {
-      const freshChat = { id: generateId(), title: 'New Chat', messages: [], createdAt: Date.now() };
+      const freshChat = { id: generateId(), title: 'Đoạn chat mới', messages: [], createdAt: Date.now() };
       updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
     } else {
       updateProject(activeProject.id, { chats: updatedChats, activeChatId: updatedChats[0].id });
@@ -724,8 +722,8 @@ export default function AiWorkspace() {
 
   const tabs = [
     { id: 'chat', label: 'ChatDMP', icon: MessageSquare },
-    { id: 'env', label: 'Environments', icon: Server },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'env', label: 'Biến môi trường', icon: Server },
+    { id: 'settings', label: 'Cài đặt', icon: Settings },
   ];
 
   return (
@@ -791,7 +789,13 @@ export default function AiWorkspace() {
         />
 
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10 bg-black/20">
-          {activeTab === 'chat' && <ChatTab activeChat={activeChat} updateChat={updateCurrentChat} />}
+          {activeTab === 'chat' && (
+            <ChatTab 
+              activeChat={activeChat} 
+              updateChat={updateCurrentChat} 
+              onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: 'Bạn có chắc chắn muốn xóa toàn bộ tin nhắn trong cuộc hội thoại này không?' })} 
+            />
+          )}
           {activeTab === 'env' && <EnvTab project={activeProject} updateProject={updateCurrentProject} />}
           {activeTab === 'settings' && <SettingsTab project={activeProject} updateProject={updateCurrentProject} handleDuplicate={handleDuplicateProject} handleDelete={() => handleDeleteProject(activeProject.id)} />}
         </main>
@@ -892,7 +896,7 @@ export default function AiWorkspace() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg tracking-tight">
-                    {confirmState.type === 'project' ? 'Xóa dự án?' : 'Xóa đoạn chat?'}
+                    {confirmState.type === 'project' ? 'Xóa dự án?' : confirmState.type === 'clear_chat' ? 'Xóa tin nhắn?' : 'Xóa đoạn chat?'}
                   </h3>
                   <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">
                     {confirmState.message}
@@ -913,7 +917,8 @@ export default function AiWorkspace() {
                 <button
                   onClick={() => {
                     if (confirmState.type === 'project') handleDeleteProject(confirmState.id);
-                    else handleDeleteChat(confirmState.id);
+                    else if (confirmState.type === 'chat') handleDeleteChat(confirmState.id);
+                    else if (confirmState.type === 'clear_chat') updateCurrentChat({ messages: [] });
                     setConfirmState(null);
                   }}
                   className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl transition-all duration-200 hover:brightness-110 active:scale-95"

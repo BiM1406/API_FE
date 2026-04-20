@@ -15,7 +15,7 @@ export default function Profile() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
-            <h1 className="font-bold text-white tracking-tight">Account Management</h1>
+            <h1 className="font-bold text-white tracking-tight">Quản lý tài khoản</h1>
           </div>
         </div>
       </header>
@@ -26,7 +26,7 @@ export default function Profile() {
             <div className="p-2 bg-violet-500/10 rounded-lg text-violet-400">
               <User size={18} />
             </div>
-            Account Profile
+            Hồ sơ cá nhân
           </h2>
           <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl flex items-center gap-8 relative group overflow-hidden">
             <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
@@ -37,11 +37,11 @@ export default function Profile() {
               <h3 className="text-2xl font-bold text-white tracking-tight">Admin User</h3>
               <p className="text-slate-400 text-sm mb-4 font-medium">admin@example.com</p>
               <span className="px-4 py-1.5 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]">
-                Pro Plan
+                Gói Pro
               </span>
             </div>
             <button className="px-5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-violet-500/50 text-white rounded-xl text-xs font-bold transition-all active:scale-95 relative z-10">
-              Edit Profile
+              Chỉnh sửa hồ sơ
             </button>
           </div>
         </section>
@@ -51,13 +51,13 @@ export default function Profile() {
             <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
               <Zap size={18} />
             </div>
-            Team Members
+            Thành viên nhóm
           </h3>
           <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl overflow-hidden shadow-xl">
             <div className="p-5 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/40">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Workspace Access</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Quyền truy cập</span>
               <button className="text-xs font-bold text-violet-400 hover:text-violet-300 flex items-center gap-2 transition-colors">
-                <Plus size={16} /> Invite Member
+                <Plus size={16} /> Mời thành viên
               </button>
             </div>
             <div className="divide-y divide-slate-800/50">
@@ -69,7 +69,7 @@ export default function Profile() {
                     <p className="text-[11px] text-slate-500 font-medium">admin@example.com</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">Owner</span>
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">Chủ sở hữu</span>
               </div>
               <div className="p-5 flex items-center justify-between hover:bg-slate-800/20 transition-all">
                 <div className="flex items-center gap-4">
@@ -80,8 +80,8 @@ export default function Profile() {
                   </div>
                 </div>
                 <select className="bg-slate-950/50 text-[11px] font-bold text-slate-400 border border-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-violet-500/50 transition-all cursor-pointer">
-                  <option>Editor</option>
-                  <option>Viewer</option>
+                  <option>Chỉnh sửa</option>
+                  <option>Chỉ xem</option>
                 </select>
               </div>
             </div>
