@@ -82,7 +82,10 @@ export default function DashboardLayout() {
             {/* Anchored Logo - Fixed at Left-5 (20px) of the 260px container */}
             <div 
               className="absolute left-5 top-1/2 -translate-y-1/2 z-20 group/logo cursor-pointer"
-              onClick={() => collapsed && setCollapsed(false)}
+              onClick={() => {
+                if (collapsed) setCollapsed(false);
+                else navigate('/');
+              }}
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-600/20 border border-white/10 transition-all duration-200 group-hover/logo:scale-95 group-hover/logo:rotate-3">
                 <Bot 
@@ -106,7 +109,10 @@ export default function DashboardLayout() {
             <div className={`absolute left-16 right-5 top-1/2 -translate-y-1/2 transition-all duration-300 flex items-center justify-between ${
               collapsed ? 'opacity-0 pointer-events-none -translate-x-2' : 'opacity-100 translate-x-0'
             }`}>
-              <span className="font-bold text-white tracking-tight text-sm truncate whitespace-nowrap ml-2">
+              <span 
+                className="font-bold text-white tracking-tight text-sm truncate whitespace-nowrap ml-2 cursor-pointer hover:text-indigo-300 transition-colors"
+                onClick={() => navigate('/')}
+              >
                 ChatDMP
               </span>
               
@@ -168,11 +174,17 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="p-5 flex items-center justify-between h-20">
-          <div className="flex items-center gap-4">
+          <div 
+            className="flex items-center gap-4 cursor-pointer"
+            onClick={() => {
+              setMobileOpen(false);
+              navigate('/');
+            }}
+          >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg">
               <Bot size={22} className="text-white" />
             </div>
-            <span className="font-bold text-white tracking-widest text-lg">ChatDMP</span>
+            <span className="font-bold text-white tracking-widest text-lg hover:text-indigo-300 transition-colors">ChatDMP</span>
           </div>
           <button 
             onClick={() => setMobileOpen(false)} 
@@ -197,7 +209,10 @@ export default function DashboardLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 bg-transparent relative z-10 overflow-hidden">
         <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 md:hidden">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
               <Bot size={18} className="text-white" />
             </div>
