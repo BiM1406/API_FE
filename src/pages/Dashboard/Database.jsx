@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Play, Database as DatabaseIcon, Code, Shield, Table2, Key, Search, MoreVertical, Copy, Hash, Type, Link as LinkIcon, Edit3, Trash2, Check } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
+import { logActivity } from '../../utils/activityLogger';
 
 export default function Database() {
   const [activeTable, setActiveTable] = useState('users');
@@ -49,6 +50,7 @@ export default function Database() {
     setTableList([...tableList, newTable]);
     setActiveTable(newTableName);
     toast.success(`Đã tạo bảng ${newTableName}`);
+    logActivity('database', `Đã tạo bảng: ${newTableName}`);
   };
 
   const handleDeleteTable = (e, tableName) => {
@@ -61,6 +63,7 @@ export default function Database() {
     setTableList(updated);
     if (activeTable === tableName) setActiveTable(updated[0].name);
     toast.success(`Đã xóa bảng ${tableName}`);
+    logActivity('database', `Đã xóa bảng: ${tableName}`);
   };
 
   const handleRunSQL = () => {
@@ -71,6 +74,7 @@ export default function Database() {
       success: 'Thực thi SQL thành công!',
       error: 'Lỗi thực thi SQL'
     });
+    logActivity('database', 'Đã chạy thực thi SQL');
   };
 
   const handleRenameStart = (e, tableName) => {

@@ -28,7 +28,6 @@ const userMenuItems = [
   { label: 'Thiết kế CSDL', icon: Database, path: '/database' },
   { label: 'Kiểm thử API', icon: Zap, path: '/test-api' },
   { label: 'Lịch sử hoạt động', icon: History, path: '/history' },
-  { label: 'Hồ sơ cá nhân', icon: User, path: '/profile' },
 ];
 
 // Menu dành cho Admin
@@ -36,7 +35,6 @@ const adminMenuItems = [
   { label: 'Tổng quan hệ thống', icon: Activity, path: '/admin/overview' },
   { label: 'Quản lý người dùng', icon: Users, path: '/admin/users' },
   { label: 'Quản lý doanh thu', icon: DollarSign, path: '/admin/revenue' },
-  { label: 'Hồ sơ cá nhân', icon: User, path: '/profile' },
 ];
 
 const SidebarItem = ({ icon: Icon, label, path, active, collapsed, onClick }) => {
@@ -204,14 +202,14 @@ export default function DashboardLayout() {
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group/user relative z-[60]"
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
           >
-            <div className={`rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-indigo-400 font-bold shadow-inner group-hover/user:border-indigo-500/50 transition-all shrink-0 ${collapsed ? 'w-10 h-10' : 'w-9 h-9'}`}>
-              {userRole === 'admin' ? 'AD' : 'US'}
+            <div className={`rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 group-hover/user:text-white group-hover/user:bg-white/10 shadow-inner group-hover/user:border-white/20 transition-all shrink-0 ${collapsed ? 'w-10 h-10' : 'w-9 h-9'}`}>
+              <Settings size={collapsed ? 20 : 18} className={`transition-transform duration-500 ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
             </div>
             
             <div className={`flex-1 flex items-center justify-between overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">{userRole === 'admin' ? 'Hệ thống' : 'Thành viên Pro'}</p>
+                <p className="text-xs font-bold text-white truncate">Cài đặt & Tài khoản</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
               </div>
               <ChevronUp size={14} className={`text-slate-600 group-hover/user:text-white transition-transform duration-300 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
             </div>
