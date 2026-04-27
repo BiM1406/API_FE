@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Bot, X } from 'lucide-react';
 
 // ─── Nội dung modal ───────────────────────────────────────────────
-const MODAL_CONTENT = {
+export const MODAL_CONTENT = {
   // Chính sách bảo mật
   'Chính sách dữ liệu cá nhân': {
     title: 'Chính sách Dữ liệu Cá nhân',
@@ -233,8 +233,9 @@ const MODAL_CONTENT = {
   },
 };
 
+
 // ─── Modal Component ───────────────────────────────────────────────
-function PolicyModal({ item, onClose }) {
+export function PolicyModal({ item, onClose }) {
   if (!item) return null;
   const data = MODAL_CONTENT[item];
   if (!data) return null;

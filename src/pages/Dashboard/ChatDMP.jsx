@@ -10,6 +10,7 @@ import {
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { logActivity } from '../../utils/activityLogger';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -263,6 +264,8 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
     updateChat({ messages: updatedMessages, ...(newTitle && { title: newTitle }) });
     setInput('');
     setIsTyping(true);
+    
+    logActivity('chatDmp', 'Đã gửi tin nhắn trong ChatDMP');
     
     setTimeout(() => {
       const aiMsg = { id: generateId(), role: 'assistant', content: `Đây là phản hồi mẫu cho: "${newMsg.content}"\n\n\`\`\`javascript\nconsole.log("Hello, World!");\n\`\`\``, timestamp: Date.now() };
@@ -708,6 +711,7 @@ export default function ChatDMP() {
     const newChat = { id: generateId(), title: 'Đoạn chat mới', messages: [], createdAt: Date.now() };
     const updatedChats = [newChat, ...activeProject.chats];
     updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
+    logActivity('chatDmp', 'Đã tạo đoạn chat mới');
   };
 
   const handleDeleteChat = (chatId) => {

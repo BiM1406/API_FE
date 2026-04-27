@@ -3,6 +3,7 @@ import { Trash2, Plus, RefreshCw, Play, ArrowLeft, Server } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { logActivity } from '../../utils/activityLogger';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -72,6 +73,7 @@ export default function TestApi() {
       
       const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: res.status };
       updateProject(project.id, { apiHistory: [historyItem, ...project.apiHistory] });
+      logActivity('api', `Đã kiểm thử API [${method}] ${finalUrl} (Status: ${res.status})`);
     } catch (err) {
       setResponse({ status: 'Error', statusText: err.message, time: Date.now() - startTime, size: 0, data: err.message, headers: {} });
     }
