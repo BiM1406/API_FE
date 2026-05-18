@@ -1,24 +1,70 @@
 @import "tailwindcss";
 
 @layer base {
-  html, body {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
     height: 100%;
     margin: 0;
     padding: 0;
-    
-    background-color: #020617; /* Matches slate-950 */
+    overflow-x: hidden;
+    background-color: #020617;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   #root {
     height: 100%;
   }
 
-  /* hiển thị mật khẩu*/
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #8b5cf6;
+    outline-offset: 3px;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
   input[type="password"]::-ms-reveal,
   input[type="password"]::-ms-clear {
     display: none;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
+
 @layer utilities {
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

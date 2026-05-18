@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getProfile, getSubscription, updateProfile } from '../../services/profileService';
 
 const plans = [
   { id: 'free', name: 'Miễn Phí', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
@@ -32,6 +33,22 @@ export default function EditProfile() {
   const [currentPlan, setCurrentPlan] = useState(userRole === 'admin' ? 'pro' : 'free');
   const [activeTab, setActiveTab] = useState('profile');
 
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([getProfile(), getSubscription()]).then(([profile, subscription]) => {
+      if (!mounted) return;
+      setFormData({
+        name: profile?.name || profile?.username || '',
+        email: profile?.email || ''
+      });
+      setCurrentPlan(String(subscription?.plan || profile?.plan || 'free').toLowerCase());
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -40,12 +57,17 @@ export default function EditProfile() {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      toast.error('Vui lòng nhập đủ tên và email');
+      return;
+    }
+    await updateProfile(formData);
     toast.success('Đã lưu thông tin hồ sơ!');
     navigate('/profile');
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!passwords.currentPassword) {
       toast.error('Vui lòng nhập mật khẩu hiện tại!');
       return;

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Database, Zap, Folder, Eye, ChevronDown, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { getActivities, hideActivity } from '../../utils/activityLogger';
 
 const getRelativeTime = (timestamp) => {
@@ -16,8 +15,6 @@ const getRelativeTime = (timestamp) => {
 };
 
 export default function History() {
-  const navigate = useNavigate();
-  
   // State for accordions
   const [expanded, setExpanded] = useState({
     chatDmp: true,

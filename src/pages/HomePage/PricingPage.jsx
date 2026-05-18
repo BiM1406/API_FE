@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Bot, Zap, Crown } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
@@ -22,10 +23,11 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '199.999',
+    price: '99.000',
     description: 'Tiếp tục trò chuyện với quyền truy cập mở rộng',
     buttonText: 'Nâng cấp lên Pro',
     isPopular: true,
+    paymentPlanKey: 'pro',
     features: [
       '5,000 request / ngày',
       '10 dự án Workspace đồng thời',
@@ -38,10 +40,11 @@ const plans = [
     icon: Zap
   },
   {
-    name: 'Ultra Vip Pro Plus Max Unlimited',
+    name: 'Ultra',
     price: '999.999',
     description: 'Vượt xa mọi sức tưởng tượng của bạn về nhân sinh',
     buttonText: 'Nâng cấp lên Ultra',
+    paymentPlanKey: 'ultra',
     features: [
       'Không giới hạn số lượng request trong ngày',
       'Quyền sở hữu mã nguồn AI tạo ra 100%',
@@ -56,6 +59,8 @@ const plans = [
 ];
 
 export default function PricingPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30">
       <Header />
@@ -112,6 +117,12 @@ export default function PricingPage() {
 
                 <div className="mt-6">
                   <button
+                    type="button"
+                    onClick={() => {
+                      if (plan.paymentPlanKey) {
+                        navigate(`/payment?plan=${plan.paymentPlanKey}`);
+                      }
+                    }}
                     className={`w-full py-3 rounded-full text-sm font-bold transition-all mb-8 ${
                       plan.isCurrent
                         ? 'bg-white/5 border border-white/10 text-gray-400 cursor-default'

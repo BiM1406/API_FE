@@ -1,73 +1,67 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Terminal, 
-  Database, 
-  History, 
-  User, 
-  Menu, 
-  X,
-  Zap,
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Activity,
   Bot,
+  ChevronUp,
+  Database,
+  DollarSign,
+  HelpCircle,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Menu,
   PanelLeft,
   Settings,
-  LogOut,
-  HelpCircle,
-  ChevronUp,
-  Activity,
+  Terminal,
+  User,
   Users,
-  DollarSign
+  X,
+  Zap
 } from 'lucide-react';
 import { PolicyModal } from '../HomePage/Footer';
+import { getCurrentUser, logout } from '../../services/authService';
+import { addActivity } from '../../services/activityService';
 
-// Menu dành cho User
 const userMenuItems = [
   { label: 'Dự án của tôi', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'ChatDMP', icon: Terminal, path: '/workspace' },
   { label: 'Thiết kế CSDL', icon: Database, path: '/database' },
   { label: 'Kiểm thử API', icon: Zap, path: '/test-api' },
-  { label: 'Lịch sử hoạt động', icon: History, path: '/history' },
+  { label: 'Lịch sử hoạt động', icon: History, path: '/history' }
 ];
 
-// Menu dành cho Admin
 const adminMenuItems = [
   { label: 'Tổng quan hệ thống', icon: Activity, path: '/admin/overview' },
   { label: 'Quản lý người dùng', icon: Users, path: '/admin/users' },
-  { label: 'Quản lý doanh thu', icon: DollarSign, path: '/admin/revenue' },
+  { label: 'Quản lý doanh thu', icon: DollarSign, path: '/admin/revenue' }
 ];
 
-const SidebarItem = ({ icon: Icon, label, path, active, collapsed, onClick }) => {
-  return (
-    <Link
-      to={path}
-      onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative overflow-hidden ${
-        active 
-          ? 'bg-white/10 text-white border border-white/10 shadow-lg shadow-black/20' 
-          : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-      }`}
-    >
-      <div className={`shrink-0 transition-all duration-300 ${active ? 'text-indigo-400' : 'group-hover:text-indigo-300'}`}>
-        <Icon size={20} strokeWidth={active ? 2.5 : 2} />
-      </div>
-      
-      {/* 1. KHÔNG dùng {!collapsed &&}, thay vào đó dùng w-0 và opacity-0 */}
-      <span className={`text-sm font-semibold tracking-tight transition-all duration-300 whitespace-nowrap ${
-        collapsed ? 'w-0 opacity-0 pointer-events-none' : 'w-full opacity-100'
-      }`}>
-        {label}
-      </span>
-      
-      {/* Tooltip (Giữ nguyên) */}
-      {collapsed && (
-        <div className="absolute left-full ml-4 px-3 py-1 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shadow-xl border border-slate-700 uppercase tracking-widest">
-          {label}
-        </div>
-      )}
-    </Link>
-  );
-};
+const SidebarItem = ({ icon, label, path, active, collapsed, onClick }) => (
+  <Link
+    to={path}
+    onClick={onClick}
+    title={collapsed ? label : undefined}
+    className={`group relative flex items-center rounded-xl border transition-all ${
+      collapsed ? 'justify-center gap-0 px-0 py-3' : 'justify-start gap-3 px-3 py-3'
+    } ${
+      active
+        ? 'border-white/10 bg-white/10 text-white shadow-lg shadow-black/20'
+        : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'
+    }`}
+  >
+    {React.createElement(icon, {
+      size: 20,
+      strokeWidth: active ? 2.5 : 2,
+      className: `shrink-0 transition-colors ${active ? 'text-indigo-400' : 'group-hover:text-indigo-300'}`
+    })}
+    <span className={`min-w-0 truncate text-sm font-semibold tracking-tight transition-all duration-200 ${
+      collapsed ? 'hidden w-0 opacity-0' : 'block w-full opacity-100'
+    }`}>
+      {label}
+    </span>
+  </Link>
+);
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -77,74 +71,75 @@ export default function DashboardLayout() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
 
-  const userRole = localStorage.getItem('userRole') || 'user';
+  const currentUser = getCurrentUser();
+  const userRole = currentUser?.role === 'ADMIN' ? 'admin' : 'user';
   const menuItems = userRole === 'admin' ? adminMenuItems : userMenuItems;
-
   const currentPath = location.pathname;
+  const displayName = userRole === 'admin' ? 'Admin User' : 'Khách Hàng';
+  const displayEmail = userRole === 'admin' ? 'admin@example.com' : 'user@example.com';
+
+  const handleNavigate = (path) => {
+    setIsProfileMenuOpen(false);
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    addActivity({
+      type: 'auth',
+      title: 'Dang xuat',
+      description: `${displayName} dang xuat khoi he thong`,
+      status: 'success'
+    });
+    logout();
+    setIsProfileMenuOpen(false);
+    navigate('/auth');
+  };
 
   return (
-    <div className="h-screen bg-slate-950 text-slate-300 font-sans flex overflow-hidden relative selection:bg-indigo-500/30">
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+    <div className="relative flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-300 selection:bg-indigo-500/30">
+      <div className="pointer-events-none absolute left-[-10%] top-[-10%] z-0 h-[40%] w-[40%] rounded-full bg-indigo-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] z-0 h-[40%] w-[40%] rounded-full bg-violet-600/10 blur-[120px]" />
 
-      {/* Sidebar - Desktop */}
-      <aside 
-        className={`hidden md:flex flex-col border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl z-40 transition-[width] duration-300 cubic-bezier(0.4, 0, 0.2, 1) relative overflow-x-hidden group/sidebar flex-none ${
+      <aside
+        className={`relative z-40 hidden flex-none flex-col overflow-hidden border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl transition-[width] duration-300 md:flex ${
           collapsed ? 'w-20' : 'w-[260px]'
         }`}
       >
-        {/* Masked Header - Contents are FIXED 260px width */}
-        <div className="h-20 shrink-0 relative overflow-hidden">
-          <div className="w-[260px] h-full relative">
-            {/* Anchored Logo - Fixed at Left-5 (20px) of the 260px container */}
-            <div 
-              className="absolute left-5 top-1/2 -translate-y-1/2 z-20 group/logo cursor-pointer"
+        <div className="h-20 shrink-0 overflow-hidden">
+          <div className={`flex h-full items-center ${collapsed ? 'justify-center px-0' : 'justify-between px-5'}`}>
+            <button
+              type="button"
               onClick={() => {
                 if (collapsed) setCollapsed(false);
                 else navigate('/');
               }}
+              className="group/logo relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 shadow-xl shadow-indigo-600/20 transition-all hover:scale-95 hover:rotate-3"
+              aria-label={collapsed ? 'Mở rộng sidebar' : 'Về trang chủ'}
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-600/20 border border-white/10 transition-all duration-200 group-hover/logo:scale-95 group-hover/logo:rotate-3">
-                <Bot 
-                  size={22} 
-                  className={`text-white transition-opacity duration-200 ${collapsed ? 'group-hover/logo:opacity-10' : 'opacity-100'}`} 
-                />
-              </div>
-              
-              {/* Overlaid Toggle Button (Only active in Slim state) */}
+              <Bot size={22} className={`text-white transition-opacity ${collapsed ? 'group-hover/logo:opacity-10' : 'opacity-100'}`} />
               {collapsed && (
-                <button 
-                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-all duration-200 scale-75 group-hover/logo:scale-100"
-                  aria-label="Mở rộng thanh bên"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCollapsed(false);
-                  }}
-                >
-                  <PanelLeft size={20} className="text-white rotate-180" />
-                </button>
+                <PanelLeft size={20} className="absolute text-white opacity-0 transition-opacity group-hover/logo:opacity-100 rotate-180" />
               )}
-            </div>
+            </button>
 
-            {/* 3. Sửa lại Header - Không cho chữ trượt sang phải nữa */}
-            <div className={`absolute left-16 right-5 top-1/2 -translate-y-1/2 transition-all duration-300 flex items-center justify-between ${
-              collapsed ? 'opacity-0 pointer-events-none -translate-x-2' : 'opacity-100 translate-x-0'
+            <div className={`ml-3 flex min-w-0 flex-1 items-center justify-between transition-all ${
+              collapsed ? 'hidden w-0 opacity-0' : 'flex opacity-100'
             }`}>
-              <span 
-                className="font-bold text-white tracking-tight text-sm truncate whitespace-nowrap ml-2 cursor-pointer hover:text-indigo-300 transition-colors"
+              <button
+                type="button"
                 onClick={() => navigate('/')}
+                className="min-w-0 truncate text-sm font-bold tracking-tight text-white transition hover:text-indigo-300"
               >
                 ChatDMP
-              </span>
-              
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
                   setCollapsed(true);
                 }}
-                className="p-2 ml-auto rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
-                aria-label="Thu nhỏ thanh bên"
+                className="ml-3 rounded-lg p-2 text-slate-500 transition hover:bg-white/10 hover:text-white active:scale-90"
+                aria-label="Thu nhỏ sidebar"
               >
                 <PanelLeft size={20} />
               </button>
@@ -152,10 +147,9 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        {/* 2. Bỏ class nhảy Layout đột ngột ở thẻ <nav> */}
-        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto overflow-x-hidden hide-scrollbar flex flex-col">
+        <nav className="flex min-h-0 flex-1 flex-col space-y-2 overflow-y-auto overflow-x-hidden px-3 py-4 hide-scrollbar">
           {menuItems.map((item) => (
-            <SidebarItem 
+            <SidebarItem
               key={item.path}
               {...item}
               active={currentPath === item.path || (currentPath.startsWith(item.path) && item.path !== '/')}
@@ -164,127 +158,166 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
-        {/* 4. Sửa lại khối User Profile ở dưới cùng */}
-        <div className="p-3 border-t border-white/5 overflow-visible relative">
-          
-          {/* Profile Menu Popup */}
+        <div className={`relative shrink-0 border-t border-white/5 ${collapsed ? 'overflow-hidden p-2' : 'overflow-visible p-3'}`}>
           {isProfileMenuOpen && (
-            <div className={`absolute bottom-full left-3 mb-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[60] transition-all ${collapsed ? 'w-56' : 'w-[calc(100%-24px)]'}`}>
-              <div className="p-4 border-b border-white/5 bg-slate-900/50">
-                <p className="text-sm font-bold text-white truncate">{userRole === 'admin' ? 'Admin User' : 'Khách Hàng'}</p>
-                <p className="text-xs text-slate-400 truncate mt-0.5">{userRole === 'admin' ? 'admin@example.com' : 'user@example.com'}</p>
+            <>
+              <div className="fixed inset-0 z-50" onClick={() => setIsProfileMenuOpen(false)} />
+              <div
+                className={`absolute bottom-full z-[60] mb-2 overflow-hidden rounded-xl border border-white/10 bg-slate-800/95 shadow-2xl shadow-black/50 backdrop-blur-xl transition-all ${
+                  collapsed ? 'left-2 w-16' : 'left-3 w-[calc(100%-24px)]'
+                }`}
+              >
+                {!collapsed && (
+                  <div className="border-b border-white/5 bg-slate-900/50 p-4">
+                    <p className="truncate text-sm font-bold text-white">{displayName}</p>
+                    <p className="mt-0.5 truncate text-xs text-slate-400">{displayEmail}</p>
+                  </div>
+                )}
+                <div className="p-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('/profile')}
+                    title="Hồ sơ cá nhân"
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white ${
+                      collapsed ? 'justify-center gap-0' : 'justify-start gap-3 text-left'
+                    }`}
+                  >
+                    <User size={16} className="shrink-0 text-indigo-400" />
+                    <span className={collapsed ? 'hidden' : 'truncate'}>Hồ sơ cá nhân</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('/profile/edit')}
+                    title="Cài đặt"
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white ${
+                      collapsed ? 'justify-center gap-0' : 'justify-start gap-3 text-left'
+                    }`}
+                  >
+                    <Settings size={16} className="shrink-0 text-violet-400" />
+                    <span className={collapsed ? 'hidden' : 'truncate'}>Cài đặt</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSupportModalOpen(true);
+                      setIsProfileMenuOpen(false);
+                    }}
+                    title="Trợ giúp"
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white ${
+                      collapsed ? 'justify-center gap-0' : 'justify-start gap-3 text-left'
+                    }`}
+                  >
+                    <HelpCircle size={16} className="shrink-0 text-emerald-400" />
+                    <span className={collapsed ? 'hidden' : 'truncate'}>Trợ giúp</span>
+                  </button>
+                  <div className="my-1 h-px bg-white/5" />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    title="Đăng xuất"
+                    className={`flex w-full items-center rounded-lg px-3 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/10 hover:text-red-300 ${
+                      collapsed ? 'justify-center gap-0' : 'justify-start gap-3 text-left'
+                    }`}
+                  >
+                    <LogOut size={16} className="shrink-0" />
+                    <span className={collapsed ? 'hidden' : 'truncate'}>Đăng xuất</span>
+                  </button>
+                </div>
               </div>
-              <div className="p-1.5">
-                <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
-                  <User size={16} className="text-indigo-400" />
-                  Hồ sơ cá nhân
-                </button>
-                <button onClick={() => { navigate('/profile/edit'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
-                  <Settings size={16} className="text-violet-400" />
-                  Cài đặt
-                </button>
-                <button onClick={() => { setSupportModalOpen(true); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
-                  <HelpCircle size={16} className="text-emerald-400" />
-                  Trợ giúp
-                </button>
-                <div className="h-px bg-white/5 my-1"></div>
-                <button onClick={() => navigate('/auth')} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex items-center gap-3">
-                  <LogOut size={16} />
-                  Đăng xuất
-                </button>
-              </div>
-            </div>
+            </>
           )}
 
-          {/* Transparent overlay to close menu when clicking outside */}
-          {isProfileMenuOpen && (
-            <div className="fixed inset-0 z-50" onClick={() => setIsProfileMenuOpen(false)}></div>
-          )}
-
-          <div 
-            className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group/user relative z-[60]"
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+          <button
+            type="button"
+            title={collapsed ? 'Cài đặt & tài khoản' : undefined}
+            className={`relative z-[60] flex w-full items-center overflow-hidden rounded-xl p-2 transition hover:bg-white/5 ${
+              collapsed ? 'justify-center gap-0' : 'justify-start gap-3'
+            }`}
+            onClick={() => setIsProfileMenuOpen((open) => !open)}
           >
-            <div className={`rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 group-hover/user:text-white group-hover/user:bg-white/10 shadow-inner group-hover/user:border-white/20 transition-all shrink-0 ${collapsed ? 'w-10 h-10' : 'w-9 h-9'}`}>
+            <div className={`flex shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-800 text-slate-400 shadow-inner transition group-hover/user:bg-white/10 ${
+              collapsed ? 'h-10 w-10' : 'h-9 w-9'
+            }`}>
               <Settings size={collapsed ? 20 : 18} className={`transition-transform duration-500 ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
             </div>
-            
-            <div className={`flex-1 flex items-center justify-between overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
-              <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">Cài đặt & Tài khoản</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
+
+            <div className={`min-w-0 flex-1 items-center justify-between overflow-hidden transition-all duration-200 ${
+              collapsed ? 'hidden w-0 opacity-0' : 'flex w-full opacity-100'
+            }`}>
+              <div className="min-w-0 text-left">
+                <p className="truncate text-xs font-bold text-white">Cài đặt & Tài khoản</p>
+                <p className="truncate text-[10px] uppercase tracking-widest text-slate-500">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
               </div>
-              <ChevronUp size={14} className={`text-slate-600 group-hover/user:text-white transition-transform duration-300 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronUp size={14} className={`shrink-0 text-slate-600 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
             </div>
-          </div>
+          </button>
         </div>
       </aside>
 
-      {/* Sidebar - Mobile (unchanged structure but updated visuals) */}
-      <div 
-        className={`md:hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[100] transition-opacity duration-500 ${
-          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      <div
+        className={`fixed inset-0 z-[100] bg-black/60 backdrop-blur-md transition-opacity duration-500 md:hidden ${
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={() => setMobileOpen(false)}
         aria-hidden="true"
       />
-      <aside 
-        className={`md:hidden fixed inset-y-0 left-0 w-[280px] bg-slate-900 z-[101] border-r border-white/10 shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+      <aside
+        className={`fixed inset-y-0 left-0 z-[101] w-[280px] border-r border-white/10 bg-slate-900 shadow-2xl transition-transform duration-500 md:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-5 flex items-center justify-between h-20">
-          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => { setMobileOpen(false); navigate('/'); }}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg transition-transform duration-200 group-hover:scale-95 group-hover:rotate-3">
+        <div className="flex h-20 items-center justify-between p-5">
+          <button type="button" className="group flex items-center gap-4" onClick={() => { setMobileOpen(false); navigate('/'); }}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg transition group-hover:scale-95 group-hover:rotate-3">
               <Bot size={22} className="text-white" />
             </div>
-            <span className="font-bold text-white tracking-widest text-lg group-hover:text-indigo-300 transition-colors">ChatDMP</span>
-          </div>
-          <button 
-            onClick={() => setMobileOpen(false)} 
-            className="p-2.5 text-slate-400 hover:text-white bg-white/5 rounded-xl transition-all"
+            <span className="text-lg font-bold tracking-widest text-white transition group-hover:text-indigo-300">ChatDMP</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="rounded-xl bg-white/5 p-2.5 text-slate-400 transition hover:text-white"
             aria-label="Đóng menu di động"
           >
             <X size={24} />
           </button>
         </div>
-        <nav className="p-4 space-y-2">
+        <nav className="space-y-2 p-4">
           {menuItems.map((item) => (
-            <SidebarItem 
+            <SidebarItem
               key={item.path}
               {...item}
               active={currentPath === item.path || (currentPath.startsWith(item.path) && item.path !== '/')}
+              collapsed={false}
               onClick={() => setMobileOpen(false)}
             />
           ))}
         </nav>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-transparent relative z-10 overflow-hidden">
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 md:hidden">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center transition-transform duration-200 group-hover:scale-95 group-hover:rotate-3">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <header className="flex h-16 items-center justify-between border-b border-white/5 px-6 md:hidden">
+          <button type="button" className="group flex items-center gap-3" onClick={() => navigate('/')}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 transition group-hover:scale-95 group-hover:rotate-3">
               <Bot size={18} className="text-white" />
             </div>
-          </div>
-          <button 
-            onClick={() => setMobileOpen(true)} 
-            className="p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg border border-white/10"
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="rounded-lg border border-white/10 bg-white/5 p-2 text-slate-400 hover:text-white"
             aria-label="Mở menu di động"
           >
             <Menu size={20} />
           </button>
         </header>
 
-        <main className="flex-1 flex flex-col overflow-x-hidden overflow-y-auto relative custom-scrollbar">
-          {/* Subtle vignette effect for main content area */}
-          <div className="absolute inset-0 bg-indigo-500/[0.02] pointer-events-none z-0 fixed"></div>
+        <main className="relative flex flex-1 flex-col overflow-y-auto overflow-x-hidden custom-scrollbar">
+          <div className="pointer-events-none fixed inset-0 z-0 bg-indigo-500/[0.02]" />
           <Outlet />
         </main>
       </div>
 
-      {/* Support Modal */}
       <PolicyModal item={supportModalOpen ? 'Hỗ trợ kỹ thuật' : null} onClose={() => setSupportModalOpen(false)} />
     </div>
   );

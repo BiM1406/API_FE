@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { 
   Folder, Plus, Search, Trash2, Copy, Edit2, Archive, 
   MessageSquare, Terminal, Settings, LogOut, Send, RefreshCw, 
@@ -35,9 +35,9 @@ const initialProject = {
 // --- Subcomponents ---
 
 const Sidebar = ({ 
-  projects, activeId, setActiveId, handleNewProject, handleDeleteProject, 
-  activeProject, handleNewChat, handleDeleteChat, setActiveChatId,
-  sidebarOpen, setSidebarOpen, updateProject, updateChat, onConfirmDelete
+  projects, activeId, setActiveId,
+  activeProject, handleNewChat, setActiveChatId,
+  sidebarOpen, setSidebarOpen, updateProject, updateChat, onConfirmDelete, setShowAddProject
 }) => {
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
@@ -623,6 +623,10 @@ export default function ChatDMP() {
 
   const activeProject = projects.find(p => p.id === activeId) || projects[0];
 
+  const updateProject = (id, updates) => {
+    setProjects(projs => projs.map(p => p.id === id ? { ...p, ...updates } : p));
+  };
+
   // Automatically select a chat if none is selected
   useEffect(() => {
     if (activeProject && !activeProject.activeChatId && activeProject.chats && activeProject.chats.length > 0) {
@@ -631,10 +635,6 @@ export default function ChatDMP() {
   }, [activeProject]);
 
   const activeChat = activeProject?.chats?.find(c => c.id === activeProject.activeChatId) || activeProject?.chats?.[0];
-
-  const updateProject = (id, updates) => {
-    setProjects(projs => projs.map(p => p.id === id ? { ...p, ...updates } : p));
-  };
   
   const updateCurrentProject = (updates) => {
     updateProject(activeProject.id, updates);
@@ -790,6 +790,7 @@ export default function ChatDMP() {
             const msg = type === 'project' ? 'Bạn có muốn xóa dự án này không?' : 'Bạn có muốn xóa đoạn chat này không?';
             setConfirmState({ type, id, message: msg });
           }}
+          setShowAddProject={setShowAddProject}
         />
 
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10 bg-black/20">

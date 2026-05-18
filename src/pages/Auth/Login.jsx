@@ -3,6 +3,8 @@ import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { login } from '../../services/authService';
+import { addActivity } from '../../services/activityService';
 
 export default function Login({ onSwitch, onForgot }) {
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ export default function Login({ onSwitch, onForgot }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
-    if (!email) newErrors.email = 'Vui lòng nhập tên tài khoản hoặc email';
+    if (!email.trim()) newErrors.email = 'Vui lòng nhập tên tài khoản hoặc email';
     if (!password) newErrors.password = 'Vui lòng nhập mật khẩu';
 
     if (Object.keys(newErrors).length > 0) {
@@ -24,43 +26,25 @@ export default function Login({ onSwitch, onForgot }) {
       return;
     }
 
-    const validAccounts = {
-      'admin': { role: 'admin', password: '123456' },
-      'admin@example.com': { role: 'admin', password: '123456' },
-      'user': { role: 'user', password: '123456' },
-      'user@example.com': { role: 'user', password: '123456' }
-    };
-
-    const account = validAccounts[email];
-
-    if (!account) {
-      setErrors({ email: 'Tài khoản không tồn tại!' });
-      toast.error('Đăng nhập thất bại!');
-      return;
-    }
-
-    if (password !== account.password) {
-      setErrors({ password: 'Mật khẩu không chính xác!' });
-      toast.error('Đăng nhập thất bại!');
-      return;
-    }
-
     setErrors({});
     setIsLoading(true);
-    
-    // Giả lập API gọi backend mất 1.5 giây
-    setTimeout(() => {
+
+    try {
+      const { user } = await login({ email, password });
+      addActivity({
+        type: 'auth',
+        title: 'Đăng nhập',
+        description: `${user.name || user.email} đăng nhập hệ thống`,
+        status: 'success'
+      });
+      toast.success(`Đăng nhập thành công với quyền ${user.role === 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}!`);
+      navigate(user.role === 'ADMIN' ? '/admin/overview' : '/dashboard');
+    } catch (error) {
+      setErrors({ password: error.message });
+      toast.error(error.message || 'Đăng nhập thất bại!');
+    } finally {
       setIsLoading(false);
-      localStorage.setItem('userRole', account.role);
-      toast.success(`Đăng nhập thành công với quyền ${account.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}!`);
-      
-      // Chuyển hướng
-      if (account.role === 'admin') {
-        navigate('/admin/overview');
-      } else {
-        navigate('/dashboard');
-      }
-    }, 1500);
+    }
   };
 
   return (
@@ -77,7 +61,7 @@ export default function Login({ onSwitch, onForgot }) {
             <input
               type="text"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: '' })); }}
+              onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '' })); }}
               className={`w-full bg-slate-800/50 border ${errors.email ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder="Nhập tên tài khoản hoặc email"
             />
@@ -90,9 +74,9 @@ export default function Login({ onSwitch, onForgot }) {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
-              type={showPassword ? "text" : "password"}
+              type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: '' })); }}
+              onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '' })); }}
               className={`w-full bg-slate-800/50 border ${errors.password ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-10 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder="••••••••"
             />

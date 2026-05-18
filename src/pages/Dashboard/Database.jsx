@@ -144,7 +144,7 @@ export default function Database() {
       let newTables = [];
       let match;
       
-      const getIconAndColor = (type, meta, name) => {
+      const getIconAndColor = (type, meta) => {
         if(meta === 'PK' || meta.includes('PRIMARY')) return { icon: Key, color: 'text-amber-400' };
         if(meta.includes('FK') || meta.includes('REFERENCES')) return { icon: LinkIcon, color: 'text-rose-400' };
         if(type && type.includes('TIMESTAMP')) return { icon: Hash, color: 'text-emerald-400' };
@@ -208,7 +208,7 @@ export default function Database() {
       } else {
          toast.error("Không tìm thấy cấu trúc bảng nào phân tích được từ Code.");
       }
-    } catch (error) {
+    } catch {
        toast.error("Lỗi khi đọc mã SQL. Vui lòng đảm bảo cấu trúc CREATE TABLE hợp lệ.");
     }
   };
