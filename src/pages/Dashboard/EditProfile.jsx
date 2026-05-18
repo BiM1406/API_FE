@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -14,9 +14,16 @@ export default function EditProfile() {
   const userRole = localStorage.getItem('userRole') || 'user';
 
   const [formData, setFormData] = useState({
-    name: userRole === 'admin' ? 'Admin User' : 'Khách Hàng',
+    name: userRole === 'admin' ? 'Admin User' : 'Nguyễn Tuấn Đạt',
     email: userRole === 'admin' ? 'admin@example.com' : 'user@example.com'
   });
+
+  const getInitials = (name) => {
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+  const initials = getInitials(formData.name);
 
   const [passwords, setPasswords] = useState({
     currentPassword: '',
@@ -29,8 +36,25 @@ export default function EditProfile() {
     confirm: false
   });
 
-  const [currentPlan, setCurrentPlan] = useState(userRole === 'admin' ? 'pro' : 'free');
+  const savedPlan = localStorage.getItem('userPlan') || (userRole === 'admin' ? 'pro' : 'free');
+  const [currentPlan, setCurrentPlan] = useState(savedPlan);
   const [activeTab, setActiveTab] = useState('profile');
+  
+  const fileInputRef = useRef(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+
+  const handleAvatarClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAvatarPreview(url);
+      toast.success('Ảnh đại diện đã được hiển thị (Local Preview)!');
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -41,6 +65,8 @@ export default function EditProfile() {
   };
 
   const handleSave = () => {
+    localStorage.setItem('userName', formData.name);
+    localStorage.setItem('userPlan', currentPlan);
     toast.success('Đã lưu thông tin hồ sơ!');
     navigate('/profile');
   };
@@ -123,13 +149,32 @@ export default function EditProfile() {
         {activeTab === 'profile' && (
           <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl">
             <div className="flex flex-col items-center mb-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 relative group mb-4">
-                {userRole === 'admin' ? 'AD' : 'US'}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+                onChange={handleFileChange} 
+              />
+              <div 
+                className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 relative group mb-4 cursor-pointer overflow-hidden"
+                onClick={handleAvatarClick}
+              >
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  initials
+                )}
                 <button className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
                   <Camera size={24} className="text-white" />
                 </button>
               </div>
-              <p className="text-xs font-bold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors">Thay đổi ảnh đại diện</p>
+              <p 
+                onClick={handleAvatarClick}
+                className="text-xs font-bold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors"
+              >
+                Thay đổi ảnh đại diện
+              </p>
             </div>
 
             <div className="space-y-6">

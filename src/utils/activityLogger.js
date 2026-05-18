@@ -39,3 +39,8 @@ export const hideActivity = (id) => {
   
   window.dispatchEvent(new CustomEvent('activityLogged'));
 };
+
+export const clearAllActivities = () => {
+  localStorage.removeItem('activity_history');
+  window.dispatchEvent(new CustomEvent('activityLogged'));
+};

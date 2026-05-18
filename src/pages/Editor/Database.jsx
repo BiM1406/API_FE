@@ -1,39 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Play, Database as DatabaseIcon, Code, Shield, Table2, Key, Search, MoreVertical, Copy, Hash, Type, Link as LinkIcon, Edit3, Trash2, Check } from 'lucide-react';
+import { Plus, Play, Database as DatabaseIcon, Code, Shield, Table2, Key, Search, MoreVertical, Copy, Hash, Type, Link as LinkIcon, Edit3, Trash2, Check, Terminal, X, RefreshCw } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 
 export default function Database() {
-  const [activeTable, setActiveTable] = useState('users');
+  const [activeTable, setActiveTable] = useState(null);
   const [searchTable, setSearchTable] = useState('');
   const [editingTable, setEditingTable] = useState(null);
   const [editTableName, setEditTableName] = useState('');
   const [manualSQL, setManualSQL] = useState('');
   const [isManuallyEdited, setIsManuallyEdited] = useState(false);
+  const [isRunningSQL, setIsRunningSQL] = useState(false);
+  const [terminalLogs, setTerminalLogs] = useState([]);
 
-  const [tableList, setTableList] = useState([
-    {
-      name: 'users',
-      rows: 1542,
-      columns: [
-        { name: 'id', type: 'UUID', meta: 'PK', icon: Key, color: 'text-amber-400' },
-        { name: 'email', type: 'VARCHAR', meta: 'UNIQUE', icon: Type, color: 'text-indigo-400' },
-        { name: 'password', type: 'VARCHAR', meta: '', icon: Type, color: 'text-indigo-400' },
-        { name: 'created_at', type: 'TIMESTAMP', meta: 'DEFAULT NOW', icon: Hash, color: 'text-emerald-400' }
-      ]
-    },
-    {
-      name: 'posts',
-      rows: 8930,
-      columns: [
-        { name: 'id', type: 'UUID', meta: 'PK', icon: Key, color: 'text-amber-400' },
-        { name: 'user_id', type: 'UUID', meta: 'FK (users)', icon: LinkIcon, color: 'text-rose-400' },
-        { name: 'content', type: 'TEXT', meta: '', icon: Type, color: 'text-indigo-400' },
-        { name: 'created_at', type: 'TIMESTAMP', meta: 'DEFAULT NOW', icon: Hash, color: 'text-emerald-400' }
-      ]
-    }
-  ]);
+  const [tableList, setTableList] = useState([]);
 
   const filteredTables = tableList.filter(t => t.name.toLowerCase().includes(searchTable.toLowerCase()));
 
@@ -55,26 +36,34 @@ export default function Database() {
 
   const handleDeleteTable = (e, tableName) => {
     e.stopPropagation();
-    if (tableList.length <= 1) {
-      toast.error("Không thể xóa bảng cuối cùng!");
-      return;
-    }
+    if (tableList.length === 0) return;
     const updated = tableList.filter(t => t.name !== tableName);
     setTableList(updated);
-    if (activeTable === tableName) setActiveTable(updated[0].name);
+    if (activeTable === tableName) setActiveTable(updated.length > 0 ? updated[0].name : null);
     toast.success(`Đã xóa bảng ${tableName}`);
     logActivity('database', `Đã xóa bảng: ${tableName}`);
   };
 
   const handleRunSQL = () => {
-    // Mô phỏng quá trình chạy BE để xử lý Database
-    const promise = new Promise(resolve => setTimeout(resolve, 1500));
-    toast.promise(promise, {
-      loading: 'Đang gửi Request tới Database Engine...',
-      success: 'Thực thi SQL thành công!',
-      error: 'Lỗi thực thi SQL'
-    });
-    logActivity('database', 'Đã chạy thực thi SQL');
+    if (isRunningSQL) return;
+    setIsRunningSQL(true);
+    setTerminalLogs(['[INFO] Khởi tạo kết nối đến Database Engine...']);
+    
+    setTimeout(() => {
+      setTerminalLogs(prev => [...prev, '[INFO] Đang xác thực quyền truy cập (Admin)...', '[OK] Xác thực thành công.']);
+    }, 500);
+
+    setTimeout(() => {
+      setTerminalLogs(prev => [...prev, `[INFO] Đang phân tích cú pháp SQL cho ${tableList.length} bảng...`, '[OK] Cú pháp hợp lệ.']);
+    }, 1000);
+
+    setTimeout(() => {
+      const logs = tableList.map(t => `[SUCCESS] Đã tạo bảng: ${t.name} (${t.columns.length} cột)`);
+      setTerminalLogs(prev => [...prev, '[INFO] Đang thực thi lệnh CREATE TABLE...', ...logs, '', '✅ Quá trình thực thi hoàn tất trong 1.5s!']);
+      setIsRunningSQL(false);
+      toast.success('Thực thi SQL thành công!');
+      logActivity('database', 'Đã chạy thực thi SQL');
+    }, 1500);
   };
 
   const handleRenameStart = (e, tableName) => {
@@ -97,6 +86,10 @@ export default function Database() {
   };
 
   const generateSQL = () => {
+    if (tableList.length === 0) {
+      return '';
+    }
+
     let sql = `-- SQL Schema for ChatDMP App\nCREATE EXTENSION IF NOT EXISTS "uuid-ossp";\n\n`;
 
     tableList.forEach(table => {
@@ -230,11 +223,12 @@ export default function Database() {
 
         <button 
           onClick={handleRunSQL}
-          className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/20 active:scale-95 group overflow-hidden relative"
+          disabled={isRunningSQL}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg group overflow-hidden relative ${isRunningSQL ? 'bg-slate-800 text-slate-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/20 active:scale-95'}`}
         >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-          <Play size={16} className="relative z-10" />
-          <span className="relative z-10">Chạy SQL</span>
+          {!isRunningSQL && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>}
+          {isRunningSQL ? <RefreshCw size={16} className="relative z-10 animate-spin" /> : <Play size={16} className="relative z-10" />}
+          <span className="relative z-10">{isRunningSQL ? 'Đang chạy...' : 'Chạy SQL'}</span>
         </button>
       </header>
 
@@ -264,6 +258,13 @@ export default function Database() {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
+            {filteredTables.length === 0 && (
+              <div className="text-center py-10">
+                <Table2 size={32} className="mx-auto text-slate-600 mb-3" />
+                <p className="text-sm font-bold text-slate-400">Chưa có bảng nào</p>
+                <p className="text-xs text-slate-500 mt-1">Tạo bảng hoặc dán mã SQL bên phải</p>
+              </div>
+            )}
             {filteredTables.map((table) => (
               <div 
                 key={table.name}
@@ -422,6 +423,33 @@ export default function Database() {
                </div>
             </div>
           </div>
+
+          {/* Terminal Output */}
+          {terminalLogs.length > 0 && (
+            <div className="mt-4 h-48 bg-[#0d1117] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col font-mono text-xs relative animate-in fade-in slide-in-from-bottom-4 duration-300 z-20">
+               <div className="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex justify-between items-center text-slate-400 shrink-0 shadow-sm">
+                  <div className="flex items-center gap-2 font-bold tracking-widest uppercase text-[10px] text-slate-500">
+                    <Terminal size={14} className="text-indigo-400" /> Database Engine Terminal
+                  </div>
+                  <button onClick={() => setTerminalLogs([])} className="hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 p-1.5 rounded-lg">
+                    <X size={14} />
+                  </button>
+               </div>
+               <div className="p-4 overflow-y-auto flex-1 space-y-1.5 custom-scrollbar pb-6">
+                  {terminalLogs.map((log, i) => (
+                    <div key={i} className={`flex items-start gap-3 leading-relaxed ${log.includes('[SUCCESS]') || log.includes('✅') || log.includes('[OK]') ? 'text-emerald-400' : log.includes('[ERROR]') ? 'text-rose-400' : 'text-slate-300'}`}>
+                       {log.trim() && <span className="text-slate-600 shrink-0 select-none">[{new Date().toLocaleTimeString('en-US', {hour12:false})}]</span>}
+                       <span className={log.startsWith('✅') ? 'font-bold' : ''}>{log}</span>
+                    </div>
+                  ))}
+                  {isRunningSQL && (
+                    <div className="text-indigo-400 animate-pulse flex items-center gap-2 mt-3 font-bold">
+                      <RefreshCw size={12} className="animate-spin" /> Đang xử lý...
+                    </div>
+                  )}
+               </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

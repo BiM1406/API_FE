@@ -1,13 +1,26 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, DollarSign, Activity, Server } from 'lucide-react';
+import { MY_PROJECTS_STORAGE_KEY } from './MyProject';
 
 export default function AdminOverview() {
+  const [projectCount, setProjectCount] = useState(0);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(MY_PROJECTS_STORAGE_KEY);
+    if (saved) {
+      try {
+        const projects = JSON.parse(saved);
+        setProjectCount(projects.length);
+      } catch (e) {}
+    }
+  }, []);
+
   const stats = [
-    { label: 'Tổng người dùng', value: '1008', icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Doanh thu tháng', value: '1,399,997đ', icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Lượt gọi API', value: '1.8M', icon: Activity, color: 'text-violet-400', bg: 'bg-violet-400/10' },
-    { label: 'Tải máy chủ', value: '45%', icon: Server, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+    { label: 'Tổng người dùng', value: (1000 + projectCount * 2).toString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    { label: 'Doanh thu tháng', value: `${(1399997 + projectCount * 150000).toLocaleString('vi-VN')}đ`, icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Lượt gọi API', value: `${(1.8 + projectCount * 0.1).toFixed(1)}M`, icon: Activity, color: 'text-violet-400', bg: 'bg-violet-400/10' },
+    { label: 'Tải máy chủ', value: `${Math.min(45 + projectCount * 2, 98)}%`, icon: Server, color: 'text-rose-400', bg: 'bg-rose-400/10' },
   ];
 
   return (

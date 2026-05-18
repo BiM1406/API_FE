@@ -9,6 +9,23 @@ export default function RevenueManagement() {
     { id: 'TRX-003', user: 'Trần Thị B', plan: 'Gói Pro', amount: '199,999đ', date: '18/04/2026', status: 'Đang xử lý' },
   ];
 
+  const handleExportCSV = () => {
+    const headers = ['Mã GD', 'Khách hàng', 'Gói dịch vụ', 'Số tiền', 'Ngày giao dịch', 'Trạng thái'];
+    const rows = transactions.map(t => [t.id, t.user, t.plan, t.amount.replace(/,/g, ''), t.date, t.status]);
+    
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + headers.join(",") + "\n" 
+      + rows.map(e => e.join(",")).join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "bao-cao-doanh-thu.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-8">
       <motion.div 
@@ -20,7 +37,10 @@ export default function RevenueManagement() {
           <h1 className="text-2xl font-bold text-white">Quản lý Doanh thu</h1>
           <p className="text-slate-400">Theo dõi dòng tiền và lịch sử giao dịch</p>
         </div>
-        <button className="px-4 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm font-medium text-white hover:bg-white/5 transition-all flex items-center gap-2">
+        <button 
+          onClick={handleExportCSV}
+          className="px-4 py-2 bg-slate-900 border border-white/10 rounded-lg text-sm font-medium text-white hover:bg-white/5 transition-all flex items-center gap-2"
+        >
           <Download className="w-4 h-4" />
           Xuất báo cáo
         </button>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
@@ -13,8 +13,11 @@ import {
   Code2, 
   MoreHorizontal,
   FolderPlus,
-  UploadCloud
+  UploadCloud,
+  Edit2, Trash2, Copy,
+  X, Save
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const DEFAULT_PROJECTS = [
   { 
@@ -59,27 +62,116 @@ const DEFAULT_PROJECTS = [
   },
 ];
 
-const STATS_DATA = [
-  { label: 'Tổng dự án', value: '12', icon: FolderKanban, color: 'text-indigo-400', shadow: 'shadow-indigo-500/20' },
-  { label: 'API hoạt động', value: '34', icon: Zap, color: 'text-amber-400', shadow: 'shadow-amber-500/20' },
-  { label: 'Dung lượng DB', value: '1.2 GB', icon: Database, color: 'text-emerald-400', shadow: 'shadow-emerald-500/20' },
-  { label: 'Tính toán AI', value: '8.4k', icon: Activity, color: 'text-violet-400', shadow: 'shadow-violet-500/20' },
-];
-
 
 export const MY_PROJECTS_STORAGE_KEY = 'my_dashboard_projects';
 
 export default function MyProject() {
   const navigate = useNavigate();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeProjectMenu, setActiveProjectMenu] = useState(null);
+  
+  const fileInputRef = useRef(null);
+  const [renameState, setRenameState] = useState({ isOpen: false, id: null, value: '' });
+
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem(MY_PROJECTS_STORAGE_KEY);
     return saved ? JSON.parse(saved) : DEFAULT_PROJECTS;
   });
 
+  const dynamicStats = [
+    { label: 'Tổng dự án', value: projects.length.toString(), icon: FolderKanban, color: 'text-indigo-400', shadow: 'shadow-indigo-500/20' },
+    { label: 'API hoạt động', value: (projects.length * 3).toString(), icon: Zap, color: 'text-amber-400', shadow: 'shadow-amber-500/20' },
+    { label: 'Dung lượng DB', value: (projects.length > 0 ? (projects.length * 0.4).toFixed(1) + ' GB' : '0 GB'), icon: Database, color: 'text-emerald-400', shadow: 'shadow-emerald-500/20' },
+    { label: 'Tính toán AI', value: (projects.length * 2.1).toFixed(1) + 'k', icon: Activity, color: 'text-violet-400', shadow: 'shadow-violet-500/20' },
+  ];
+
   useEffect(() => {
     localStorage.setItem(MY_PROJECTS_STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = () => setActiveProjectMenu(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleCreateMockProject = () => {
+    setIsNewMenuOpen(false);
+    const newProject = {
+      id: `mp-${Date.now()}`,
+      name: 'Dự án Mới Demo',
+      desc: 'Dự án được tạo nhanh từ Dashboard',
+      updated: 'Vừa xong',
+      status: 'Khởi tạo',
+      tech: ['React', 'Tailwind'],
+      color: 'from-pink-500 to-rose-500',
+      activeColor: 'bg-emerald-500'
+    };
+    setProjects([newProject, ...projects]);
+    toast.success('Đã tạo dự án mới thành công!');
+  };
+
+  const handleImportLocal = () => {
+    setIsNewMenuOpen(false);
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileSelect = (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    // Get folder name from the first file's webkitRelativePath
+    const pathParts = files[0].webkitRelativePath.split('/');
+    const folderName = pathParts[0] || 'Dự án Local';
+    
+    const newProject = {
+      id: `mp-${Date.now()}`,
+      name: folderName,
+      desc: `Dự án cục bộ (${files.length} files)`,
+      updated: 'Vừa xong',
+      status: 'Hoạt động',
+      tech: ['Local'],
+      color: 'from-blue-500 to-cyan-500',
+      activeColor: 'bg-emerald-500'
+    };
+    
+    setProjects([newProject, ...projects]);
+    toast.success(`Đã tải lên dự án ${folderName} (${files.length} tệp)!`);
+    // Reset input
+    e.target.value = null;
+  };
+
+  const handleDeleteProject = (id) => {
+    setProjects(projects.filter(p => p.id !== id));
+    toast.success('Đã xóa dự án!');
+  };
+
+  const handleDuplicateProject = (project) => {
+    const duplicate = { ...project, id: `mp-${Date.now()}`, name: `${project.name} (Copy)` };
+    setProjects([duplicate, ...projects]);
+    toast.success('Đã nhân bản dự án!');
+  };
+
+  const openRenameModal = (project) => {
+    setActiveProjectMenu(null);
+    setRenameState({ isOpen: true, id: project.id, value: project.name });
+  };
+
+  const submitRename = (e) => {
+    e.preventDefault();
+    if (!renameState.value.trim()) return;
+    setProjects(projects.map(p => p.id === renameState.id ? { ...p, name: renameState.value } : p));
+    toast.success('Đã đổi tên dự án!');
+    setRenameState({ isOpen: false, id: null, value: '' });
+  };
+
+  const filteredProjects = projects.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.tech.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
 
 
@@ -87,6 +179,17 @@ export default function MyProject() {
     <div className="w-full min-h-full p-6 lg:p-10 relative">
       <div className="max-w-7xl mx-auto space-y-10">
         
+        {/* Hidden Directory Input */}
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          webkitdirectory="true" 
+          directory="true" 
+          multiple 
+          onChange={handleFileSelect}
+          style={{ display: 'none' }} 
+        />
+
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-2">
@@ -116,7 +219,7 @@ export default function MyProject() {
                 ></div>
                 <div className="absolute right-0 mt-3 w-64 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="p-2 space-y-1">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
+                    <button onClick={handleCreateMockProject} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
                       <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors shrink-0">
                         <FolderPlus size={18} />
                       </div>
@@ -125,7 +228,7 @@ export default function MyProject() {
                         <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Bắt đầu từ đầu</p>
                       </div>
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
+                    <button onClick={handleImportLocal} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
                       <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
                         <UploadCloud size={18} />
                       </div>
@@ -143,7 +246,7 @@ export default function MyProject() {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {STATS_DATA.map((stat, index) => {
+          {dynamicStats.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div key={index} className="bg-slate-900/50 backdrop-blur-md border border-white/5 rounded-2xl p-5 shadow-lg flex items-center gap-4 group hover:bg-white/5 transition-colors cursor-default">
@@ -174,6 +277,8 @@ export default function MyProject() {
               </div>
               <input 
                 type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm dự án..." 
                 className="w-full sm:w-64 bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
               />
@@ -182,7 +287,7 @@ export default function MyProject() {
 
           {/* Projects Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {projects.map((project, index) => {
+            {filteredProjects.map((project, index) => {
               return (
                 <div 
                   key={index}
@@ -195,9 +300,33 @@ export default function MyProject() {
                     <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${project.color} flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-transform duration-300`}>
                       <Code2 size={24} className="text-white" />
                     </div>
-                    <button className="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" aria-label="Project Actions">
-                      <MoreHorizontal size={20} />
-                    </button>
+                    <div className="relative z-20">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveProjectMenu(activeProjectMenu === project.id ? null : project.id);
+                        }}
+                        className="text-slate-500 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" 
+                        aria-label="Project Actions"
+                      >
+                        <MoreHorizontal size={20} />
+                      </button>
+                      
+                      {activeProjectMenu === project.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                          <button onClick={(e) => { e.stopPropagation(); openRenameModal(project); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors">
+                            <Edit2 size={16} /> Đổi tên
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); setActiveProjectMenu(null); handleDuplicateProject(project); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors">
+                            <Copy size={16} /> Nhân bản
+                          </button>
+                          <div className="h-px bg-white/10 my-1"></div>
+                          <button onClick={(e) => { e.stopPropagation(); setActiveProjectMenu(null); handleDeleteProject(project.id); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors">
+                            <Trash2 size={16} /> Xóa dự án
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 mb-6">
@@ -231,6 +360,49 @@ export default function MyProject() {
           </div>
         </section>
       </div>
+
+      {/* Rename Modal */}
+      {renameState.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setRenameState({ isOpen: false, id: null, value: '' })}></div>
+          
+          <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+              <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                <Edit2 size={18} className="text-indigo-400" />
+                Đổi tên Dự án
+              </h3>
+              <button onClick={() => setRenameState({ isOpen: false, id: null, value: '' })} className="text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={submitRename} className="p-6 space-y-5">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tên mới</label>
+                <input 
+                  type="text" 
+                  autoFocus
+                  required
+                  value={renameState.value}
+                  onChange={(e) => setRenameState({ ...renameState, value: e.target.value })}
+                  placeholder="Nhập tên dự án..."
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
+                />
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3">
+                <button type="button" onClick={() => setRenameState({ isOpen: false, id: null, value: '' })} className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                  Huỷ
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+                  <Save size={16} /> Lưu
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

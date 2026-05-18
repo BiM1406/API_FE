@@ -11,7 +11,7 @@ const plans = [
     buttonText: 'Gói hiện tại của bạn',
     isCurrent: true,
     features: [
-      '100 request / ngày',
+      '50 request / ngày',
       '1 dự án Workspace duy nhất',
       'Mã nguồn AI tự sinh (Cơ bản)',
       'Hỗ trợ qua cộng đồng',
@@ -27,7 +27,7 @@ const plans = [
     buttonText: 'Nâng cấp lên Pro',
     isPopular: true,
     features: [
-      '5,000 request / ngày',
+      '200 request / ngày',
       '10 dự án Workspace đồng thời',
       'Truy cập mô hình AI nâng cao',
       'Quyền truy cập API (Giới hạn)',
@@ -38,12 +38,12 @@ const plans = [
     icon: Zap
   },
   {
-    name: 'Ultra Vip Pro Plus Max Unlimited',
+    name: 'Ultra',
     price: '999.999',
     description: 'Vượt xa mọi sức tưởng tượng của bạn về nhân sinh',
     buttonText: 'Nâng cấp lên Ultra',
     features: [
-      'Không giới hạn số lượng request trong ngày',
+      '1000 request / ngày',
       'Quyền sở hữu mã nguồn AI tạo ra 100%',
       'Hỗ trợ trực tiếp từ Đội kỹ thuật (DMP)',
       'Quyền truy cập API Unlimited',
@@ -99,10 +99,10 @@ export default function PricingPage() {
 
                   <div className="flex items-baseline gap-1 mt-4">
                     <span className="text-3xl font-bold">
-                      đ{plan.price}
+                      {plan.price}đ
                     </span>
                     <span className="text-xs text-gray-500 font-medium">
-                      VND / tháng <br /> (bao gồm VAT)
+                      VND / tháng (bao gồm VAT)
                     </span>
                   </div>
                   <p className="mt-4 text-sm text-gray-400 leading-relaxed">

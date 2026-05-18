@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Database, Zap, Folder, Eye, ChevronDown, ChevronRight } from 'lucide-react';
+import { Terminal, Database, Zap, Folder, Eye, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getActivities, hideActivity } from '../../utils/activityLogger';
+import { getActivities, hideActivity, clearAllActivities } from '../../utils/activityLogger';
 
 const getRelativeTime = (timestamp) => {
   const rtf = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' });
@@ -116,6 +116,16 @@ export default function History() {
             <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></div>
             <h1 className="font-bold text-white tracking-tight">Lịch sử hoạt động</h1>
           </div>
+          <button 
+            onClick={() => {
+              if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử hệ thống?')) {
+                clearAllActivities();
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition-all border border-rose-500/20 text-xs font-bold"
+          >
+            <Trash2 size={14} /> Xóa toàn bộ
+          </button>
         </div>
       </header>
 

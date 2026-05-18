@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -76,11 +76,45 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
+  
+  const profileMenuRef = useRef(null);
 
   const userRole = localStorage.getItem('userRole') || 'user';
   const menuItems = userRole === 'admin' ? adminMenuItems : userMenuItems;
 
   const currentPath = location.pathname;
+
+  const savedPlan = localStorage.getItem('userPlan') || (userRole === 'admin' ? 'pro' : 'free');
+  const planDisplay = {
+    free: 'Free',
+    pro: 'Pro',
+    ultra: 'Ultra'
+  }[savedPlan] || 'Free';
+  
+  const defaultName = userRole === 'admin' ? 'Admin User' : 'Nguyễn Tuấn Đạt';
+  const userName = localStorage.getItem('userName') || defaultName;
+  const getInitials = (name) => {
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+  const initials = getInitials(userName);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // Don't close if they click the sidebar toggle button
+      if (e.target.closest('.sidebar-toggle')) return;
+      
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    
+    if (isProfileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileMenuOpen]);
 
   return (
     <div className="h-screen bg-slate-950 text-slate-300 font-sans flex overflow-hidden relative selection:bg-indigo-500/30">
@@ -90,7 +124,7 @@ export default function DashboardLayout() {
 
       {/* Sidebar - Desktop */}
       <aside 
-        className={`hidden md:flex flex-col border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl z-40 transition-[width] duration-300 cubic-bezier(0.4, 0, 0.2, 1) relative overflow-x-hidden group/sidebar flex-none ${
+        className={`hidden md:flex flex-col border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl z-40 transition-[width] duration-300 cubic-bezier(0.4, 0, 0.2, 1) relative overflow-visible group/sidebar flex-none ${
           collapsed ? 'w-20' : 'w-[260px]'
         }`}
       >
@@ -115,7 +149,7 @@ export default function DashboardLayout() {
               {/* Overlaid Toggle Button (Only active in Slim state) */}
               {collapsed && (
                 <button 
-                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-all duration-200 scale-75 group-hover/logo:scale-100"
+                  className="sidebar-toggle absolute inset-0 flex items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-all duration-200 scale-75 group-hover/logo:scale-100"
                   aria-label="Mở rộng thanh bên"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -143,7 +177,7 @@ export default function DashboardLayout() {
                   e.stopPropagation();
                   setCollapsed(true);
                 }}
-                className="p-2 ml-auto rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
+                className="sidebar-toggle p-2 ml-auto rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-all active:scale-90"
                 aria-label="Thu nhỏ thanh bên"
               >
                 <PanelLeft size={20} />
@@ -165,21 +199,21 @@ export default function DashboardLayout() {
         </nav>
 
         {/* 4. Sửa lại khối User Profile ở dưới cùng */}
-        <div className="p-3 border-t border-white/5 overflow-visible relative">
+        <div className="p-3 border-t border-white/5 overflow-visible relative" ref={profileMenuRef}>
           
           {/* Profile Menu Popup */}
           {isProfileMenuOpen && (
             <div className={`absolute bottom-full left-3 mb-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[60] transition-all ${collapsed ? 'w-56' : 'w-[calc(100%-24px)]'}`}>
               <div className="p-4 border-b border-white/5 bg-slate-900/50">
-                <p className="text-sm font-bold text-white truncate">{userRole === 'admin' ? 'Admin User' : 'Khách Hàng'}</p>
-                <p className="text-xs text-slate-400 truncate mt-0.5">{userRole === 'admin' ? 'admin@example.com' : 'user@example.com'}</p>
+                <p className="text-sm font-bold text-white whitespace-nowrap">{userName}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{planDisplay}</p>
               </div>
               <div className="p-1.5">
                 <button onClick={() => { navigate('/profile'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
                   <User size={16} className="text-indigo-400" />
                   Hồ sơ cá nhân
                 </button>
-                <button onClick={() => { navigate('/profile/edit'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
+                <button onClick={() => { navigate('/settings'); setIsProfileMenuOpen(false); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
                   <Settings size={16} className="text-violet-400" />
                   Cài đặt
                 </button>
@@ -196,25 +230,25 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          {/* Transparent overlay to close menu when clicking outside */}
-          {isProfileMenuOpen && (
-            <div className="fixed inset-0 z-50" onClick={() => setIsProfileMenuOpen(false)}></div>
-          )}
-
           <div 
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all cursor-pointer group/user relative z-[60]"
             onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
           >
-            <div className={`rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 group-hover/user:text-white group-hover/user:bg-white/10 shadow-inner group-hover/user:border-white/20 transition-all shrink-0 ${collapsed ? 'w-10 h-10' : 'w-9 h-9'}`}>
-              <Settings size={collapsed ? 20 : 18} className={`transition-transform duration-500 ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
+            <div className={`rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 border border-white/10 flex items-center justify-center shrink-0 transition-all font-bold text-white shadow-lg shadow-indigo-500/20 ${collapsed ? 'w-10 h-10 text-sm' : 'w-9 h-9 text-xs'}`}>
+              {initials}
             </div>
             
-            <div className={`flex-1 flex items-center justify-between overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-full opacity-100'}`}>
-              <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">Cài đặt & Tài khoản</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-widest">{userRole === 'admin' ? 'Quản trị viên' : 'Người dùng'}</p>
+            <div className={`flex-1 flex items-center justify-between transition-all duration-300 ${collapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-full opacity-100'}`}>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="text-[12px] font-bold text-white whitespace-nowrap tracking-tight">{userName}</p>
+                <p className="text-[10px] font-medium text-slate-400 mt-0.5 uppercase tracking-wider">{planDisplay}</p>
               </div>
-              <ChevronUp size={14} className={`text-slate-600 group-hover/user:text-white transition-transform duration-300 shrink-0 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+              <button 
+                onClick={(e) => { e.stopPropagation(); navigate('/pricing'); }}
+                className="ml-1 px-2 py-1 text-[9px] font-bold text-white bg-white/10 hover:bg-white/20 rounded-full border border-white/10 transition-colors shrink-0 uppercase tracking-wider"
+              >
+                Nâng cấp
+              </button>
             </div>
           </div>
         </div>
