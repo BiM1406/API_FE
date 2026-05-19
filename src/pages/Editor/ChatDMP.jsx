@@ -757,6 +757,7 @@ export default function ChatDMP() {
     updateProject(activeProject.id, updates);
   };
 
+
   const updateChat = (projectId, chatId, updates) => {
     setProjects(projs => projs.map(p => {
       if (p.id === projectId) {
@@ -905,7 +906,6 @@ export default function ChatDMP() {
             const msg = type === 'project' ? 'Bạn có muốn xóa dự án này không?' : 'Bạn có muốn xóa đoạn chat này không?';
             setConfirmState({ type, id, message: msg });
           }}
-          setShowAddProject={setShowAddProject}
         />
 
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10 bg-black/20">
