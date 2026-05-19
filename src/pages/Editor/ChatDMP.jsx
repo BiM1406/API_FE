@@ -3,14 +3,16 @@ import ReactDOM from 'react-dom';
 import { useLocation, Link } from 'react-router-dom';
 import { 
   Folder, Plus, Search, Trash2, Copy, Edit2, Archive, 
-  MessageSquare, Terminal, Settings, LogOut, Send, RefreshCw, 
+  MessageSquare, Terminal, Settings, LogOut, Send, RefreshCw, Code2,
   Play, Save, History as HistoryIcon, Eye, EyeOff, Download, Upload, Menu, X, Check, Database,
   Server, User, Zap, ArrowLeft, Bot, ChevronDown, MoreHorizontal, Pin
 } from 'lucide-react';
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
+import { sendChatMessage } from '../../services/aiService';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -31,6 +33,22 @@ const initialProject = {
   activeChatId: initialChat.id,
   createdAt: Date.now()
 };
+
+const aiModes = [
+  { id: 'chat', label: 'Chat thường', icon: MessageSquare },
+  { id: 'code', label: 'Sinh code', icon: Code2 },
+  { id: 'api', label: 'Sinh API', icon: Zap },
+  { id: 'debug', label: 'Debug lỗi', icon: Terminal },
+  { id: 'database', label: 'Thiết kế Database', icon: Database },
+  { id: 'docs', label: 'Viết tài liệu API', icon: Archive }
+];
+
+const promptSuggestions = [
+  { label: 'Sinh API đăng nhập', prompt: 'Sinh API đăng nhập JWT gồm request, response, validate và lỗi thường gặp.' },
+  { label: 'Tạo database cho hệ thống đặt vé', prompt: 'Tạo database schema cho hệ thống đặt vé gồm user, event, seat, booking và payment.' },
+  { label: 'Viết code React gọi API', prompt: 'Viết code React gọi API với loading, error state và token bearer.' },
+  { label: 'Phân tích lỗi response API', prompt: 'Phân tích lỗi response API sau và đề xuất cách sửa.' }
+];
 
 // --- Subcomponents ---
 
@@ -227,7 +245,7 @@ const Sidebar = ({
 
 
 
-const ChatTab = ({ activeChat, updateChat, onClear }) => {
+const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode }) => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollContainerRef = useRef(null);
@@ -251,14 +269,35 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
     );
   }
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const buildAssistantReply = (message) => {
+    const modeLabel = aiModes.find((mode) => mode.id === activeMode)?.label || 'Chat thường';
+    if (activeMode === 'api') {
+      return `Mình đề xuất API request sau cho yêu cầu: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse nên trả về accessToken, refreshToken và thông tin user tối giản.`;
+    }
+    if (activeMode === 'database') {
+      return `Schema gợi ý cho yêu cầu: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nBạn có thể áp dụng schema này vào Database Designer rồi tinh chỉnh cột/quan hệ.`;
+    }
+    if (activeMode === 'code') {
+      return `Đây là mẫu code cho yêu cầu: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``;
+    }
+    if (activeMode === 'debug') {
+      return `Mình sẽ debug theo các bước:\n\n1. Kiểm tra status code và response body.\n2. Đối chiếu headers, auth token và environment variables.\n3. Thử lại request trong API Tester.\n\n\`\`\`json\n{\n  "hint": "Dán response lỗi vào đây để phân tích chi tiết"\n}\n\`\`\``;
+    }
+    if (activeMode === 'docs') {
+      return `Tài liệu API nháp:\n\n### Endpoint\n\`${message}\`\n\n### Mục tiêu\nMô tả request, authentication, response mẫu và lỗi phổ biến để team frontend/backend dùng chung.`;
+    }
+    return `Đang ở mode ${modeLabel}. Đây là phản hồi mẫu cho: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``;
+  };
+
+  const handleSend = (preset) => {
+    const content = (preset || input).trim();
+    if (!content) return;
     
     // Automatically set title based on first message if title is default
     const isFirstMsg = activeChat.messages.length === 0;
-    const newTitle = isFirstMsg ? (input.length > 20 ? input.substring(0, 20) + '...' : input) : undefined;
+    const newTitle = isFirstMsg ? (content.length > 28 ? `${content.substring(0, 28)}...` : content) : undefined;
     
-    const newMsg = { id: generateId(), role: 'user', content: input, timestamp: Date.now() };
+    const newMsg = { id: generateId(), role: 'user', content, timestamp: Date.now(), mode: activeMode };
     const updatedMessages = [...activeChat.messages, newMsg];
     
     updateChat({ messages: updatedMessages, ...(newTitle && { title: newTitle }) });
@@ -267,8 +306,14 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
     
     logActivity('chatDmp', 'Đã gửi tin nhắn trong ChatDMP');
     
-    setTimeout(() => {
-      const aiMsg = { id: generateId(), role: 'assistant', content: `Đây là phản hồi mẫu cho: "${newMsg.content}"\n\n\`\`\`javascript\nconsole.log("Hello, World!");\n\`\`\``, timestamp: Date.now() };
+    setTimeout(async () => {
+      let aiMsg;
+      try {
+        const aiResponse = await sendChatMessage({ message: newMsg.content, mode: activeMode });
+        aiMsg = { id: aiResponse.id || generateId(), role: 'assistant', content: aiResponse.content || buildAssistantReply(newMsg.content), timestamp: Date.now(), mode: activeMode, metadata: aiResponse.metadata || {} };
+      } catch {
+        aiMsg = { id: generateId(), role: 'assistant', content: buildAssistantReply(newMsg.content), timestamp: Date.now(), mode: activeMode };
+      }
       updateChat({ messages: [...updatedMessages, aiMsg] });
       setIsTyping(false);
     }, 1500);
@@ -280,18 +325,20 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
 
   const renderMessage = (msg) => {
     const isUser = msg.role === 'user';
+    const hasApiRequest = !isUser && /POST|GET|PUT|PATCH|DELETE|{{baseUrl}}|Content-Type/i.test(msg.content);
+    const hasSchema = !isUser && /CREATE TABLE|PRIMARY KEY|schema/i.test(msg.content);
     return (
       <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-8`}>
-        <div className={`flex gap-4 max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+        <div className={`flex gap-4 max-w-[92%] md:max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
           <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${isUser ? 'bg-gradient-to-br from-violet-600 to-indigo-600 shadow-indigo-500/20' : 'bg-slate-800 border border-white/10 shadow-black/20'}`}>
             {isUser ? <User size={16} className="text-white" /> : <Bot size={18} className="text-indigo-400" />}
           </div>
           
           <div className={`rounded-2xl p-5 shadow-xl border ${isUser ? 'bg-gradient-to-br from-indigo-500/90 to-violet-600/90 border-indigo-400/20 text-white rounded-tr-sm' : 'bg-slate-900/60 backdrop-blur-xl border-white/5 text-slate-200 rounded-tl-sm shadow-black/20'}`}>
-            <div className="flex justify-between items-center mb-3">
+            <div className="flex justify-between items-center gap-4 mb-3">
               <span className={`text-[10px] font-bold uppercase tracking-widest ${isUser ? 'text-indigo-200' : 'text-slate-500'}`}>{msg.role === 'assistant' ? 'ChatDMP' : msg.role}</span>
               <div className="flex gap-2">
-                <button onClick={() => navigator.clipboard.writeText(msg.content)} className="opacity-50 hover:opacity-100 transition-opacity p-1 hover:bg-black/20 rounded"><Copy size={14} /></button>
+                <button onClick={() => { navigator.clipboard.writeText(msg.content); toast.success('Đã copy nội dung'); }} className="opacity-50 hover:opacity-100 transition-opacity p-1 hover:bg-black/20 rounded" title="Copy message"><Copy size={14} /></button>
               </div>
             </div>
             <div className="whitespace-pre-wrap text-sm leading-relaxed font-medium">
@@ -304,7 +351,7 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
                     <div key={i} className="my-4 bg-slate-950/80 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
                       <div className="flex justify-between items-center px-4 py-2 bg-[#1e1e1e] border-b border-white/5 text-xs text-slate-400 uppercase tracking-widest font-bold">
                         <span>{lang}</span>
-                        <button onClick={() => navigator.clipboard.writeText(code)} className="hover:text-white flex items-center gap-1.5 transition-colors"><Copy size={12} /> Copy</button>
+                        <button onClick={() => { navigator.clipboard.writeText(code); toast.success('Đã copy code'); }} className="hover:text-white flex items-center gap-1.5 transition-colors"><Copy size={12} /> Copy</button>
                       </div>
                       <SyntaxHighlighter 
                         language={lang === 'text' ? 'javascript' : lang} 
@@ -320,6 +367,42 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
                 return <span key={i}>{part}</span>;
               })}
             </div>
+            {(hasApiRequest || hasSchema) && (
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
+                {hasApiRequest && (
+                  <button onClick={() => {
+                    localStorage.setItem('api_fe_pending_api_test_request', JSON.stringify(msg.metadata?.apiRequest || {
+                      method: 'POST',
+                      url: '{{baseUrl}}/auth/login',
+                      headers: [{ key: 'Content-Type', value: 'application/json' }],
+                      body: '{\n  "email": "user@example.com",\n  "password": "123456"\n}'
+                    }));
+                    toast.success('Đã gửi request sang API Tester');
+                  }} className="rounded-lg bg-indigo-600/20 px-3 py-2 text-xs font-bold text-indigo-200 transition hover:bg-indigo-600/30">
+                    Dùng trong API Tester
+                  </button>
+                )}
+                {hasSchema && (
+                  <button onClick={() => {
+                    localStorage.setItem('api_fe_pending_database_schema', JSON.stringify(msg.metadata?.databaseSchema || {
+                      dbType: 'postgresql',
+                      tables: [
+                        {
+                          name: 'users',
+                          columns: [
+                            { name: 'id', type: 'UUID', primaryKey: true, nullable: false, unique: true },
+                            { name: 'email', type: 'VARCHAR(255)', primaryKey: false, nullable: false, unique: true }
+                          ]
+                        }
+                      ]
+                    }));
+                    toast.success('Đã chuẩn bị áp dụng schema');
+                  }} className="rounded-lg bg-violet-600/20 px-3 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-600/30">
+                    Áp dụng vào Database
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -329,11 +412,14 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full relative">
       <div className="flex justify-between items-center p-5 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl shrink-0 z-10">
-        <div className="flex items-center gap-3">
+        <div className="min-w-0 flex items-center gap-3">
           <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
             <MessageSquare size={18} />
           </div>
-          <h2 className="text-lg font-bold text-white tracking-tight">{activeChat.title || 'ChatDMP'}</h2>
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-bold text-white tracking-tight">{activeChat.title || 'ChatDMP'}</h2>
+            <p className="text-xs text-slate-500">{aiModes.find((mode) => mode.id === activeMode)?.label}</p>
+          </div>
         </div>
         <button onClick={handleClear} className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-400 px-3 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 transition-all">
           <Trash2 size={14} /> Xóa tin nhắn
@@ -347,7 +433,19 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
               <Bot size={32} className="text-indigo-400" />
             </div>
             <h3 className="text-xl font-bold text-white mb-2 tracking-tight">ChatDMP có thể giúp gì cho bạn?</h3>
-            <p className="text-sm">Bắt đầu bằng cách nhập yêu cầu hoặc dán mã code vào đây.</p>
+            <p className="text-sm">Chọn mode AI rồi bắt đầu bằng một prompt gợi ý.</p>
+            <div className="mt-8 grid w-full max-w-3xl gap-3 sm:grid-cols-2">
+              {promptSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion.label}
+                  onClick={() => handleSend(suggestion.prompt)}
+                  className="rounded-2xl border border-white/5 bg-slate-900/50 p-4 text-left text-sm font-bold text-slate-200 transition hover:border-indigo-500/40 hover:bg-white/5"
+                >
+                  {suggestion.label}
+                  <p className="mt-2 line-clamp-2 text-xs font-medium text-slate-500">{suggestion.prompt}</p>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto w-full">
@@ -368,7 +466,25 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
         )}
       </div>
 
-      <div className="p-4 md:p-6 p-pb-8 border-t border-white/5 bg-slate-900/60 backdrop-blur-2xl shrink-0">
+      <div className="p-4 md:p-6 border-t border-white/5 bg-slate-900/60 backdrop-blur-2xl shrink-0">
+        <div className="mx-auto mb-3 flex max-w-4xl gap-2 overflow-x-auto hide-scrollbar">
+          {aiModes.map((mode) => {
+            const Icon = mode.icon;
+            const active = activeMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                onClick={() => setActiveMode(mode.id)}
+                className={`flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition ${
+                  active ? 'border-indigo-500/40 bg-indigo-500/15 text-white' : 'border-white/5 bg-slate-950/50 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon size={14} />
+                {mode.label}
+              </button>
+            );
+          })}
+        </div>
         <div className="relative max-w-4xl mx-auto flex items-end gap-3">
           <div className="relative flex-1">
             <textarea 
@@ -392,7 +508,7 @@ const ChatTab = ({ activeChat, updateChat, onClear }) => {
             className="shrink-0 h-[56px] w-[56px] bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            <Send size={20} className="relative z-10" />
+            {isTyping ? <RefreshCw size={20} className="relative z-10 animate-spin" /> : <Send size={20} className="relative z-10" />}
           </button>
         </div>
         <div className="max-w-4xl mx-auto text-center mt-3">
@@ -613,6 +729,7 @@ export default function ChatDMP() {
   
   const [activeId, setActiveId] = useState(projects[0]?.id);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'chat');
+  const [activeMode, setActiveMode] = useState('chat');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
   const [showAddProject, setShowAddProject] = useState(false);
@@ -796,6 +913,8 @@ export default function ChatDMP() {
             <ChatTab 
               activeChat={activeChat} 
               updateChat={updateCurrentChat} 
+              activeMode={activeMode}
+              setActiveMode={setActiveMode}
               onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: 'Bạn có chắc chắn muốn xóa toàn bộ tin nhắn trong cuộc hội thoại này không?' })} 
             />
           )}
