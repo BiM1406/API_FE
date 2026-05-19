@@ -67,10 +67,10 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/test-api" element={<TestApi />} />
-              <Route path="/collections" element={<PlaceholderTool />} />
-              <Route path="/environments" element={<PlaceholderTool />} />
-              <Route path="/documentation" element={<PlaceholderTool />} />
-              <Route path="/mock-server" element={<PlaceholderTool />} />
+              <Route path="/collections" element={<PlaceholderTool type="collections" />} />
+              <Route path="/environments" element={<PlaceholderTool type="environments" />} />
+              <Route path="/documentation" element={<PlaceholderTool type="documentation" />} />
+              <Route path="/mock-server" element={<PlaceholderTool type="mockServer" />} />
             </Route>
           </Route>
 

@@ -10,10 +10,10 @@ import { addActivity } from '../../services/activityService';
 const projectId = () => localStorage.getItem('api_fe_active_project_id') || 'default';
 
 const toolConfig = {
-  collections: { title: 'Collections', description: 'Lưu và quản lý request theo project.', icon: Boxes },
-  environments: { title: 'Environments', description: 'Quản lý biến {{baseUrl}}, {{token}} và active environment.', icon: Network },
-  documentation: { title: 'Documentation', description: 'Sinh tài liệu API từ collections/request.', icon: BookOpen },
-  mockServer: { title: 'Mock Server', description: 'Thiết kế mock endpoint và response mẫu.', icon: Bot }
+  collections:   { title: 'Bộ sưu tập', description: 'Lưu và quản lý request theo project.', icon: Boxes },
+  environments:  { title: 'Môi trường', description: 'Quản lý biến {{baseUrl}}, {{token}} và active environment.', icon: Network },
+  documentation: { title: 'Tài liệu API', description: 'Sinh tài liệu API từ collections/request.', icon: BookOpen },
+  mockServer:    { title: 'Server giả lập', description: 'Thiết kế mock endpoint và response mẫu.', icon: Bot }
 };
 
 export default function PlaceholderTool({ type = 'collections' }) {
@@ -29,7 +29,7 @@ export default function PlaceholderTool({ type = 'collections' }) {
               <Icon size={24} />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">Project workspace module</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">Module Workspace</p>
               <h1 className="mt-2 text-3xl font-black tracking-tight text-white">{config.title}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{config.description}</p>
             </div>
@@ -72,7 +72,7 @@ function CollectionsPanel() {
     <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-5">
       <div className="flex flex-col gap-3 sm:flex-row">
         <input value={name} onChange={(event) => setName(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50" placeholder="Tên collection" />
-        <button onClick={handleCreate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500"><Plus size={16} /> Tạo collection</button>
+        <button onClick={handleCreate} className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500"><Plus size={16} /> Tạo bộ sưu tập</button>
       </div>
       <ListState loading={loading} empty={items.length === 0} emptyText="Chưa có collection nào." />
       <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -81,7 +81,7 @@ function CollectionsPanel() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-black text-white">{item.name}</h3>
-                <p className="mt-1 text-xs text-slate-500">{(item.requests || []).length} request, {(item.folders || []).length} folder</p>
+                <p className="mt-1 text-xs text-slate-500">{(item.requests || []).length} yêu cầu, {(item.folders || []).length} thư mục</p>
               </div>
               <button onClick={async () => { await deleteCollection(item.id); toast.success('Đã xóa collection'); load(); }} className="rounded-lg p-2 text-slate-500 hover:bg-red-500/10 hover:text-red-300"><Trash2 size={16} /></button>
             </div>
@@ -126,7 +126,7 @@ function EnvironmentsPanel() {
     <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-5">
       <div className="flex flex-col gap-3 sm:flex-row">
         <input value={name} onChange={(event) => setName(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3 text-sm text-white outline-none focus:border-indigo-500/50" />
-        <button onClick={handleCreate} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500">Tạo environment</button>
+        <button onClick={handleCreate} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500">Tạo môi trường</button>
       </div>
       <ListState loading={loading} empty={envs.length === 0} emptyText="Chưa có environment." />
       <div className="mt-5 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -184,8 +184,8 @@ function DocumentationPanel() {
   return (
     <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-5">
       <div className="flex flex-wrap gap-2">
-        <button onClick={handleGenerate} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500"><Wand2 size={16} /> Generate docs</button>
-        <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 hover:bg-white/10"><Download size={16} /> Export Markdown</button>
+        <button onClick={handleGenerate} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500"><Wand2 size={16} /> Sinh tài liệu</button>
+        <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-sm font-bold text-slate-300 hover:bg-white/10"><Download size={16} /> Xuất Markdown</button>
       </div>
       <ListState loading={loading} empty={(docs.endpoints || []).length === 0} emptyText="Chưa có documentation. Hãy tạo collection/request rồi generate docs." />
       <div className="mt-5 space-y-3">
@@ -235,7 +235,7 @@ function MockServerPanel() {
       <textarea value={draft.responseBody} onChange={(event) => setDraft({ ...draft, responseBody: event.target.value })} className="mt-3 min-h-32 w-full rounded-xl border border-white/5 bg-slate-950/60 p-4 font-mono text-xs text-white" />
       <div className="mt-3 flex flex-wrap gap-2">
         <button onClick={handleCreate} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-500">Tạo endpoint</button>
-        <button onClick={handleAi} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-bold text-violet-200"><Wand2 size={16} /> AI response</button>
+        <button onClick={handleAi} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-3 text-sm font-bold text-violet-200"><Wand2 size={16} /> AI sinh response</button>
       </div>
       <ListState loading={loading} empty={items.length === 0} emptyText="Chưa có mock endpoint." />
       <div className="mt-5 space-y-3">
