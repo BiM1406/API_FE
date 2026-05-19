@@ -24,7 +24,6 @@ const getStatusMessage = (status) => {
     [PAYMENT_STATUS.FAILED]: 'Giao dịch thất bại.',
     [PAYMENT_STATUS.PENDING]: 'Giao dịch vẫn đang chờ thanh toán.'
   };
-
   return messages[status] || 'Không thể hoàn tất giao dịch thanh toán.';
 };
 
@@ -34,14 +33,17 @@ export default function PaymentFailed() {
   const statusMessage = useMemo(() => getStatusMessage(payment?.status), [payment?.status]);
 
   useEffect(() => {
-    if (payment?.status === PAYMENT_STATUS.PAID) {
-      navigate('/payment/success');
-    }
+    if (payment?.status === PAYMENT_STATUS.PAID) navigate('/payment/success');
   }, [navigate, payment]);
 
   const handleRetry = () => {
     clearCurrentPayment();
     navigate('/payment');
+  };
+
+  const handleBackToPlans = () => {
+    clearCurrentPayment();
+    navigate('/profile/edit?tab=subscription');
   };
 
   const handleBackToPricing = () => {
@@ -56,12 +58,8 @@ export default function PaymentFailed() {
           <CreditCard className="mx-auto mb-4 h-12 w-12 text-slate-400" />
           <h1 className="text-2xl font-black">Không tìm thấy giao dịch</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">Giao dịch có thể đã bị xóa hoặc chưa được tạo.</p>
-          <button
-            type="button"
-            onClick={handleBackToPricing}
-            className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200"
-          >
-            Quay lại Pricing
+          <button type="button" onClick={handleBackToPlans} className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200">
+            Quay lại hồ sơ
           </button>
         </div>
       </div>
@@ -74,12 +72,7 @@ export default function PaymentFailed() {
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-violet-600/20 blur-[120px]" />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-3xl items-center">
-        <MotionDiv
-          initial={{ opacity: 0, y: 18, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35 }}
-          className="w-full rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8"
-        >
+        <MotionDiv initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35 }} className="w-full rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8">
           <div className="text-center">
             <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-red-400/10 text-red-300 ring-1 ring-red-400/30">
               {payment.status === PAYMENT_STATUS.PENDING ? <AlertTriangle size={44} /> : <XCircle size={44} />}
@@ -97,22 +90,17 @@ export default function PaymentFailed() {
             <DetailRow label="Thời gian tạo" value={formatDateTime(payment.createdAt)} />
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={handleRetry}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]"
-            >
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <button type="button" onClick={handleRetry} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]">
               <RotateCcw size={18} />
               Thử lại thanh toán
             </button>
-            <button
-              type="button"
-              onClick={handleBackToPricing}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 active:scale-[0.98]"
-            >
+            <button type="button" onClick={handleBackToPlans} className="inline-flex items-center justify-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-5 py-3 text-sm font-bold text-violet-100 transition hover:bg-violet-500/20 active:scale-[0.98]">
+              Quay lại hồ sơ
+            </button>
+            <button type="button" onClick={handleBackToPricing} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 active:scale-[0.98]">
               <ArrowLeft size={18} />
-              Quay lại Pricing
+              Quay lại bảng giá
             </button>
           </div>
         </MotionDiv>

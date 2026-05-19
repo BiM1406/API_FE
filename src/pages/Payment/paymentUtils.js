@@ -1,20 +1,12 @@
 export const formatCurrency = (amount) => {
   const value = Number(amount);
-
-  if (!Number.isFinite(value) || value < 0) {
-    return '0đ';
-  }
-
+  if (!Number.isFinite(value) || value < 0) return '0đ';
   return `${new Intl.NumberFormat('vi-VN').format(value)}đ`;
 };
 
 export const formatDateTime = (date) => {
   const value = new Date(date);
-
-  if (Number.isNaN(value.getTime())) {
-    return '--';
-  }
-
+  if (Number.isNaN(value.getTime())) return '--';
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
@@ -29,7 +21,6 @@ export const getRemainingTime = (expiredAt) => {
   const expiredTime = new Date(expiredAt).getTime();
   const totalMs = Number.isNaN(expiredTime) ? 0 : Math.max(0, expiredTime - Date.now());
   const totalSeconds = Math.floor(totalMs / 1000);
-
   return {
     totalMs,
     minutes: Math.floor(totalSeconds / 60),
@@ -40,20 +31,13 @@ export const getRemainingTime = (expiredAt) => {
 
 export const formatCountdown = (expiredAt) => {
   const remaining = getRemainingTime(expiredAt);
-
-  if (remaining.isExpired) {
-    return '00:00';
-  }
-
+  if (remaining.isExpired) return '00:00';
   return `${String(remaining.minutes).padStart(2, '0')}:${String(remaining.seconds).padStart(2, '0')}`;
 };
 
 export const copyToClipboard = async (value) => {
   const text = String(value ?? '');
-
-  if (!text) {
-    return false;
-  }
+  if (!text) return false;
 
   try {
     if (navigator.clipboard?.writeText) {

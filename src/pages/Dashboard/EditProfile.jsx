@@ -1,37 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Bot, Camera, Check, CreditCard, Crown, Eye, EyeOff, Lock, Mail, Save, User, Zap } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getProfile, getSubscription, updateProfile } from '../../services/profileService';
+import { changePassword, getProfile, getSubscription, PLANS, saveSelectedPlan, updateProfile } from '../../services/profileService';
 
 const plans = [
-  { id: 'free', name: 'Miễn Phí', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
-  { id: 'pro', name: 'Pro', price: '199.999', icon: Zap, color: 'from-violet-500 to-indigo-600', popular: true },
-  { id: 'ultra', name: 'Ultra', price: '999.999', icon: Crown, color: 'from-amber-500 to-orange-600' },
+  { ...PLANS[0], icon: Bot, color: 'from-slate-700 to-slate-800' },
+  { ...PLANS[1], icon: Zap, color: 'from-violet-500 to-indigo-600' },
+  { ...PLANS[2], icon: Crown, color: 'from-amber-500 to-orange-600' }
 ];
+
+const initials = (name = 'User') => name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole') || 'user';
-
-  const [formData, setFormData] = useState({
-    name: userRole === 'admin' ? 'Admin User' : 'Khách Hàng',
-    email: userRole === 'admin' ? 'admin@example.com' : 'user@example.com'
+  const [searchParams] = useSearchParams();
+  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [currentPlan, setCurrentPlan] = useState('free');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'subscription') return 'plan';
+    if (tab === 'password') return 'password';
+    return 'profile';
   });
-
-  const [passwords, setPasswords] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
-
-  const [currentPlan, setCurrentPlan] = useState(userRole === 'admin' ? 'pro' : 'free');
-  const [activeTab, setActiveTab] = useState('profile');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +35,7 @@ export default function EditProfile() {
         name: profile?.name || profile?.username || '',
         email: profile?.email || ''
       });
-      setCurrentPlan(String(subscription?.plan || profile?.plan || 'free').toLowerCase());
+      setCurrentPlan(subscription?.planId || 'free');
     });
 
     return () => {
@@ -49,12 +43,19 @@ export default function EditProfile() {
     };
   }, []);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'subscription') setActiveTab('plan');
+    if (tab === 'password') setActiveTab('password');
+    if (tab === 'profile') setActiveTab('profile');
+  }, [searchParams]);
+
+  const handleChange = (event) => {
+    setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
-  const handlePasswordChange = (e) => {
-    setPasswords({ ...passwords, [e.target.name]: e.target.value });
+  const handlePasswordChange = (event) => {
+    setPasswords({ ...passwords, [event.target.name]: event.target.value });
   };
 
   const handleSave = async () => {
@@ -62,78 +63,79 @@ export default function EditProfile() {
       toast.error('Vui lòng nhập đủ tên và email');
       return;
     }
-    await updateProfile(formData);
-    toast.success('Đã lưu thông tin hồ sơ!');
-    navigate('/profile');
+    setSaving(true);
+    try {
+      await updateProfile(formData);
+      toast.success('Đã lưu thông tin hồ sơ');
+      navigate('/profile');
+    } catch (error) {
+      toast.error(error.message || 'Không thể lưu hồ sơ');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
-    if (!passwords.currentPassword) {
-      toast.error('Vui lòng nhập mật khẩu hiện tại!');
-      return;
+    try {
+      await changePassword(passwords);
+      toast.success('Đổi mật khẩu thành công');
+      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error) {
+      toast.error(error.message || 'Không thể đổi mật khẩu');
     }
-    if (passwords.currentPassword !== '123456') {
-      toast.error('Mật khẩu hiện tại không chính xác!');
-      return;
-    }
-    if (!passwords.newPassword || passwords.newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự!');
-      return;
-    }
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp!');
-      return;
-    }
-    toast.success('Đổi mật khẩu thành công!');
-    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
   };
 
   const handleChangePlan = (planId) => {
-    if (planId === currentPlan) return;
-    setCurrentPlan(planId);
-    const plan = plans.find(p => p.id === planId);
-    toast.success(`Đã chuyển sang gói ${plan.name}!`);
+    const plan = plans.find((item) => item.planId === planId);
+    if (!plan) return;
+
+    if (planId === 'free') {
+      toast(currentPlan === 'free' ? 'Bạn đang sử dụng gói Miễn Phí' : 'Chức năng hạ cấp sẽ được xử lý sau');
+      return;
+    }
+
+    saveSelectedPlan({
+      planId: plan.planId,
+      planName: plan.planName,
+      price: plan.price,
+      cycle: plan.cycle
+    });
+    toast.success(`Đã chọn gói ${plan.planName}. Vui lòng thanh toán để kích hoạt.`);
+    navigate('/payment');
   };
 
   const tabs = [
     { id: 'profile', label: 'Hồ sơ' },
     { id: 'password', label: 'Mật khẩu' },
-    { id: 'plan', label: 'Gói dịch vụ' },
+    { id: 'plan', label: 'Gói dịch vụ' }
   ];
 
   return (
-    <div className="h-full bg-slate-950 text-slate-300 font-sans flex flex-col relative overflow-hidden">
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[20%] left-[10%] w-[30%] h-[30%] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-      
-      <header className="h-16 bg-slate-900/40 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-6 shrink-0 z-20">
+    <div className="relative flex h-full flex-col overflow-hidden bg-slate-950 font-sans text-slate-300">
+      <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-indigo-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-[20%] left-[10%] h-[30%] w-[30%] rounded-full bg-violet-600/10 blur-[100px]" />
+
+      <header className="z-20 flex h-16 shrink-0 items-center justify-between border-b border-slate-800/50 bg-slate-900/40 px-6 backdrop-blur-xl">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/profile')}
-            className="p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all"
+            className="rounded-lg bg-slate-800/50 p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
             title="Quay lại"
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="flex items-center gap-2">
-            <h1 className="font-bold text-white tracking-tight">Chỉnh sửa hồ sơ</h1>
-          </div>
+          <h1 className="font-bold tracking-tight text-white">Chỉnh sửa hồ sơ</h1>
         </div>
       </header>
 
-      <div className="p-8 max-w-2xl mx-auto w-full space-y-6 overflow-y-auto custom-scrollbar flex-1 z-10">
-        
-        {/* Tabs */}
-        <div className="flex gap-1 bg-slate-900/60 backdrop-blur-md p-1 rounded-xl border border-slate-800/50">
-          {tabs.map(tab => (
+      <main className="z-10 mx-auto flex-1 w-full max-w-2xl space-y-6 overflow-y-auto p-8 custom-scrollbar">
+        <div className="flex gap-1 rounded-xl border border-slate-800/50 bg-slate-900/60 p-1 backdrop-blur-md">
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              className={`flex-1 rounded-lg py-2.5 text-sm font-bold transition-all ${
+                activeTab === tab.id ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
               {tab.label}
@@ -141,75 +143,62 @@ export default function EditProfile() {
           ))}
         </div>
 
-        {/* ─── Tab: Profile ─── */}
         {activeTab === 'profile' && (
-          <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl">
-            <div className="flex flex-col items-center mb-8">
-              <div className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 relative group mb-4">
-                {userRole === 'admin' ? 'AD' : 'US'}
-                <button className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+          <section className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-8 shadow-xl backdrop-blur-md">
+            <div className="mb-8 flex flex-col items-center">
+              <div className="group relative mb-4 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30">
+                {initials(formData.name || formData.email)}
+                <button className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                   <Camera size={24} className="text-white" />
                 </button>
               </div>
-              <p className="text-xs font-bold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors">Thay đổi ảnh đại diện</p>
+              <p className="cursor-pointer text-xs font-bold text-violet-400 transition hover:text-violet-300">Thay đổi ảnh đại diện</p>
             </div>
 
             <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Tên hiển thị</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                    <User size={18} />
-                  </div>
-                  <input 
-                    type="text" 
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
-                  />
-                </div>
-              </div>
+              <Field label="Tên hiển thị" icon={User}>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-12 pr-4 font-medium text-white outline-none transition-all placeholder:text-slate-600 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50"
+                />
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Email</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                    <Mail size={18} />
-                  </div>
-                  <input 
-                    type="email" 
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
-                  />
-                </div>
-              </div>
-              
-              <div className="pt-4 flex gap-4">
-                <button 
+              <Field label="Email" icon={Mail}>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-12 pr-4 font-medium text-white outline-none transition-all placeholder:text-slate-600 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50"
+                />
+              </Field>
+
+              <div className="flex gap-4 pt-4">
+                <button
                   onClick={handleSave}
-                  className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 font-bold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-500 active:scale-[0.98] disabled:opacity-60"
                 >
                   <Save size={18} /> Lưu thay đổi
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/profile')}
-                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all border border-slate-700 active:scale-[0.98]"
+                  className="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-3 font-bold text-white transition hover:bg-slate-700 active:scale-[0.98]"
                 >
                   Hủy bỏ
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* ─── Tab: Password ─── */}
         {activeTab === 'password' && (
-          <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-violet-500/10 rounded-xl">
+          <section className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-8 shadow-xl backdrop-blur-md">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="rounded-xl bg-violet-500/10 p-3">
                 <Lock size={20} className="text-violet-400" />
               </div>
               <div>
@@ -219,99 +208,49 @@ export default function EditProfile() {
             </div>
 
             <div className="space-y-5">
-              {/* Current Password */}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mật khẩu hiện tại</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                    <Lock size={18} />
-                  </div>
-                  <input 
-                    type={showPasswords.current ? "text" : "password"}
-                    name="currentPassword"
-                    value={passwords.currentPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Nhập mật khẩu hiện tại"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
+              <PasswordField
+                label="Mật khẩu hiện tại"
+                name="currentPassword"
+                value={passwords.currentPassword}
+                visible={showPasswords.current}
+                onToggle={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                onChange={handlePasswordChange}
+                placeholder="Nhập mật khẩu hiện tại"
+              />
+              <PasswordField
+                label="Mật khẩu mới"
+                name="newPassword"
+                value={passwords.newPassword}
+                visible={showPasswords.new}
+                onToggle={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                onChange={handlePasswordChange}
+                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+              />
+              <PasswordField
+                label="Xác nhận mật khẩu mới"
+                name="confirmPassword"
+                value={passwords.confirmPassword}
+                visible={showPasswords.confirm}
+                onToggle={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                onChange={handlePasswordChange}
+                placeholder="Nhập lại mật khẩu mới"
+              />
 
-              {/* New Password */}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mật khẩu mới</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                    <Lock size={18} />
-                  </div>
-                  <input 
-                    type={showPasswords.new ? "text" : "password"}
-                    name="newPassword"
-                    value={passwords.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Xác nhận mật khẩu mới</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                    <Lock size={18} />
-                  </div>
-                  <input 
-                    type={showPasswords.confirm ? "text" : "password"}
-                    name="confirmPassword"
-                    value={passwords.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Nhập lại mật khẩu mới"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-                  >
-                    {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <button 
-                  onClick={handleChangePassword}
-                  className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <Lock size={18} /> Đổi mật khẩu
-                </button>
-              </div>
+              <button
+                onClick={handleChangePassword}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 font-bold text-white shadow-lg shadow-violet-600/20 transition hover:bg-violet-500 active:scale-[0.98]"
+              >
+                <Lock size={18} /> Đổi mật khẩu
+              </button>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* ─── Tab: Plan ─── */}
         {activeTab === 'plan' && (
-          <div className="space-y-4">
-            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl border border-slate-800/50 shadow-xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-emerald-500/10 rounded-xl">
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-6 shadow-xl backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-emerald-500/10 p-3">
                   <CreditCard size={20} className="text-emerald-400" />
                 </div>
                 <div>
@@ -322,49 +261,81 @@ export default function EditProfile() {
             </div>
 
             {plans.map((plan) => {
-              const isActive = currentPlan === plan.id;
+              const isActive = currentPlan === plan.planId;
+              const Icon = plan.icon;
               return (
-                <div 
-                  key={plan.id}
-                  className={`p-6 rounded-2xl border transition-all cursor-pointer ${
-                    isActive 
-                      ? 'bg-slate-900/60 border-violet-500/50 ring-1 ring-violet-500/30 shadow-lg shadow-violet-900/10' 
-                      : 'bg-slate-900/40 border-slate-800/50 hover:border-slate-700'
+                <button
+                  type="button"
+                  key={plan.planId}
+                  onClick={() => handleChangePlan(plan.planId)}
+                  className={`w-full cursor-pointer rounded-2xl border p-6 text-left transition-all ${
+                    isActive ? 'border-violet-500/50 bg-slate-900/60 shadow-lg shadow-violet-900/10 ring-1 ring-violet-500/30' : 'border-slate-800/50 bg-slate-900/40 hover:border-slate-700'
                   }`}
-                  onClick={() => handleChangePlan(plan.id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center shadow-lg`}>
-                        <plan.icon className="w-6 h-6 text-white" />
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${plan.color} shadow-lg`}>
+                        <Icon className="h-6 w-6 text-white" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-white">{plan.name}</h3>
-                          {plan.popular && (
-                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-500/20 text-violet-400 rounded-full border border-violet-500/30">Phổ biến</span>
+                          <h3 className="font-bold text-white">{plan.planName}</h3>
+                          {plan.badge && (
+                            <span className="rounded-full border border-violet-500/30 bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-400">
+                              {plan.badge}
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-400 mt-0.5">
-                          <span className="font-bold text-white">đ{plan.price}</span> VND / tháng
+                        <p className="mt-0.5 text-sm text-slate-400">
+                          <span className="font-bold text-white">{new Intl.NumberFormat('vi-VN').format(plan.price)} VND</span> / {plan.cycle}
                         </p>
+                        <p className="mt-1 text-xs text-slate-500">{plan.description}</p>
                       </div>
                     </div>
 
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isActive 
-                        ? 'border-violet-500 bg-violet-500' 
-                        : 'border-slate-600'
-                    }`}>
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${isActive ? 'border-violet-500 bg-violet-500' : 'border-slate-600'}`}>
                       {isActive && <Check size={14} className="text-white" />}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
-          </div>
+          </section>
         )}
+      </main>
+    </div>
+  );
+}
+
+function Field({ label, icon, children }) {
+  const FieldIcon = icon;
+  return (
+    <div>
+      <label className="mb-2 ml-1 block text-xs font-bold uppercase tracking-widest text-slate-400">{label}</label>
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500">
+          <FieldIcon size={18} />
+        </div>
+        {children}
       </div>
     </div>
+  );
+}
+
+function PasswordField({ label, name, value, visible, onToggle, onChange, placeholder }) {
+  return (
+    <Field label={label} icon={Lock}>
+      <input
+        type={visible ? 'text' : 'password'}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-800 bg-slate-950/50 py-3 pl-12 pr-12 font-medium text-white outline-none transition-all placeholder:text-slate-600 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50"
+      />
+      <button type="button" onClick={onToggle} className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 transition hover:text-slate-300">
+        {visible ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
+    </Field>
   );
 }

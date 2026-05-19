@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, CreditCard } from 'lucide-react';
 import { PAYMENT_STATUS } from './paymentConstants';
-import { getCurrentPayment } from './paymentService';
+import { activatePaidSubscription, getCurrentPayment } from './paymentService';
 import { formatCurrency, formatDateTime } from './paymentUtils';
+import { isAuthenticated } from '../../services/authService';
 
 const MotionDiv = motion.div;
 
@@ -20,6 +21,11 @@ function DetailRow({ label, value }) {
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [payment] = useState(() => getCurrentPayment());
+  const profileSubscriptionPath = '/profile/edit?tab=subscription';
+
+  const handleBackToSubscription = () => {
+    navigate(isAuthenticated() ? profileSubscriptionPath : '/pricing');
+  };
 
   useEffect(() => {
     if (payment?.status === PAYMENT_STATUS.PENDING) {
@@ -27,11 +33,13 @@ export default function PaymentSuccess() {
       return;
     }
 
-    if (
-      payment &&
-      [PAYMENT_STATUS.FAILED, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.EXPIRED].includes(payment.status)
-    ) {
+    if (payment && [PAYMENT_STATUS.FAILED, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.EXPIRED].includes(payment.status)) {
       navigate('/payment/failed');
+      return;
+    }
+
+    if (payment?.status === PAYMENT_STATUS.PAID) {
+      activatePaidSubscription().catch(() => {});
     }
   }, [navigate, payment]);
 
@@ -42,12 +50,8 @@ export default function PaymentSuccess() {
           <CreditCard className="mx-auto mb-4 h-12 w-12 text-slate-400" />
           <h1 className="text-2xl font-black">Không tìm thấy giao dịch</h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-400">Giao dịch có thể đã bị xóa hoặc chưa được tạo.</p>
-          <button
-            type="button"
-            onClick={() => navigate('/pricing')}
-            className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200"
-          >
-            Quay lại Pricing
+          <button type="button" onClick={handleBackToSubscription} className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200">
+            Quay lại gói dịch vụ
           </button>
         </div>
       </div>
@@ -60,12 +64,7 @@ export default function PaymentSuccess() {
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-indigo-600/20 blur-[120px]" />
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-3xl items-center">
-        <MotionDiv
-          initial={{ opacity: 0, y: 18, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35 }}
-          className="w-full rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8"
-        >
+        <MotionDiv initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35 }} className="w-full rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8">
           <div className="text-center">
             <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-400/30">
               <CheckCircle2 size={44} />
@@ -85,20 +84,12 @@ export default function PaymentSuccess() {
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]"
-            >
-              Quay lại Dashboard
+            <button type="button" onClick={handleBackToSubscription} className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]">
+              Quay lại gói dịch vụ
             </button>
-            <button
-              type="button"
-              onClick={() => navigate('/pricing')}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 active:scale-[0.98]"
-            >
+            <button type="button" onClick={() => navigate(isAuthenticated() ? '/dashboard' : '/pricing')} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 active:scale-[0.98]">
               <ArrowLeft size={18} />
-              Quay lại Pricing
+              Quay lại Dashboard
             </button>
           </div>
         </MotionDiv>

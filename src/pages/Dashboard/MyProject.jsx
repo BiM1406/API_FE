@@ -1,30 +1,48 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Plus,
   Activity,
-  Database,
+  Bot,
   Clock,
-  Search,
-  FolderKanban,
-  Zap,
   Code2,
-  MoreHorizontal,
-  FolderPlus,
-  UploadCloud,
-  Trash2,
+  Database,
   ExternalLink,
-  Loader2
+  FolderKanban,
+  FolderPlus,
+  Layers3,
+  Loader2,
+  MessageSquareCode,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { createProject, deleteProject, getProjects } from '../../services/projectService';
-import { addActivity } from '../../services/activityService';
+import { getActivities, addActivity } from '../../services/activityService';
+import { getRequestHistory } from '../../services/testService';
 
 const STATS_DATA = [
-  { label: 'Tổng dự án', key: 'projects', icon: FolderKanban, color: 'text-indigo-400' },
-  { label: 'API hoạt động', key: 'active', icon: Zap, color: 'text-amber-400' },
-  { label: 'Dung lượng DB', value: '1.2 GB', icon: Database, color: 'text-emerald-400' },
-  { label: 'Tính toán AI', value: '8.4k', icon: Activity, color: 'text-violet-400' }
+  { label: 'Dự án', key: 'projects', icon: FolderKanban, color: 'text-indigo-400' },
+  { label: 'API active', key: 'active', icon: Zap, color: 'text-amber-400' },
+  { label: 'Database', value: '1.2 GB', icon: Database, color: 'text-emerald-400' },
+  { label: 'AI tokens', value: '8.4k', icon: Activity, color: 'text-violet-400' }
+];
+
+const quickActions = [
+  { label: 'Tạo dự án mới', icon: FolderPlus, type: 'create' },
+  { label: 'Chat với AI', icon: Bot, path: '/workspace' },
+  { label: 'Test API', icon: Zap, path: '/test-api' },
+  { label: 'Thiết kế Database', icon: Database, path: '/database' },
+  { label: 'Tạo Collection', icon: Layers3, type: 'collection' }
+];
+
+const projectActions = [
+  { label: 'Workspace', icon: ExternalLink, path: '/workspace' },
+  { label: 'ChatDMP', icon: Bot, path: '/workspace' },
+  { label: 'Test API', icon: Zap, path: '/test-api' },
+  { label: 'Database', icon: Database, path: '/database' }
 ];
 
 const formatUpdated = (value) => {
@@ -36,14 +54,21 @@ const formatUpdated = (value) => {
   return `${Math.floor(diffHours / 24)} ngày trước`;
 };
 
+const recentLabel = (activity) => {
+  if (!activity) return '';
+  if (typeof activity.action === 'string') return activity.action;
+  return activity.action?.title || activity.action?.description || activity.title || 'Hoạt động mới';
+};
+
 export default function MyProject() {
   const navigate = useNavigate();
-  const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [requests, setRequests] = useState([]);
 
   const filteredProjects = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -51,7 +76,8 @@ export default function MyProject() {
     return projects.filter((project) => (
       project.name.toLowerCase().includes(keyword) ||
       project.description.toLowerCase().includes(keyword) ||
-      project.type.toLowerCase().includes(keyword)
+      project.type.toLowerCase().includes(keyword) ||
+      (project.tech || []).some((tag) => tag.toLowerCase().includes(keyword))
     ));
   }, [projects, search]);
 
@@ -66,10 +92,9 @@ export default function MyProject() {
     setLoading(true);
     getProjects()
       .then((items) => {
-        if (mounted) {
-          setProjects(items);
-          setError('');
-        }
+        if (!mounted) return;
+        setProjects(items);
+        setError('');
       })
       .catch((err) => {
         if (mounted) setError(err.message || 'Không thể tải danh sách dự án');
@@ -78,34 +103,49 @@ export default function MyProject() {
         if (mounted) setLoading(false);
       });
 
+    setActivities(getActivities().slice(0, 5));
+    setRequests(getRequestHistory().slice(0, 4));
+
     return () => {
       mounted = false;
     };
   }, []);
 
-  const handleCreateProject = async (type = 'API') => {
+  const handleCreateProject = async (source = 'quick') => {
     setCreating(true);
     try {
       const project = await createProject({
-        name: type === 'IMPORT' ? 'Imported API Project' : 'Dự án API mới',
-        description: type === 'IMPORT' ? 'Dự án được tạo từ mock import cục bộ' : 'Thiết kế API, database và workspace ChatDMP mới',
-        type: type === 'IMPORT' ? 'Import' : 'API',
-        tech: type === 'IMPORT' ? ['OpenAPI', 'REST'] : ['API', 'Database', 'ChatDMP']
+        name: 'Dự án API mới',
+        description: 'Workspace API, ChatDMP, API Tester và Database Designer',
+        type: 'API',
+        tech: ['API', 'Database', 'ChatDMP']
       });
       setProjects((current) => [project, ...current]);
-      setIsNewMenuOpen(false);
       addActivity({
         type: 'project',
         title: 'Tạo dự án',
         description: `Đã tạo dự án ${project.name}`,
         status: 'success'
       });
-      toast.success('Đã tạo dự án mới');
+      toast.success(source === 'empty' ? 'Đã tạo dự án đầu tiên' : 'Đã tạo dự án mới');
     } catch (err) {
       toast.error(err.message || 'Không thể tạo dự án');
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleQuickAction = (action) => {
+    if (action.type === 'create') {
+      handleCreateProject();
+      return;
+    }
+    if (action.type === 'collection') {
+      addActivity('project', 'Đã tạo collection nháp');
+      toast.success('Đã tạo collection nháp');
+      return;
+    }
+    navigate(action.path);
   };
 
   const handleDeleteProject = async (event, project) => {
@@ -125,190 +165,246 @@ export default function MyProject() {
     }
   };
 
-  const handleOpenProject = (project) => {
+  const openProject = (project, path = '/workspace') => {
     localStorage.setItem('api_fe_active_project_id', project.id);
-    navigate('/workspace', { state: { projectId: project.id } });
+    navigate(path === '/workspace' ? `/workspace/${project.id}` : path, { state: { projectId: project.id } });
   };
 
   return (
-    <div className="w-full min-h-full p-6 lg:p-10 relative">
-      <div className="max-w-7xl mx-auto space-y-10">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight">
-              Dự án của tôi
-            </h1>
-            <p className="text-slate-400 text-base font-medium max-w-xl">
-              Quản lý triển khai, giám sát API và cấu hình không gian làm việc AI từ một trung tâm điều khiển hợp nhất.
-            </p>
-          </div>
-
-          <div className="relative z-50 shrink-0">
+    <div className="relative min-h-full w-full p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="min-w-0 space-y-6">
+          <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">API_FE Platform</p>
+              <h1 className="text-3xl font-black tracking-tight text-white lg:text-4xl">Dự án của tôi</h1>
+              <p className="max-w-2xl text-sm font-medium leading-6 text-slate-400">
+                Quản lý API, ChatDMP, database schema và collection trong một workspace thống nhất.
+              </p>
+            </div>
             <button
-              onClick={() => setIsNewMenuOpen(!isNewMenuOpen)}
+              onClick={() => handleCreateProject()}
               disabled={creating}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60"
             >
-              {creating ? <Loader2 size={20} className="animate-spin" /> : <Plus size={20} strokeWidth={3} className={`transition-transform duration-300 ${isNewMenuOpen ? 'rotate-45' : ''}`} />}
+              {creating ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
               Dự án mới
             </button>
+          </header>
 
-            {isNewMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsNewMenuOpen(false)} />
-                <div className="absolute right-0 mt-3 w-64 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-2 space-y-1">
-                    <button onClick={() => handleCreateProject('API')} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors shrink-0">
-                        <FolderPlus size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white tracking-tight">Tạo dự án trống</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Bắt đầu từ đầu</p>
-                      </div>
-                    </button>
-                    <button onClick={() => handleCreateProject('IMPORT')} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
-                        <UploadCloud size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white tracking-tight">Nhập dự án cục bộ</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">Tạo mock import từ file</p>
-                      </div>
-                    </button>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="rounded-2xl border border-white/5 bg-slate-900/50 p-4 shadow-lg shadow-black/20">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-slate-950 ${stat.color}`}>
+                      <Icon size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-semibold text-slate-500">{stat.label}</p>
+                      <p className="text-xl font-black text-white">{stat.value}</p>
+                    </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-        </header>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="bg-slate-900/50 backdrop-blur-md border border-white/5 rounded-2xl p-5 shadow-lg flex items-center gap-4 group hover:bg-white/5 transition-colors cursor-default">
-                <div className={`w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center border border-white/5 shadow-inner ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon size={24} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">{stat.label}</p>
-                  <p className="text-2xl font-black text-white tracking-tight">{stat.value}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <FolderKanban size={20} className="text-indigo-400" />
-              Dự án gần đây
-            </h2>
-
-            <div className="relative group/search">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={16} className="text-slate-500 group-focus-within/search:text-indigo-400 transition-colors" />
-              </div>
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm kiếm dự án..."
-                className="w-full sm:w-64 bg-slate-900/50 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
-              />
-            </div>
+              );
+            })}
           </div>
 
-          {loading && (
-            <div className="rounded-3xl border border-white/5 bg-slate-900/40 p-10 text-center text-slate-400">
-              <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-indigo-400" />
-              Đang tải danh sách dự án...
+          <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <Sparkles size={16} className="text-violet-300" />
+              <h2 className="text-sm font-bold text-white">Quick Actions</h2>
             </div>
-          )}
-
-          {!loading && error && (
-            <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-sm text-red-200">{error}</div>
-          )}
-
-          {!loading && !error && filteredProjects.length === 0 && (
-            <div className="rounded-3xl border border-white/5 bg-slate-900/40 p-10 text-center">
-              <FolderKanban className="mx-auto mb-4 h-10 w-10 text-slate-500" />
-              <h3 className="text-lg font-bold text-white">Chưa có dự án phù hợp</h3>
-              <p className="mt-2 text-sm text-slate-400">Tạo dự án mới hoặc thay đổi từ khóa tìm kiếm.</p>
-            </div>
-          )}
-
-          {!loading && !error && filteredProjects.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => {
-                const activeColor = project.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500';
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
                 return (
-                  <div
-                    key={project.id}
-                    onClick={() => handleOpenProject(project)}
-                    className="group relative bg-slate-900/40 backdrop-blur-md border border-white/5 rounded-3xl p-6 transition-all duration-300 hover:bg-slate-800/60 hover:border-indigo-500/50 hover:shadow-[0_10px_40px_-10px_rgba(99,102,241,0.2)] cursor-pointer overflow-hidden"
+                  <button
+                    key={action.label}
+                    onClick={() => handleQuickAction(action)}
+                    className="flex min-h-24 flex-col items-start justify-between rounded-xl border border-white/5 bg-slate-950/50 p-4 text-left transition hover:border-indigo-500/40 hover:bg-white/5"
                   >
-                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-indigo-500/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                    <div className="flex justify-between items-start mb-6">
-                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${project.color || 'from-indigo-500 to-violet-500'} flex items-center justify-center shadow-lg transform group-hover:rotate-6 transition-transform duration-300`}>
-                        <Code2 size={24} className="text-white" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenProject(project);
-                          }}
-                          className="text-slate-500 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                          aria-label="Mở dự án"
-                        >
-                          <ExternalLink size={18} />
-                        </button>
-                        <button
-                          onClick={(event) => handleDeleteProject(event, project)}
-                          className="text-slate-500 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                          aria-label="Xóa dự án"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                        <MoreHorizontal size={18} className="text-slate-600" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-center gap-3">
-                        <h3 className="min-w-0 truncate text-xl font-bold text-white tracking-tight group-hover:text-indigo-300 transition-colors">{project.name}</h3>
-                        <div className="flex shrink-0 items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950/50 border border-white/5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${activeColor}`} />
-                          <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">{project.status}</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-slate-400 font-medium line-clamp-2">{project.description}</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {(project.tech || ['API']).map((tag) => (
-                        <span key={tag} className="px-2.5 py-1 text-xs font-semibold text-slate-300 bg-white/5 border border-white/5 rounded-lg group-hover:border-indigo-500/20 transition-colors">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs font-medium text-slate-500">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={14} />
-                        Cập nhật {formatUpdated(project.updatedAt)}
-                      </div>
-                    </div>
-                  </div>
+                    <Icon size={20} className="text-indigo-300" />
+                    <span className="text-sm font-bold text-white">{action.label}</span>
+                  </button>
                 );
               })}
             </div>
-          )}
+          </div>
+
+          <section className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+                <FolderKanban size={19} className="text-indigo-400" />
+                Workspace gần đây
+              </h2>
+              <div className="relative w-full sm:w-80">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Tìm project, tech, loại..."
+                  className="w-full rounded-xl border border-white/5 bg-slate-900/60 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-indigo-500/50"
+                />
+              </div>
+            </div>
+
+            {loading && (
+              <div className="rounded-3xl border border-white/5 bg-slate-900/40 p-10 text-center text-slate-400">
+                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-indigo-400" />
+                Đang tải danh sách dự án...
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">{error}</div>
+            )}
+
+            {!loading && !error && filteredProjects.length === 0 && (
+              <div className="rounded-3xl border border-dashed border-indigo-500/30 bg-slate-900/40 p-10 text-center">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-slate-950 text-indigo-300">
+                  <FolderPlus size={30} />
+                </div>
+                <h3 className="text-xl font-black text-white">{projects.length === 0 ? 'Chưa có project nào' : 'Không tìm thấy project phù hợp'}</h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+                  {projects.length === 0 ? 'Tạo project đầu tiên để bắt đầu quản lý API, database và AI workspace.' : 'Thử đổi từ khóa hoặc xóa bộ lọc tìm kiếm.'}
+                </p>
+                <button
+                  onClick={() => handleCreateProject('empty')}
+                  disabled={creating}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-500 disabled:opacity-60"
+                >
+                  {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                  Tạo dự án đầu tiên
+                </button>
+              </div>
+            )}
+
+            {!loading && !error && filteredProjects.length > 0 && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                {filteredProjects.map((project) => {
+                  const activeColor = project.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500';
+                  return (
+                    <article
+                      key={project.id}
+                      onClick={() => openProject(project)}
+                      className="group cursor-pointer rounded-2xl border border-white/5 bg-slate-900/45 p-5 shadow-xl shadow-black/20 transition hover:border-indigo-500/40 hover:bg-slate-800/70"
+                    >
+                      <div className="mb-5 flex items-start justify-between gap-4">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${project.color || 'from-indigo-500 to-violet-500'} shadow-lg shadow-indigo-600/20`}>
+                          <Code2 size={23} className="text-white" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="flex items-center gap-1.5 rounded-full border border-white/5 bg-slate-950/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            <span className={`h-1.5 w-1.5 rounded-full ${activeColor}`} />
+                            {project.status}
+                          </span>
+                          <button
+                            onClick={(event) => handleDeleteProject(event, project)}
+                            className="rounded-lg p-2 text-slate-500 transition hover:bg-red-500/10 hover:text-red-300"
+                            aria-label="Xóa dự án"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <h3 className="truncate text-lg font-black text-white transition group-hover:text-indigo-300">{project.name}</h3>
+                      <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-slate-400">{project.description}</p>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {(project.tech || ['API']).map((tag) => (
+                          <span key={tag} className="rounded-lg border border-white/5 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 grid grid-cols-2 gap-2 border-t border-white/5 pt-4">
+                        {projectActions.map((action) => {
+                          const Icon = action.icon;
+                          return (
+                            <button
+                              key={action.label}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openProject(project, action.path);
+                              }}
+                              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/5 bg-slate-950/50 px-3 py-2 text-xs font-bold text-slate-300 transition hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-white"
+                            >
+                              <Icon size={14} />
+                              {action.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                        <Clock size={14} />
+                        Cập nhật {formatUpdated(project.updatedAt)}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </section>
+
+        <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+          <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Gói hiện tại</p>
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <p className="text-xl font-black text-white">Pro Workspace</p>
+                <p className="mt-1 text-sm text-slate-400">API, AI, Database</p>
+              </div>
+              <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-300">Active</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">AI Usage</h3>
+              <MessageSquareCode size={16} className="text-violet-300" />
+            </div>
+            <div className="h-2 rounded-full bg-slate-950">
+              <div className="h-full w-[62%] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+            </div>
+            <p className="mt-3 text-xs text-slate-400">8.4k / 13.5k tokens trong tháng</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-5">
+            <h3 className="mb-3 text-sm font-bold text-white">Request gần đây</h3>
+            <div className="space-y-2">
+              {requests.length === 0 && <p className="rounded-xl bg-slate-950/50 p-4 text-xs text-slate-500">Chưa có request nào từ API Tester.</p>}
+              {requests.map((item) => (
+                <button key={item.id} onClick={() => navigate('/test-api')} className="w-full rounded-xl border border-white/5 bg-slate-950/45 p-3 text-left transition hover:border-indigo-500/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-indigo-300">{item.method}</span>
+                    <span className="text-[10px] font-bold text-slate-500">{item.status}</span>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-slate-400">{item.url}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-5">
+            <h3 className="mb-3 text-sm font-bold text-white">Activity gần đây</h3>
+            <div className="space-y-2">
+              {activities.length === 0 && <p className="rounded-xl bg-slate-950/50 p-4 text-xs text-slate-500">Chưa có hoạt động nào.</p>}
+              {activities.map((item) => (
+                <div key={item.id} className="rounded-xl border border-white/5 bg-slate-950/45 p-3">
+                  <p className="line-clamp-2 text-xs font-semibold text-slate-300">{recentLabel(item)}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-600">{item.category || item.type || 'system'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );

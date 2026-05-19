@@ -14,6 +14,7 @@ const History = lazy(() => import('./pages/Dashboard/History'));
 const Profile = lazy(() => import('./pages/Dashboard/Profile'));
 const EditProfile = lazy(() => import('./pages/Dashboard/EditProfile'));
 const TestApi = lazy(() => import('./pages/Dashboard/TestApi'));
+const PlaceholderTool = lazy(() => import('./pages/Dashboard/PlaceholderTool'));
 const AdminOverview = lazy(() => import('./pages/Dashboard/AdminOverview'));
 const UserManagement = lazy(() => import('./pages/Dashboard/UserManagement'));
 const RevenueManagement = lazy(() => import('./pages/Dashboard/RevenueManagement'));
@@ -52,21 +53,26 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/payment" element={<PaymentPage />} />
-          <Route path="/payment/success" element={<PaymentSuccess />} />
-          <Route path="/payment/failed" element={<PaymentFailed />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<MyProject />} />
               <Route path="/workspace" element={<ChatDMP />} />
+              <Route path="/workspace/:projectId" element={<ChatDMP />} />
               <Route path="/database" element={<Database />} />
               <Route path="/history" element={<History />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/test-api" element={<TestApi />} />
+              <Route path="/collections" element={<PlaceholderTool type="collections" />} />
+              <Route path="/environments" element={<PlaceholderTool type="environments" />} />
+              <Route path="/documentation" element={<PlaceholderTool type="documentation" />} />
+              <Route path="/mock-server" element={<PlaceholderTool type="mockServer" />} />
             </Route>
+            <Route path="/payment" element={<PaymentPage />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/payment/failed" element={<PaymentFailed />} />
           </Route>
 
           <Route element={<ProtectedRoute adminOnly />}>

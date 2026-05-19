@@ -3,6 +3,8 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity,
   Bot,
+  BookOpen,
+  Boxes,
   ChevronUp,
   Database,
   DollarSign,
@@ -11,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Network,
   PanelLeft,
   Settings,
   Terminal,
@@ -28,6 +31,10 @@ const userMenuItems = [
   { label: 'ChatDMP', icon: Terminal, path: '/workspace' },
   { label: 'Thiết kế CSDL', icon: Database, path: '/database' },
   { label: 'Kiểm thử API', icon: Zap, path: '/test-api' },
+  { label: 'Collections', icon: Boxes, path: '/collections' },
+  { label: 'Environments', icon: Network, path: '/environments' },
+  { label: 'Documentation', icon: BookOpen, path: '/documentation' },
+  { label: 'Mock Server', icon: Bot, path: '/mock-server' },
   { label: 'Lịch sử hoạt động', icon: History, path: '/history' }
 ];
 
