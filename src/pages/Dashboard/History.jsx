@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Terminal, Database, Zap, Folder, Eye, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
-
 import { getActivities, hideActivity, clearAllActivities } from '../../utils/activityLogger';
 
 const getRelativeTime = (timestamp) => {
@@ -16,8 +15,6 @@ const getRelativeTime = (timestamp) => {
 };
 
 export default function History() {
-  
-  
   // State for accordions
   const [expanded, setExpanded] = useState({
     chatDmp: true,

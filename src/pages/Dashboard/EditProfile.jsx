@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
-import { getCurrentUser } from '../../services/authService';
+import { getCurrentUser, getUsers, saveUsers, saveAuth } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getProfile, getSubscription, updateProfile } from '../../services/profileService';
 
 const plans = [
   { id: 'free', name: 'Miễn Phí', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
@@ -57,6 +58,22 @@ export default function EditProfile() {
     }
   };
 
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([getProfile(), getSubscription()]).then(([profile, subscription]) => {
+      if (!mounted) return;
+      setFormData({
+        name: profile?.name || profile?.username || '',
+        email: profile?.email || ''
+      });
+      setCurrentPlan(String(subscription?.plan || profile?.plan || 'free').toLowerCase());
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -65,16 +82,26 @@ export default function EditProfile() {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
-    // Update the mock user in local storage so changes reflect
-    const updatedUser = { ...user, name: formData.name, email: formData.email, plan: currentPlan };
-    localStorage.setItem('api_fe_user', JSON.stringify(updatedUser));
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      toast.error('Vui lòng nhập đủ tên và email');
+      return;
+    }
+    await updateProfile(formData);
     
+    // Ensure the updated plan is saved to mock db & current user auth session
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      currentUser.plan = currentPlan;
+      const users = getUsers().map((u) => u.id === currentUser.id ? { ...u, plan: currentPlan } : u);
+      saveUsers(users);
+      saveAuth(currentUser, localStorage.getItem('token') || 'mock-token');
+    }
     toast.success('Đã lưu thông tin hồ sơ!');
     navigate('/profile');
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!passwords.currentPassword) {
       toast.error('Vui lòng nhập mật khẩu hiện tại!');
       return;

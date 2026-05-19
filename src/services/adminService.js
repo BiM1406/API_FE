@@ -38,6 +38,12 @@ export async function updateUserStatus(userId, status) {
   return mockDelay(users.find((user) => user.id === userId));
 }
 
+export async function updateAdminUser(userId, fields) {
+  const users = getUsers().map((user) => user.id === userId ? { ...user, ...fields } : user);
+  saveUsers(users);
+  return mockDelay(users.find((user) => user.id === userId));
+}
+
 export async function deleteUser(userId) {
   const users = getUsers();
   const target = users.find((user) => user.id === userId);

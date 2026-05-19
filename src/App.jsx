@@ -1,87 +1,85 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-import HomePage from './pages/HomePage/HomePage';
-import AuthPage from './pages/Auth/AuthPage';
-import PricingPage from './pages/HomePage/PricingPage';
-import DashboardLayout from './pages/Dashboard/DashboardLayout';
-import ProtectedRoute from './components/ProtectedRoute';
-import MyProject from './pages/Projects/MyProject';
-import ChatDMP from './pages/Editor/ChatDMP';
-import Database from './pages/Editor/Database';
-import History from './pages/Dashboard/History';
-import Profile from './pages/Dashboard/Profile';
-import EditProfile from './pages/Dashboard/EditProfile';
-import TestApi from './pages/ApiTester/TestApi';
-import AdminOverview from './pages/Dashboard/AdminOverview';
-import UserManagement from './pages/Dashboard/UserManagement';
-import RevenueManagement from './pages/Dashboard/RevenueManagement';
-import Settings from './pages/Dashboard/Settings';
-import { ResetPasswordView as ResetPassword } from './pages/Auth/ForgotPassword';
-import PaymentPage from './pages/Payment/PaymentPage';
-import PaymentSuccess from './pages/Payment/PaymentSuccess';
-import PaymentFailed from './pages/Payment/PaymentFailed';
+const HomePage = lazy(() => import('./pages/HomePage/HomePage'));
+const AuthPage = lazy(() => import('./pages/Auth/AuthPage'));
+const PricingPage = lazy(() => import('./pages/HomePage/PricingPage'));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+const DashboardLayout = lazy(() => import('./pages/Dashboard/DashboardLayout'));
+const MyProject = lazy(() => import('./pages/Projects/MyProject'));
+const ChatDMP = lazy(() => import('./pages/Editor/ChatDMP'));
+const Database = lazy(() => import('./pages/Editor/Database'));
+const History = lazy(() => import('./pages/Dashboard/History'));
+const Profile = lazy(() => import('./pages/Dashboard/Profile'));
+const EditProfile = lazy(() => import('./pages/Dashboard/EditProfile'));
+const TestApi = lazy(() => import('./pages/ApiTester/TestApi'));
+const AdminOverview = lazy(() => import('./pages/Dashboard/AdminOverview'));
+const UserManagement = lazy(() => import('./pages/Dashboard/UserManagement'));
+const RevenueManagement = lazy(() => import('./pages/Dashboard/RevenueManagement'));
+const PaymentPage = lazy(() => import('./pages/Payment/PaymentPage'));
+const PaymentSuccess = lazy(() => import('./pages/Payment/PaymentSuccess'));
+const PaymentFailed = lazy(() => import('./pages/Payment/PaymentFailed'));
+const ResetPassword = lazy(() => import('./pages/Auth/ForgotPassword').then((module) => ({ default: module.ResetPasswordView })));
+
+function RouteLoader() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 px-5 py-4 shadow-2xl shadow-black/30">
+        <div className="h-5 w-5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
+        <span className="text-sm font-semibold text-slate-300">Đang tải giao diện...</span>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
-
-      {/* Toast config */}
-      <Toaster 
-        position="top-center" 
+      <Toaster
+        position="top-center"
         toastOptions={{
           style: {
             background: '#1e293b',
             color: '#fff',
             border: '1px solid #334155'
           }
-        }} 
+        }}
       />
 
-      <Routes>
-        {/* Trang mặc định (Landing) */}
-        <Route path="/" element={<HomePage />} />
+      <Suspense fallback={<RouteLoader />}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/payment" element={<PaymentPage />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/failed" element={<PaymentFailed />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Auth */}
-        <Route path="/auth" element={<AuthPage />} />
-
-        {/* Pricing & Payment */}
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/payment" element={<PaymentPage />} />
-        <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/payment/failed" element={<PaymentFailed />} />
-
-        {/* Reset Password */}
-        <Route path="/reset-password" element={<ResetPassword />} />
-
-        {/* Dashboard Layout for Main View */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<MyProject />} />
-            <Route path="/workspace" element={<ChatDMP />} />
-            <Route path="/database" element={<Database />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/test-api" element={<TestApi />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<MyProject />} />
+              <Route path="/workspace" element={<ChatDMP />} />
+              <Route path="/database" element={<Database />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/edit" element={<EditProfile />} />
+              <Route path="/test-api" element={<TestApi />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Admin Routes */}
-        <Route element={<ProtectedRoute adminOnly />}>
-          <Route element={<DashboardLayout />}>
-            <Route path="/admin/overview" element={<AdminOverview />} />
-            <Route path="/admin/users" element={<UserManagement />} />
-            <Route path="/admin/revenue" element={<RevenueManagement />} />
+          <Route element={<ProtectedRoute adminOnly />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/admin/overview" element={<AdminOverview />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/revenue" element={<RevenueManagement />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Redirect mọi route sai */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

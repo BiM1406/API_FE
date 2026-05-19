@@ -158,7 +158,6 @@ export default function PricingPage() {
                         navigate('/auth?mode=register');
                         return;
                       }
-                      
                       if (plan.paymentPlanKey) {
                         navigate(`/payment?plan=${plan.paymentPlanKey}`);
                       }
