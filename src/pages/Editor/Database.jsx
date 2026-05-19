@@ -289,7 +289,7 @@ export default function Database() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'schema.sql'; a.click();
     URL.revokeObjectURL(url);
-    toast.success('Đã export SQL');
+    toast.success('Đã xuất SQL');
   };
 
   const hasUnsaved = pendingTable && activeTable && (
@@ -319,7 +319,7 @@ export default function Database() {
             <Copy size={15} /> Copy SQL
           </button>
           <button onClick={handleExportSql} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-500">
-            <Download size={15} /> Export SQL
+            <Download size={15} /> Xuất SQL
           </button>
         </div>
       </header>
