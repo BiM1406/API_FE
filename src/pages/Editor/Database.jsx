@@ -1,456 +1,367 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Play, Database as DatabaseIcon, Code, Shield, Table2, Key, Search, MoreVertical, Copy, Hash, Type, Link as LinkIcon, Edit3, Trash2, Check, Terminal, X, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Bot,
+  Check,
+  Copy,
+  Database as DatabaseIcon,
+  Download,
+  Key,
+  Loader2,
+  Plus,
+  Search,
+  Table2,
+  Trash2
+} from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import toast from 'react-hot-toast';
-import { logActivity } from '../../utils/activityLogger';
+import {
+  addColumn,
+  createTable,
+  deleteColumn,
+  deleteTable,
+  generateSqlPreview,
+  getSchema,
+  updateColumn,
+  updateTable
+} from '../../services/databaseService';
+import { addActivity } from '../../services/activityService';
+import { generateDatabaseSchema } from '../../services/aiService';
+
+const projectId = () => localStorage.getItem('api_fe_active_project_id') || 'default';
+
+const dataTypes = ['UUID', 'VARCHAR(255)', 'TEXT', 'INTEGER', 'DECIMAL(12,2)', 'BOOLEAN', 'DATE', 'TIMESTAMP', 'JSONB'];
+const starterColumns = [
+  { id: 'id', name: 'id', type: 'UUID', primaryKey: true, nullable: false, unique: true },
+  { id: 'created_at', name: 'created_at', type: 'TIMESTAMP', primaryKey: false, nullable: false, unique: false }
+];
 
 export default function Database() {
-  const [activeTable, setActiveTable] = useState(null);
+  const [schema, setSchema] = useState({ tables: [] });
+  const [activeTableId, setActiveTableId] = useState('');
   const [searchTable, setSearchTable] = useState('');
-  const [editingTable, setEditingTable] = useState(null);
-  const [editTableName, setEditTableName] = useState('');
-  const [manualSQL, setManualSQL] = useState('');
-  const [isManuallyEdited, setIsManuallyEdited] = useState(false);
-  const [isRunningSQL, setIsRunningSQL] = useState(false);
-  const [terminalLogs, setTerminalLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [tableList, setTableList] = useState([]);
-
-  const filteredTables = tableList.filter(t => t.name.toLowerCase().includes(searchTable.toLowerCase()));
-
-  const handleNewTable = () => {
-    const newTableName = `table_${Date.now().toString().slice(-4)}`;
-    const newTable = {
-      name: newTableName,
-      rows: 0,
-      columns: [
-        { name: 'id', type: 'UUID', meta: 'PK', icon: Key, color: 'text-amber-400' },
-        { name: 'created_at', type: 'TIMESTAMP', meta: 'DEFAULT NOW', icon: Hash, color: 'text-emerald-400' }
-      ]
-    };
-    setTableList([...tableList, newTable]);
-    setActiveTable(newTableName);
-    toast.success(`Đã tạo bảng ${newTableName}`);
-    logActivity('database', `Đã tạo bảng: ${newTableName}`);
-  };
-
-  const handleDeleteTable = (e, tableName) => {
-    e.stopPropagation();
-    if (tableList.length === 0) return;
-    const updated = tableList.filter(t => t.name !== tableName);
-    setTableList(updated);
-    if (activeTable === tableName) setActiveTable(updated.length > 0 ? updated[0].name : null);
-    toast.success(`Đã xóa bảng ${tableName}`);
-    logActivity('database', `Đã xóa bảng: ${tableName}`);
-  };
-
-  const handleRunSQL = () => {
-    if (isRunningSQL) return;
-    setIsRunningSQL(true);
-    setTerminalLogs(['[INFO] Khởi tạo kết nối đến Database Engine...']);
-    
-    setTimeout(() => {
-      setTerminalLogs(prev => [...prev, '[INFO] Đang xác thực quyền truy cập (Admin)...', '[OK] Xác thực thành công.']);
-    }, 500);
-
-    setTimeout(() => {
-      setTerminalLogs(prev => [...prev, `[INFO] Đang phân tích cú pháp SQL cho ${tableList.length} bảng...`, '[OK] Cú pháp hợp lệ.']);
-    }, 1000);
-
-    setTimeout(() => {
-      const logs = tableList.map(t => `[SUCCESS] Đã tạo bảng: ${t.name} (${t.columns.length} cột)`);
-      setTerminalLogs(prev => [...prev, '[INFO] Đang thực thi lệnh CREATE TABLE...', ...logs, '', '✅ Quá trình thực thi hoàn tất trong 1.5s!']);
-      setIsRunningSQL(false);
-      toast.success('Thực thi SQL thành công!');
-      logActivity('database', 'Đã chạy thực thi SQL');
-    }, 1500);
-  };
-
-  const handleRenameStart = (e, tableName) => {
-    e.stopPropagation();
-    setEditingTable(tableName);
-    setEditTableName(tableName);
-  };
-
-  const handleRenameSubmit = (e, oldName) => {
-    e.preventDefault();
-    if (!editTableName.trim()) {
-      setEditingTable(null);
-      return;
-    }
-    const newName = editTableName.trim();
-    setTableList(tableList.map(t => t.name === oldName ? {...t, name: newName} : t));
-    if (activeTable === oldName) setActiveTable(newName);
-    setEditingTable(null);
-    toast.success(`Đã đổi tên thành ${newName}`);
-  };
-
-  const generateSQL = () => {
-    if (tableList.length === 0) {
-      return '';
-    }
-
-    let sql = `-- SQL Schema for ChatDMP App\nCREATE EXTENSION IF NOT EXISTS "uuid-ossp";\n\n`;
-
-    tableList.forEach(table => {
-      sql += `CREATE TABLE ${table.name} (\n`;
-      const colStrings = table.columns.map(col => {
-         let def = `  ${col.name} ${col.type}`;
-         if (col.meta === 'PK') def += ' PRIMARY KEY DEFAULT uuid_generate_v4()';
-         else if (col.meta === 'UNIQUE') def += ' UNIQUE NOT NULL';
-         else if (col.meta === 'DEFAULT NOW') def += ' WITH TIME ZONE DEFAULT NOW()';
-         else if (col.meta.startsWith('FK')) {
-            const match = col.meta.match(/FK \((.*?)\)/);
-            if (match) def += ` REFERENCES ${match[1]}(id) ON DELETE CASCADE`;
-         }
-         else if (col.name === 'password' || col.name === 'content') def += ' NOT NULL';
-         return def;
-      });
-      sql += colStrings.join(',\n') + '\n);\n\n';
-    });
-
-    tableList.forEach(table => {
-      table.columns.forEach(col => {
-        if (col.meta.startsWith('FK')) {
-          sql += `-- Index optimization\nCREATE INDEX idx_${table.name}_${col.name} ON ${table.name}(${col.name});\n`;
-        }
-      });
-    });
-
-    return sql.trim();
-  };
+  const tables = schema.tables || [];
+  const activeTable = tables.find((table) => table.id === activeTableId) || tables[0];
+  const sql = useMemo(() => generateSqlPreview(schema), [schema]);
+  const filteredTables = tables.filter((table) => table.name.toLowerCase().includes(searchTable.toLowerCase()));
 
   useEffect(() => {
-    if (!isManuallyEdited) {
-      setManualSQL(generateSQL());
-    }
-  }, [tableList, isManuallyEdited]); // eslint-disable-line
+    let mounted = true;
+    getSchema(projectId())
+      .then((data) => {
+        if (!mounted) return;
+        const pending = localStorage.getItem('api_fe_pending_database_schema');
+        const nextSchema = pending ? JSON.parse(pending) : data.tables?.length ? data : { tables: [] };
+        if (pending) {
+          localStorage.removeItem('api_fe_pending_database_schema');
+          toast.success('Đã nhập schema từ AI');
+        }
+        setSchema(nextSchema);
+        setActiveTableId(nextSchema.tables?.[0]?.id || '');
+      })
+      .catch((error) => toast.error(error.message || 'Không thể tải schema'))
+      .finally(() => mounted && setLoading(false));
 
-  const handleSQLChange = (value) => {
-    setManualSQL(value);
-    setIsManuallyEdited(true);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const syncSchema = (nextSchema) => {
+    setSchema(nextSchema);
+    if (!nextSchema.tables.some((table) => table.id === activeTableId)) {
+      setActiveTableId(nextSchema.tables[0]?.id || '');
+    }
   };
 
-  const syncSQLToUI = () => {
+  const handleServiceAction = async (action, successMessage, activityText) => {
+    setSaving(true);
     try {
-      const tableRegex = /CREATE TABLE\s+([a-zA-Z0-9_]+)\s*\(([\s\S]*?)\);/gi;
-      let newTables = [];
-      let match;
-      
-      const getIconAndColor = (type, meta) => {
-        if(meta === 'PK' || meta.includes('PRIMARY')) return { icon: Key, color: 'text-amber-400' };
-        if(meta.includes('FK') || meta.includes('REFERENCES')) return { icon: LinkIcon, color: 'text-rose-400' };
-        if(type && type.includes('TIMESTAMP')) return { icon: Hash, color: 'text-emerald-400' };
-        return { icon: Type, color: 'text-indigo-400' };
-      };
-
-      while ((match = tableRegex.exec(manualSQL)) !== null) {
-         const tableName = match[1];
-         const columnsRaw = match[2].split(/,\s*\n/).filter(line => line.trim().length > 0);
-         
-         const columns = columnsRaw.map(colRaw => {
-            const cleanRaw = colRaw.trim();
-            const firstSpace = cleanRaw.indexOf(' ');
-            if (firstSpace === -1) return null;
-            
-            const colName = cleanRaw.substring(0, firstSpace).trim();
-            const remainder = cleanRaw.substring(firstSpace + 1).trim();
-            
-            const secondSpace = remainder.indexOf(' ');
-            let colType = remainder;
-            let metaRaw = '';
-            
-            if (secondSpace !== -1) {
-              colType = remainder.substring(0, secondSpace).trim();
-              metaRaw = remainder.substring(secondSpace + 1).trim();
-            }
-
-            let meta = '';
-            if (metaRaw.includes('PRIMARY KEY')) meta = 'PK';
-            else if (metaRaw.includes('UNIQUE')) meta = 'UNIQUE';
-            else if (metaRaw.includes('DEFAULT NOW')) meta = 'DEFAULT NOW';
-            else if (metaRaw.includes('REFERENCES')) {
-               const fkMatch = metaRaw.match(/REFERENCES\s+([a-zA-Z0-9_]+)/i);
-               if (fkMatch) meta = `FK (${fkMatch[1]})`;
-            } else if (metaRaw.includes('NOT NULL')) meta = 'NOT NULL';
-
-            const style = getIconAndColor(colType, meta, colName);
-
-            return {
-               name: colName,
-               type: colType,
-               meta: meta,
-               icon: style.icon,
-               color: style.color
-            };
-         }).filter(Boolean);
-
-         const existingTable = tableList.find(t => t.name === tableName);
-         newTables.push({
-           name: tableName,
-           rows: existingTable ? existingTable.rows : 0,
-           columns: columns
-         });
-      }
-
-      if (newTables.length > 0) {
-         setTableList(newTables);
-         if (!newTables.find(t => t.name === activeTable)) setActiveTable(newTables[0].name);
-         setIsManuallyEdited(false);
-         toast.success("Đã phân tích code và cập nhật lại giao diện!");
-      } else {
-         toast.error("Không tìm thấy cấu trúc bảng nào phân tích được từ Code.");
-      }
-    } catch {
-       toast.error("Lỗi khi đọc mã SQL. Vui lòng đảm bảo cấu trúc CREATE TABLE hợp lệ.");
+      const nextSchema = await action();
+      syncSchema(nextSchema);
+      toast.success(successMessage);
+      if (activityText) addActivity('database', activityText);
+    } catch (error) {
+      toast.error(error.message || 'Không thể cập nhật schema');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleNewTable = (name = `table_${Date.now().toString().slice(-4)}`) => {
+    handleServiceAction(
+      () => createTable(projectId(), { name, columns: starterColumns }),
+      `Đã tạo bảng ${name}`,
+      `Đã tạo bảng: ${name}`
+    );
+  };
+
+  const handleAiSchema = async () => {
+    const generated = await generateDatabaseSchema({ prompt: 'booking database schema' });
+    if (!generated?.tables?.length) {
+      toast.error('AI chưa tạo được schema');
+      return;
+    }
+    const name = generated.tables[0].name || 'bookings';
+    handleServiceAction(
+      () => createTable(projectId(), {
+        name,
+        columns: generated.tables[0].columns
+      }),
+      'AI đã gợi ý schema bookings',
+      'AI đã gợi ý schema database'
+    );
+  };
+
+  const handleRenameTable = (name) => {
+    if (!activeTable || !name.trim() || name === activeTable.name) return;
+    handleServiceAction(
+      () => updateTable(projectId(), activeTable.id, { name }),
+      'Đã cập nhật tên bảng',
+      `Đã đổi tên bảng thành ${name}`
+    );
+  };
+
+  const handleAddColumn = () => {
+    if (!activeTable) return;
+    const name = `column_${Date.now().toString().slice(-3)}`;
+    handleServiceAction(
+      () => addColumn(projectId(), activeTable.id, { name, type: 'VARCHAR(255)', nullable: true }),
+      `Đã thêm cột ${name}`,
+      `Đã thêm cột ${name} vào ${activeTable.name}`
+    );
+  };
+
+  const handleUpdateColumn = (column, payload) => {
+    handleServiceAction(
+      () => updateColumn(projectId(), activeTable.id, column.id, payload),
+      'Đã cập nhật cột',
+      `Đã cập nhật cột ${column.name}`
+    );
+  };
+
+  const handleDeleteColumn = (column) => {
+    handleServiceAction(
+      () => deleteColumn(projectId(), activeTable.id, column.id),
+      `Đã xóa cột ${column.name}`,
+      `Đã xóa cột ${column.name}`
+    );
+  };
+
+  const handleDeleteTable = (table) => {
+    handleServiceAction(
+      () => deleteTable(projectId(), table.id),
+      `Đã xóa bảng ${table.name}`,
+      `Đã xóa bảng: ${table.name}`
+    );
+  };
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(sql);
+    toast.success('Đã copy SQL');
+  };
+
+  const handleExportSql = () => {
+    const blob = new Blob([sql], { type: 'text/sql;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'api-fe-schema.sql';
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Đã export SQL');
   };
 
   return (
-    <div className="flex-1 min-h-0 w-full bg-slate-950 text-slate-300 font-sans flex flex-col overflow-hidden relative">
-      {/* Background Deep Glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[0%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-
-      {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 shrink-0 relative z-40 bg-slate-900/60 backdrop-blur-3xl border-b border-white/5 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
-            <DatabaseIcon size={16} />
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 text-slate-300">
+      <header className="z-20 flex min-h-16 shrink-0 flex-col gap-3 border-b border-white/5 bg-slate-900/60 px-4 py-4 backdrop-blur-3xl lg:flex-row lg:items-center lg:justify-between lg:px-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
+            <DatabaseIcon size={18} />
           </div>
-          <h2 className="font-black text-white tracking-tight">Thiết kế Cơ sở dữ liệu</h2>
+          <div>
+            <h1 className="font-black tracking-tight text-white">Thiết kế CSDL</h1>
+            <p className="text-xs text-slate-500">Database Designer + SQL Preview</p>
+          </div>
         </div>
-
-        <button 
-          onClick={handleRunSQL}
-          disabled={isRunningSQL}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg group overflow-hidden relative ${isRunningSQL ? 'bg-slate-800 text-slate-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/20 active:scale-95'}`}
-        >
-          {!isRunningSQL && <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>}
-          {isRunningSQL ? <RefreshCw size={16} className="relative z-10 animate-spin" /> : <Play size={16} className="relative z-10" />}
-          <span className="relative z-10">{isRunningSQL ? 'Đang chạy...' : 'Chạy SQL'}</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={handleAiSchema} disabled={saving} className="inline-flex items-center gap-2 rounded-xl border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-50">
+            <Bot size={15} /> AI gợi ý schema
+          </button>
+          <button onClick={handleCopySql} className="inline-flex items-center gap-2 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-2 text-xs font-bold text-slate-200 transition hover:bg-white/5">
+            <Copy size={15} /> Copy SQL
+          </button>
+          <button onClick={handleExportSql} className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-indigo-500">
+            <Download size={15} /> Export SQL
+          </button>
+        </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden z-10 relative">
-        
-        {/* Sidebar - Table Drawer */}
-        <div className="w-80 border-r border-white/5 bg-slate-900/60 backdrop-blur-2xl flex flex-col relative z-20">
-          <div className="p-5 border-b border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold tracking-tight text-sm flex items-center gap-2">
-                <Table2 size={16} className="text-indigo-400" /> Bảng
-              </h3>
-              <span className="text-[10px] bg-slate-950 font-bold text-slate-400 px-2.5 py-1 rounded-md border border-white/5 shadow-inner">Tổng cộng {filteredTables.length}</span>
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_500px]">
+        <aside className="min-h-0 border-b border-white/5 bg-slate-900/55 lg:border-b-0 lg:border-r">
+          <div className="border-b border-white/5 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+                <Table2 size={16} className="text-indigo-300" />
+                Bảng
+              </h2>
+              <span className="rounded-lg border border-white/5 bg-slate-950 px-2 py-1 text-[10px] font-bold text-slate-400">{tables.length}</span>
             </div>
-            
-            <div className="relative group">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Tìm bảng..." 
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
                 value={searchTable}
-                onChange={(e) => setSearchTable(e.target.value)}
-                className="w-full bg-slate-950/50 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-xs focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-slate-200 placeholder-slate-500 shadow-inner"
+                onChange={(event) => setSearchTable(event.target.value)}
+                placeholder="Tìm bảng..."
+                className="w-full rounded-xl border border-white/5 bg-slate-950/60 py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500/50"
               />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-            {filteredTables.length === 0 && (
-              <div className="text-center py-10">
-                <Table2 size={32} className="mx-auto text-slate-600 mb-3" />
-                <p className="text-sm font-bold text-slate-400">Chưa có bảng nào</p>
-                <p className="text-xs text-slate-500 mt-1">Tạo bảng hoặc dán mã SQL bên phải</p>
+          <div className="max-h-72 space-y-2 overflow-y-auto p-3 custom-scrollbar lg:max-h-none">
+            {loading && <div className="p-6 text-center text-slate-500"><Loader2 className="mx-auto mb-2 animate-spin" />Đang tải schema...</div>}
+            {!loading && filteredTables.length === 0 && (
+              <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/40 p-5 text-center text-sm text-slate-500">
+                Chưa có bảng nào. Tạo bảng đầu tiên hoặc dùng AI để gợi ý schema.
               </div>
             )}
             {filteredTables.map((table) => (
-              <div 
-                key={table.name}
-                onClick={() => setActiveTable(table.name)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer group shadow-xl ${activeTable === table.name ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-slate-950/40 border-white/5 hover:border-white/10 hover:bg-slate-900/80'}`}
+              <button
+                key={table.id}
+                onClick={() => setActiveTableId(table.id)}
+                className={`w-full rounded-xl border p-3 text-left transition ${
+                  activeTable?.id === table.id ? 'border-indigo-500/40 bg-indigo-500/10' : 'border-white/5 bg-slate-950/40 hover:bg-white/5'
+                }`}
               >
-                <div className="flex justify-between items-center mb-3">
-                  {editingTable === table.name ? (
-                    <form onSubmit={(e) => handleRenameSubmit(e, table.name)} className="flex items-center gap-2">
-                       <input 
-                         autoFocus
-                         value={editTableName}
-                         onChange={e => setEditTableName(e.target.value)}
-                         onBlur={(e) => handleRenameSubmit(e, table.name)}
-                         onClick={e => e.stopPropagation()}
-                         className="bg-slate-900 border border-indigo-500 rounded px-2 py-0.5 text-sm font-bold text-indigo-300 outline-none w-32 shadow-inner focus:ring-1 focus:ring-indigo-500/50"
-                       />
-                    </form>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${activeTable === table.name ? 'bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]' : 'bg-slate-700'}`}></div>
-                      <span className={`font-bold transition-colors text-sm ${activeTable === table.name ? 'text-indigo-400' : 'text-slate-300 group-hover:text-white'}`}>{table.name}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button 
-                       className="p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white transition-colors" 
-                       onClick={(e) => handleRenameStart(e, table.name)}
-                     >
-                       <Edit3 size={14}/>
-                     </button>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate text-sm font-bold text-white">{table.name}</span>
+                  <span className="text-[10px] text-slate-500">{table.columns.length} cột</span>
                 </div>
-                <div className="space-y-1.5 bg-slate-950/60 p-3 rounded-lg border border-white/5">
-                  {table.columns.map((col, idx) => {
-                    const ColIcon = col.icon;
-                    return (
-                      <div key={idx} className="flex justify-between items-center text-[11px] group/col">
-                        <div className="flex items-center gap-2">
-                           <ColIcon size={12} className={`${col.color} opacity-70 group-hover/col:opacity-100 transition-opacity`} />
-                           <span className="text-slate-300 font-medium">{col.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           {col.meta && <span className="bg-slate-800 text-[9px] px-1.5 py-0.5 rounded font-mono text-slate-400 tracking-wider hidden group-hover/col:block">{col.meta}</span>}
-                           <span className={`font-mono font-bold ${col.color}`}>{col.type}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {table.columns.slice(0, 3).map((column) => (
+                    <span key={column.id} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-slate-400">{column.name}</span>
+                  ))}
                 </div>
-                <div className="text-[10px] text-slate-500 font-medium mt-3 flex justify-between items-center px-1">
-                   <span>{table.rows.toLocaleString()} bản ghi</span>
-                   <button 
-                     className="hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" 
-                     onClick={(e) => handleDeleteTable(e, table.name)}
-                   >
-                     <Trash2 size={12}/>
-                   </button>
-                </div>
-              </div>
+              </button>
             ))}
           </div>
 
-          <div className="p-4 border-t border-white/5 bg-slate-900/80 backdrop-blur-xl">
-             <button 
-               onClick={handleNewTable}
-               className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl transition-all flex justify-center items-center gap-2 font-bold text-sm active:scale-95 group outline-none focus:ring-2 focus:ring-indigo-500/50"
-             >
-               <Plus size={18} className="text-indigo-400 group-hover:rotate-90 transition-transform duration-300" /> 
-               Bảng mới
-             </button>
+          <div className="border-t border-white/5 p-3">
+            <button disabled={saving} onClick={() => handleNewTable()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-bold text-white transition hover:bg-white/10 disabled:opacity-60">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} className="text-indigo-300" />}
+              Bảng mới
+            </button>
+          </div>
+        </aside>
+
+        <div className="min-h-0 border-t border-white/5 bg-black/20 xl:border-l xl:border-t-0">
+          <div className="flex h-full min-h-[420px] flex-col">
+            <div className="flex items-center justify-between border-b border-white/5 bg-slate-900/60 px-4 py-3">
+              <div>
+                <h2 className="text-sm font-bold text-white">SQL Preview</h2>
+                <p className="text-xs text-slate-500">Sinh realtime từ table editor</p>
+              </div>
+              <button onClick={handleCopySql} className="rounded-lg p-2 text-slate-400 transition hover:bg-white/5 hover:text-white" title="Copy SQL">
+                <Copy size={16} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 p-2">
+              <Editor height="100%" defaultLanguage="sql" theme="vs-dark" value={sql} options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, wordWrap: 'on', scrollBeyondLastLine: false }} />
+            </div>
           </div>
         </div>
 
-        {/* Content Area - SQL Preview */}
-        <div className="flex-1 p-8 flex flex-col relative z-10 bg-black/20">
-          <div className="flex justify-between items-center mb-6 bg-slate-900/60 backdrop-blur-xl p-4 rounded-2xl border border-white/5 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-indigo-500/20 rounded-xl text-indigo-400 shadow-inner">
-                <Code size={18} />
+        <main className="min-h-0 overflow-y-auto p-4 custom-scrollbar lg:p-6 xl:border-l xl:border-white/5 bg-slate-950">
+          {!activeTable ? (
+            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed border-indigo-500/25 bg-slate-900/35 p-8 text-center">
+              <DatabaseIcon size={42} className="mb-4 text-indigo-300" />
+              <h2 className="text-xl font-black text-white">Chưa có bảng nào</h2>
+              <p className="mt-2 max-w-md text-sm text-slate-400">Chưa có bảng nào. Tạo bảng đầu tiên hoặc dùng AI để gợi ý schema.</p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button onClick={() => handleNewTable()} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-500">Tạo bảng đầu tiên</button>
+                <button onClick={handleAiSchema} className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-5 py-3 text-sm font-bold text-violet-200 transition hover:bg-violet-500/20">AI gợi ý schema</button>
               </div>
-              <div>
-                <h3 className="text-white font-bold tracking-tight text-sm">Cấu trúc SQL được tạo</h3>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Ngôn ngữ PostgreSQL tối ưu cho ChatDMP</p>
-              </div>
             </div>
-            <div className="flex gap-2">
-               {isManuallyEdited && (
-                 <>
-                   <button 
-                     onClick={syncSQLToUI}
-                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-2 transition-all font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95"
-                   >
-                     <Check size={14} /> Lưu & Bật đồng bộ UI
-                   </button>
-                   <button 
-                     key="restore-btn"
-                     onClick={() => {
-                       setIsManuallyEdited(false);
-                       toast.success("Đã khôi phục mã SQL về mặc định!");
-                     }}
-                     className="px-4 py-2 bg-slate-950 border border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-400 rounded-lg flex items-center gap-2 transition-all font-bold text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-indigo-500/50 active:scale-95"
-                   >
-                     Khôi phục gốc
-                   </button>
-                 </>
-               )}
-               <button 
-                 onClick={() => {
-                   navigator.clipboard.writeText(manualSQL);
-                   toast.success("Đã sao chép mã SQL vào bộ nhớ đệm!");
-                 }}
-                 className="px-4 py-2 bg-slate-950 border border-white/5 hover:bg-white/5 text-slate-300 rounded-lg flex items-center gap-2 transition-all font-bold text-xs shadow-inner focus:outline-none focus:ring-1 focus:ring-white/20 active:scale-95"
-               >
-                 <Copy size={14} className="text-slate-400" /> Sao chép
-               </button>
-            </div>
-          </div>
-
-          <div className="flex-1 relative group overflow-hidden bg-[#1e1e1e] rounded-2xl shadow-2xl border border-white/10 flex flex-col">
-            <div className="h-10 bg-[#2d2d2d] border-b border-black/40 flex items-center px-4 gap-2 shrink-0">
-               <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80 border border-black/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80 border border-black/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-black/20"></div>
-               </div>
-               <div className="mx-auto bg-black/20 px-4 py-1 rounded-md border border-white/5 text-[10px] font-medium text-slate-400 tracking-wider font-mono">ChatDMP_Schema.sql</div>
-               <div className="w-10"></div> {/* Spacer for symmetry */}
-            </div>
-            
-            <div className="flex-1 relative overflow-hidden custom-scrollbar p-0 flex flex-col rounded-b-2xl">
-               {/* Background subtle glow inside code block to make it look premium */}
-               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none mix-blend-screen opacity-50 block group-hover:opacity-100 transition-opacity duration-700"></div>
-               
-               <div className="flex-1 relative z-10 w-full pt-4">
-                 <Editor
-                   height="100%"
-                   defaultLanguage="sql"
-                   theme="vs-dark"
-                   value={manualSQL}
-                   onChange={handleSQLChange}
-                   options={{
-                     minimap: { enabled: false },
-                     fontSize: 14,
-                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                     wordWrap: "on",
-                     contextmenu: false,
-                     lineHeight: 1.7,
-                     padding: { top: 16, bottom: 16 },
-                     scrollBeyondLastLine: false,
-                     smoothScrolling: true,
-                     cursorBlinking: "smooth",
-                     cursorSmoothCaretAnimation: "on"
-                   }}
-                 />
-               </div>
-            </div>
-          </div>
-
-          {/* Terminal Output */}
-          {terminalLogs.length > 0 && (
-            <div className="mt-4 h-48 bg-[#0d1117] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col font-mono text-xs relative animate-in fade-in slide-in-from-bottom-4 duration-300 z-20">
-               <div className="bg-[#161b22] px-4 py-2.5 border-b border-slate-800 flex justify-between items-center text-slate-400 shrink-0 shadow-sm">
-                  <div className="flex items-center gap-2 font-bold tracking-widest uppercase text-[10px] text-slate-500">
-                    <Terminal size={14} className="text-indigo-400" /> Database Engine Terminal
-                  </div>
-                  <button onClick={() => setTerminalLogs([])} className="hover:text-white transition-colors bg-slate-800/50 hover:bg-slate-700 p-1.5 rounded-lg">
-                    <X size={14} />
+          ) : (
+            <div className="space-y-5">
+              <section className="rounded-2xl border border-white/5 bg-slate-900/45 p-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <label className="block flex-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Tên bảng</span>
+                    <input
+                      defaultValue={activeTable.name}
+                      onBlur={(event) => handleRenameTable(event.target.value.trim())}
+                      className="mt-2 w-full rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3 text-lg font-black text-white outline-none focus:border-indigo-500/50"
+                    />
+                  </label>
+                  <button onClick={() => handleDeleteTable(activeTable)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300 transition hover:bg-red-500/20">
+                    <Trash2 size={16} /> Xóa bảng
                   </button>
-               </div>
-               <div className="p-4 overflow-y-auto flex-1 space-y-1.5 custom-scrollbar pb-6">
-                  {terminalLogs.map((log, i) => (
-                    <div key={i} className={`flex items-start gap-3 leading-relaxed ${log.includes('[SUCCESS]') || log.includes('✅') || log.includes('[OK]') ? 'text-emerald-400' : log.includes('[ERROR]') ? 'text-rose-400' : 'text-slate-300'}`}>
-                       {log.trim() && <span className="text-slate-600 shrink-0 select-none">[{new Date().toLocaleTimeString('en-US', {hour12:false})}]</span>}
-                       <span className={log.startsWith('✅') ? 'font-bold' : ''}>{log}</span>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/5 bg-slate-900/45">
+                <div className="flex items-center justify-between border-b border-white/5 p-4">
+                  <h2 className="text-sm font-bold text-white">Danh sách cột</h2>
+                  <button onClick={handleAddColumn} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-indigo-500 disabled:opacity-50">
+                    <Plus size={14} /> Thêm cột
+                  </button>
+                </div>
+                <div className="overflow-x-auto custom-scrollbar">
+                  <div className="min-w-[500px]">
+                    <div className="grid grid-cols-[1fr_1fr_60px_60px_60px_40px] gap-2 border-b border-white/5 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      <span>Tên cột</span>
+                      <span>Kiểu DL</span>
+                      <span className="text-center">PK</span>
+                      <span className="text-center">Null</span>
+                      <span className="text-center">Uniq</span>
+                      <span />
                     </div>
-                  ))}
-                  {isRunningSQL && (
-                    <div className="text-indigo-400 animate-pulse flex items-center gap-2 mt-3 font-bold">
-                      <RefreshCw size={12} className="animate-spin" /> Đang xử lý...
-                    </div>
-                  )}
-               </div>
+                    {activeTable.columns.map((column) => (
+                      <div key={column.id} className="grid grid-cols-[1fr_1fr_60px_60px_60px_40px] items-center gap-2 border-b border-white/5 px-4 py-3 last:border-b-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {column.primaryKey ? <Key size={13} className="shrink-0 text-amber-300" /> : <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />}
+                          <input
+                            defaultValue={column.name}
+                            onBlur={(event) => handleUpdateColumn(column, { name: event.target.value.trim() })}
+                            className="min-w-0 w-full rounded-lg border border-white/5 bg-slate-950/60 px-2 py-2 text-xs font-semibold text-white outline-none focus:border-indigo-500/50"
+                          />
+                        </div>
+                        <select
+                          value={column.type}
+                          onChange={(event) => handleUpdateColumn(column, { type: event.target.value })}
+                          className="rounded-lg border border-white/5 bg-slate-950/60 px-2 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 min-w-0 w-full"
+                        >
+                          {dataTypes.map((type) => <option key={type} value={type} className="bg-slate-900">{type}</option>)}
+                        </select>
+                        {['primaryKey', 'nullable', 'unique'].map((field) => (
+                          <label key={field} className="flex justify-center">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(column[field])}
+                              onChange={(event) => handleUpdateColumn(column, { [field]: event.target.checked, ...(field === 'primaryKey' && event.target.checked ? { nullable: false, unique: true } : {}) })}
+                              className="peer sr-only"
+                            />
+                            <span className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-white/10 bg-slate-950 text-slate-600 transition peer-checked:border-indigo-500/40 peer-checked:bg-indigo-500/20 peer-checked:text-indigo-200">
+                              <Check size={12} />
+                            </span>
+                          </label>
+                        ))}
+                        <div className="flex justify-center">
+                          <button onClick={() => handleDeleteColumn(column)} className="rounded-md p-1.5 text-slate-500 transition hover:bg-red-500/10 hover:text-red-300">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
