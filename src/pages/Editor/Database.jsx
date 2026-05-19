@@ -86,26 +86,25 @@ export default function Database() {
     t.name.toLowerCase().includes(searchTable.toLowerCase())
   );
 
-  // When active table changes: reset pending and editor
-  useEffect(() => {
-    if (activeTable) {
-      setPendingTable(JSON.parse(JSON.stringify(activeTable))); // deep clone
-      setEditorSql(tableToSql(activeTable));
-      setManuallyEdited(false);
-    } else {
-      setPendingTable(null);
-      setEditorSql('');
-      setManuallyEdited(false);
-    }
-  }, [activeTableId, activeTable?.id]); // eslint-disable-line
+  // Track previous table id so we only reset when user actually switches tables
+  const prevTableIdRef = React.useRef('');
 
-  // When schema changes from service (non-switch), keep pending in sync IF not manually edited
   useEffect(() => {
-    if (!manuallyEdited && activeTable && !pendingTable) {
-      setPendingTable(JSON.parse(JSON.stringify(activeTable)));
-      setEditorSql(tableToSql(activeTable));
+    // Only reset pending when user switches to a DIFFERENT table
+    if (activeTableId !== prevTableIdRef.current) {
+      prevTableIdRef.current = activeTableId;
+      if (activeTable) {
+        setPendingTable(JSON.parse(JSON.stringify(activeTable)));
+        setEditorSql(tableToSql(activeTable));
+        setManuallyEdited(false);
+      } else {
+        setPendingTable(null);
+        setEditorSql('');
+        setManuallyEdited(false);
+      }
     }
-  }, [schema]); // eslint-disable-line
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTableId]);
 
   useEffect(() => {
     let mounted = true;
