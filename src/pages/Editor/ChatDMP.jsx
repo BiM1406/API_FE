@@ -411,18 +411,18 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full relative">
-      <div className="flex justify-between items-center p-5 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl shrink-0 z-10">
+      <div className="flex justify-between items-center px-4 py-2 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl shrink-0 z-10">
         <div className="min-w-0 flex items-center gap-3">
-          <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
-            <MessageSquare size={18} />
+          <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">
+            <MessageSquare size={16} />
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-lg font-bold text-white tracking-tight">{activeChat.title || 'ChatDMP'}</h2>
-            <p className="text-xs text-slate-500">{aiModes.find((mode) => mode.id === activeMode)?.label}</p>
+            <h2 className="truncate text-base font-bold text-white tracking-tight leading-tight">{activeChat.title || 'ChatDMP'}</h2>
+            <p className="text-[11px] text-slate-500 leading-tight mt-0.5">{aiModes.find((mode) => mode.id === activeMode)?.label}</p>
           </div>
         </div>
-        <button onClick={handleClear} className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-red-400 px-3 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 transition-all">
-          <Trash2 size={14} /> Xóa tin nhắn
+        <button onClick={handleClear} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-red-400 px-2.5 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 transition-all">
+          <Trash2 size={13} /> <span className="hidden sm:inline">Xóa tin nhắn</span>
         </button>
       </div>
       
@@ -855,7 +855,7 @@ export default function ChatDMP() {
       <div className="absolute bottom-[0%] left-[-10%] w-[40%] h-[40%] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       {/* Header */}
-      <header className="h-16 flex items-center justify-between px-6 shrink-0 relative z-40 bg-slate-900/60 backdrop-blur-3xl border-b border-white/5 shadow-sm">
+      <header className="h-14 flex items-center justify-between px-6 shrink-0 relative z-40 bg-slate-900/60 backdrop-blur-3xl border-b border-white/5 shadow-sm">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             <button className="md:hidden p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg border border-white/5" onClick={() => setSidebarOpen(true)}>
