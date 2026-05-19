@@ -14,6 +14,7 @@ const History = lazy(() => import('./pages/Dashboard/History'));
 const Profile = lazy(() => import('./pages/Dashboard/Profile'));
 const EditProfile = lazy(() => import('./pages/Dashboard/EditProfile'));
 const TestApi = lazy(() => import('./pages/ApiTester/TestApi'));
+const PlaceholderTool = lazy(() => import('./pages/Dashboard/PlaceholderTool'));
 const AdminOverview = lazy(() => import('./pages/Dashboard/AdminOverview'));
 const UserManagement = lazy(() => import('./pages/Dashboard/UserManagement'));
 const RevenueManagement = lazy(() => import('./pages/Dashboard/RevenueManagement'));
@@ -66,6 +67,10 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/test-api" element={<TestApi />} />
+              <Route path="/collections" element={<PlaceholderTool />} />
+              <Route path="/environments" element={<PlaceholderTool />} />
+              <Route path="/documentation" element={<PlaceholderTool />} />
+              <Route path="/mock-server" element={<PlaceholderTool />} />
             </Route>
           </Route>
 
