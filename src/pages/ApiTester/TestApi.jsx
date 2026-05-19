@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Trash2, Plus, RefreshCw, Play, ArrowLeft, Server } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { logActivity } from '../../utils/activityLogger';
@@ -8,7 +7,6 @@ import { logActivity } from '../../utils/activityLogger';
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function TestApi() {
-  const navigate = useNavigate();
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('ai_projects');
     return saved ? JSON.parse(saved) : [{ id: generateId(), name: 'Dự án mặc định', envs: [], apiHistory: [] }];
@@ -65,7 +63,7 @@ export default function TestApi() {
       const time = Date.now() - startTime;
       const data = await res.text();
       let jsonData;
-      try { jsonData = JSON.parse(data); } catch(e) { jsonData = data; }
+      try { jsonData = JSON.parse(data); } catch { jsonData = data; }
       
       const size = new Blob([data]).size;
       const result = { status: res.status, statusText: res.statusText, time, size, data: jsonData, headers: Object.fromEntries(res.headers.entries()) };

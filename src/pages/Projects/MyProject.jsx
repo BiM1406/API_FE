@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Activity, 
@@ -66,7 +65,6 @@ const DEFAULT_PROJECTS = [
 export const MY_PROJECTS_STORAGE_KEY = 'my_dashboard_projects';
 
 export default function MyProject() {
-  const navigate = useNavigate();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeProjectMenu, setActiveProjectMenu] = useState(null);

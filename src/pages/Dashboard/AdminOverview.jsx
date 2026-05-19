@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { Users, DollarSign, Activity, Server } from 'lucide-react';
-import { MY_PROJECTS_STORAGE_KEY } from './MyProject';
+import { MY_PROJECTS_STORAGE_KEY } from '../Projects/MyProject';
 
 export default function AdminOverview() {
-  const [projectCount, setProjectCount] = useState(0);
-
-  useEffect(() => {
+  const [projectCount] = useState(() => {
     const saved = localStorage.getItem(MY_PROJECTS_STORAGE_KEY);
     if (saved) {
       try {
-        const projects = JSON.parse(saved);
-        setProjectCount(projects.length);
-      } catch (e) {}
+        return JSON.parse(saved).length;
+      } catch (err) {
+        return 0;
+      }
     }
-  }, []);
+    return 0;
+  });
 
   const stats = [
     { label: 'Tổng người dùng', value: (1000 + projectCount * 2).toString(), icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
+import { getCurrentUser } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -11,11 +12,11 @@ const plans = [
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const userRole = localStorage.getItem('userRole') || 'user';
+  const user = getCurrentUser();
 
   const [formData, setFormData] = useState({
-    name: userRole === 'admin' ? 'Admin User' : 'Nguyễn Tuấn Đạt',
-    email: userRole === 'admin' ? 'admin@example.com' : 'user@example.com'
+    name: user?.name || 'Người dùng',
+    email: user?.email || 'user@example.com'
   });
 
   const getInitials = (name) => {
@@ -36,7 +37,7 @@ export default function EditProfile() {
     confirm: false
   });
 
-  const savedPlan = localStorage.getItem('userPlan') || (userRole === 'admin' ? 'pro' : 'free');
+  const savedPlan = user?.plan?.toLowerCase() || 'free';
   const [currentPlan, setCurrentPlan] = useState(savedPlan);
   const [activeTab, setActiveTab] = useState('profile');
   
@@ -65,8 +66,10 @@ export default function EditProfile() {
   };
 
   const handleSave = () => {
-    localStorage.setItem('userName', formData.name);
-    localStorage.setItem('userPlan', currentPlan);
+    // Update the mock user in local storage so changes reflect
+    const updatedUser = { ...user, name: formData.name, email: formData.email, plan: currentPlan };
+    localStorage.setItem('api_fe_user', JSON.stringify(updatedUser));
+    
     toast.success('Đã lưu thông tin hồ sơ!');
     navigate('/profile');
   };

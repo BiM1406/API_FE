@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bot, Menu, X } from 'lucide-react';
+import { Bot, Menu, X, ArrowRight } from 'lucide-react';
+import { isAuthenticated } from '../../services/authService';
+
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggedIn] = useState(isAuthenticated());
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -64,18 +67,30 @@ export default function Header() {
 
         {/* Right: Actions (Desktop) */}
         <div className="hidden md:flex items-center gap-4">
-          <button
-            onClick={() => handleNavigation('/auth')}
-            className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
-          >
-            Đăng nhập
-          </button>
-          <button
-            onClick={() => handleNavigation('/auth?mode=register')}
-            className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(139,92,246,0.3)]"
-          >
-            Bắt đầu miễn phí
-          </button>
+          {isLoggedIn ? (
+              <button
+                onClick={() => handleNavigation('/dashboard')}
+                className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-white/40 transition-all hover:scale-105 active:scale-95"
+                title="Vào Dashboard"
+              >
+                <ArrowRight size={20} />
+              </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleNavigation('/auth')}
+                className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
+              >
+                Đăng nhập
+              </button>
+              <button
+                onClick={() => handleNavigation('/auth?mode=register')}
+                className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(139,92,246,0.3)]"
+              >
+                Bắt đầu miễn phí
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -109,18 +124,30 @@ export default function Header() {
             Gói dịch vụ
           </button>
           <div className="pt-4 flex flex-col gap-3 border-t border-white/10">
-            <button
-              onClick={() => handleNavigation('/auth')}
-              className="w-full px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
-            >
-              Đăng nhập
-            </button>
-            <button
-              onClick={() => handleNavigation('/auth?mode=register')}
-              className="w-full px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity"
-            >
-              Bắt đầu miễn phí
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => handleNavigation('/dashboard')}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity"
+              >
+                <span>Vào Dashboard</span>
+                <ArrowRight size={18} />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleNavigation('/auth')}
+                  className="w-full px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
+                >
+                  Đăng nhập
+                </button>
+                <button
+                  onClick={() => handleNavigation('/auth?mode=register')}
+                  className="w-full px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity"
+                >
+                  Bắt đầu miễn phí
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

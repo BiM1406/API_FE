@@ -1,15 +1,18 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Bot, Zap, Crown } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
+import { isAuthenticated, getCurrentUser } from '../../services/authService';
+
 
 const plans = [
   {
     name: 'Miễn Phí',
     price: '0',
     description: 'Xem AI có thể làm gì cho bạn',
-    buttonText: 'Gói hiện tại của bạn',
-    isCurrent: true,
+    planKey: 'free',
+
     features: [
       '50 request / ngày',
       '1 dự án Workspace duy nhất',
@@ -22,10 +25,12 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '199.999',
+    price: '199.000',
     description: 'Tiếp tục trò chuyện với quyền truy cập mở rộng',
     buttonText: 'Nâng cấp lên Pro',
     isPopular: true,
+    planKey: 'pro',
+    paymentPlanKey: 'pro',
     features: [
       '200 request / ngày',
       '10 dự án Workspace đồng thời',
@@ -42,6 +47,8 @@ const plans = [
     price: '999.999',
     description: 'Vượt xa mọi sức tưởng tượng của bạn về nhân sinh',
     buttonText: 'Nâng cấp lên Ultra',
+    planKey: 'ultra',
+    paymentPlanKey: 'ultra',
     features: [
       '1000 request / ngày',
       'Quyền sở hữu mã nguồn AI tạo ra 100%',
@@ -56,6 +63,11 @@ const plans = [
 ];
 
 export default function PricingPage() {
+  const navigate = useNavigate();
+  const loggedIn = isAuthenticated();
+  const user = getCurrentUser();
+  const userPlan = user?.plan?.toLowerCase() || 'free';
+
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30">
       <Header />
@@ -72,7 +84,33 @@ export default function PricingPage() {
 
           {/* Pricing Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans.map((plan) => (
+            {plans.map((plan) => {
+              const isCurrentPlan = loggedIn && userPlan === plan.planKey;
+              
+              let btnText = plan.buttonText;
+              let isButtonDisabled = false;
+              let btnStyle = 'bg-white text-black hover:bg-gray-200';
+
+              if (plan.planKey === 'free') {
+                if (loggedIn) {
+                  btnText = isCurrentPlan ? 'Gói hiện tại của bạn' : 'Gói hiện tại của bạn'; // Assuming we only upgrade, not downgrade yet
+                  isButtonDisabled = isCurrentPlan;
+                  btnStyle = isCurrentPlan ? 'bg-white/5 border border-white/10 text-gray-400 cursor-default' : 'bg-white text-black hover:bg-gray-200';
+                } else {
+                  btnText = 'Bắt đầu miễn phí';
+                  btnStyle = 'bg-white text-black hover:bg-gray-200';
+                }
+              } else {
+                if (isCurrentPlan) {
+                  btnText = 'Gói hiện tại của bạn';
+                  isButtonDisabled = true;
+                  btnStyle = 'bg-white/5 border border-white/10 text-gray-400 cursor-default';
+                } else if (plan.isPopular) {
+                  btnStyle = 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 shadow-lg shadow-violet-500/20';
+                }
+              }
+
+              return (
               <div
                 key={plan.name}
                 className={`relative p-8 rounded-[2rem] border transition-all flex flex-col ${
@@ -112,15 +150,22 @@ export default function PricingPage() {
 
                 <div className="mt-6">
                   <button
-                    className={`w-full py-3 rounded-full text-sm font-bold transition-all mb-8 ${
-                      plan.isCurrent
-                        ? 'bg-white/5 border border-white/10 text-gray-400 cursor-default'
-                        : plan.isPopular
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:opacity-90 shadow-lg shadow-violet-500/20'
-                        : 'bg-white text-black hover:bg-gray-200'
-                    }`}
+                    type="button"
+                    onClick={() => {
+                      if (isButtonDisabled) return;
+                      
+                      if (!loggedIn) {
+                        navigate('/auth?mode=register');
+                        return;
+                      }
+                      
+                      if (plan.paymentPlanKey) {
+                        navigate(`/payment?plan=${plan.paymentPlanKey}`);
+                      }
+                    }}
+                    className={`w-full py-3 rounded-full text-sm font-bold transition-all mb-8 ${btnStyle}`}
                   >
-                    {plan.buttonText}
+                    {btnText}
                   </button>
 
                   <div className="space-y-4">
@@ -137,7 +182,7 @@ export default function PricingPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </section>
       </main>

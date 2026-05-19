@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, User, Zap, ArrowLeft, X, Mail, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { getCurrentUser } from '../../services/authService';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -20,11 +21,12 @@ export default function Profile() {
     setInviteEmail('');
   };
 
-  const userRole = localStorage.getItem('userRole') || 'user';
-  const savedPlan = localStorage.getItem('userPlan') || (userRole === 'admin' ? 'pro' : 'free');
-  const defaultName = userRole === 'admin' ? 'Admin User' : 'Nguyễn Tuấn Đạt';
-  const userName = localStorage.getItem('userName') || defaultName;
-  const userEmail = userRole === 'admin' ? 'admin@example.com' : 'user@example.com';
+  const user = getCurrentUser();
+  
+  const savedPlan = user?.plan?.toLowerCase() || 'free';
+  const userName = user?.name || 'Người dùng';
+  const userEmail = user?.email || 'user@example.com';
+  
   const getInitials = (name) => {
     const parts = name.trim().split(' ');
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();

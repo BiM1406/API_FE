@@ -20,6 +20,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { PolicyModal } from '../HomePage/Footer';
+import { getCurrentUser, logout } from '../../services/authService';
 
 // Menu dành cho User
 const userMenuItems = [
@@ -79,20 +80,20 @@ export default function DashboardLayout() {
   
   const profileMenuRef = useRef(null);
 
-  const userRole = localStorage.getItem('userRole') || 'user';
+  const user = getCurrentUser();
+  const userRole = user?.role === 'ADMIN' ? 'admin' : 'user';
   const menuItems = userRole === 'admin' ? adminMenuItems : userMenuItems;
 
   const currentPath = location.pathname;
 
-  const savedPlan = localStorage.getItem('userPlan') || (userRole === 'admin' ? 'pro' : 'free');
+  const savedPlan = user?.plan?.toLowerCase() || 'free';
   const planDisplay = {
     free: 'Free',
     pro: 'Pro',
     ultra: 'Ultra'
   }[savedPlan] || 'Free';
   
-  const defaultName = userRole === 'admin' ? 'Admin User' : 'Nguyễn Tuấn Đạt';
-  const userName = localStorage.getItem('userName') || defaultName;
+  const userName = user?.name || 'Người dùng';
   const getInitials = (name) => {
     const parts = name.trim().split(' ');
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
@@ -222,7 +223,7 @@ export default function DashboardLayout() {
                   Trợ giúp
                 </button>
                 <div className="h-px bg-white/5 my-1"></div>
-                <button onClick={() => navigate('/auth')} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex items-center gap-3">
+                <button onClick={() => { logout(); navigate('/'); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all flex items-center gap-3">
                   <LogOut size={16} />
                   Đăng xuất
                 </button>

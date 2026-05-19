@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Bot, X } from 'lucide-react';
 
 // ─── Nội dung modal ───────────────────────────────────────────────
-export const MODAL_CONTENT = {
+const MODAL_CONTENT = {
   // Chính sách bảo mật
   'Chính sách dữ liệu cá nhân': {
     title: 'Chính sách Dữ liệu Cá nhân',

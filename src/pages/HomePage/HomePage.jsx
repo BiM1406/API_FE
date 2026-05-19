@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import { Bot, Terminal, Rocket, CheckCircle2, ChevronRight, Code2, Zap, Database, Shield, Cloud, Globe, Cpu } from 'lucide-react';
 import Header from './Header';

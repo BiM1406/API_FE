@@ -3,6 +3,7 @@ import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { login } from '../../services/authService';
 
 export default function Login({ onSwitch, onForgot }) {
   const navigate = useNavigate();
@@ -24,43 +25,29 @@ export default function Login({ onSwitch, onForgot }) {
       return;
     }
 
-    const validAccounts = {
-      'admin': { role: 'admin', password: '123456' },
-      'admin@example.com': { role: 'admin', password: '123456' },
-      'user': { role: 'user', password: '123456' },
-      'user@example.com': { role: 'user', password: '123456' }
-    };
-
-    const account = validAccounts[email];
-
-    if (!account) {
-      setErrors({ email: 'Tài khoản không tồn tại!' });
-      toast.error('Đăng nhập thất bại!');
-      return;
-    }
-
-    if (password !== account.password) {
-      setErrors({ password: 'Mật khẩu không chính xác!' });
-      toast.error('Đăng nhập thất bại!');
-      return;
-    }
-
     setErrors({});
     setIsLoading(true);
     
-    // Giả lập API gọi backend mất 1.5 giây
-    setTimeout(() => {
-      setIsLoading(false);
-      localStorage.setItem('userRole', account.role);
-      toast.success(`Đăng nhập thành công với quyền ${account.role === 'admin' ? 'Quản trị viên' : 'Người dùng'}!`);
+    try {
+      const response = await login({ email, password });
+      
+      const successMessage = response.user.role === 'ADMIN' 
+        ? 'Đăng nhập thành công với quyền Quản trị viên!' 
+        : 'Đăng nhập thành công!';
+      toast.success(successMessage);
       
       // Chuyển hướng
-      if (account.role === 'admin') {
+      if (response.user.role === 'ADMIN') {
         navigate('/admin/overview');
       } else {
         navigate('/dashboard');
       }
-    }, 1500);
+    } catch (error) {
+      toast.error(error.message || 'Đăng nhập thất bại!');
+      setErrors({ email: error.message || 'Tài khoản hoặc mật khẩu không chính xác' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
