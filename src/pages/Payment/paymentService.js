@@ -5,6 +5,12 @@ import {
   PAYMENT_STATUS,
   PAYMENT_STORAGE_KEYS
 } from './paymentConstants';
+import { getCurrentUser } from '../../services/authService';
+
+const getCurrentPaymentKey = () => {
+  const user = getCurrentUser();
+  return user ? `${PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT}_${user.id}` : PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT;
+};
 
 const isBrowserStorageAvailable = () => typeof window !== 'undefined' && Boolean(window.localStorage);
 
@@ -96,11 +102,13 @@ const isSamePlan = (payment, plan) => (
 );
 
 export const createMockPayment = (plan = MOCK_PAYMENT_PLAN) => {
+  const user = getCurrentUser();
   const createdAt = new Date();
   const expiredAt = new Date(createdAt.getTime() + PAYMENT_EXPIRE_MINUTES * 60 * 1000);
   const orderCode = createOrderCode();
   const payment = {
     id: createPaymentId(),
+    userId: user?.id || null,
     orderCode,
     planName: plan.planName,
     cycle: plan.cycle,
@@ -118,7 +126,7 @@ export const createMockPayment = (plan = MOCK_PAYMENT_PLAN) => {
 };
 
 export const getCurrentPayment = () => {
-  const rawPayment = safeGetItem(PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT);
+  const rawPayment = safeGetItem(getCurrentPaymentKey());
 
   if (!rawPayment) {
     return null;
@@ -127,7 +135,7 @@ export const getCurrentPayment = () => {
   const payment = parseJson(rawPayment, null);
 
   if (!payment) {
-    safeRemoveItem(PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT);
+    safeRemoveItem(getCurrentPaymentKey());
     return null;
   }
 
@@ -139,7 +147,7 @@ export const saveCurrentPayment = (payment) => {
     return null;
   }
 
-  safeSetItem(PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT, JSON.stringify(payment));
+  safeSetItem(getCurrentPaymentKey(), JSON.stringify(payment));
   return payment;
 };
 
@@ -204,7 +212,7 @@ export const savePaymentToHistory = (payment) => {
 };
 
 export const clearCurrentPayment = () => {
-  safeRemoveItem(PAYMENT_STORAGE_KEYS.CURRENT_PAYMENT);
+  safeRemoveItem(getCurrentPaymentKey());
 };
 
 export const createOrGetCurrentPayment = (plan = MOCK_PAYMENT_PLAN) => {

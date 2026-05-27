@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { useLocation, Link } from 'react-router-dom';
-import { 
-  Folder, Plus, Search, Trash2, Copy, Edit2, Archive, 
-  MessageSquare, Terminal, Settings, LogOut, Send, RefreshCw, Code2,
-  Play, Save, History as HistoryIcon, Eye, EyeOff, Download, Upload, Menu, X, Check, Database,
-  Server, User, Zap, ArrowLeft, Bot, ChevronDown, MoreHorizontal, Pin
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import {
+  Folder, Plus, Trash2, Copy, Edit2, Archive,
+  MessageSquare, Terminal, Settings, Send, RefreshCw, Code2,
+  Eye, EyeOff, Download, Menu, X, Database,
+  Server, Bot, ChevronDown, MoreHorizontal, Pin, Zap, History as HistoryIcon
 } from 'lucide-react';
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -16,53 +17,22 @@ import { sendChatMessage } from '../../services/aiService';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-const initialChat = {
-  id: generateId(),
-  title: 'Đoạn chat mới',
-  messages: [],
-  createdAt: Date.now()
-};
-
-const initialProject = {
-  id: generateId(),
-  name: 'Project 1',
-  description: 'Dự án mặc định',
-  status: 'active',
-  envs: [],
-  chats: [initialChat],
-  activeChatId: initialChat.id,
-  createdAt: Date.now()
-};
-
-const aiModes = [
-  { id: 'chat', label: 'Chat thường', icon: MessageSquare },
-  { id: 'code', label: 'Sinh code', icon: Code2 },
-  { id: 'api', label: 'Sinh API', icon: Zap },
-  { id: 'debug', label: 'Debug lỗi', icon: Terminal },
-  { id: 'database', label: 'Thiết kế Database', icon: Database },
-  { id: 'docs', label: 'Viết tài liệu API', icon: Archive }
-];
-
-const promptSuggestions = [
-  { label: 'Sinh API đăng nhập', prompt: 'Sinh API đăng nhập JWT gồm request, response, validate và lỗi thường gặp.' },
-  { label: 'Tạo database cho hệ thống đặt vé', prompt: 'Tạo database schema cho hệ thống đặt vé gồm user, event, seat, booking và payment.' },
-  { label: 'Viết code React gọi API', prompt: 'Viết code React gọi API với loading, error state và token bearer.' },
-  { label: 'Phân tích lỗi response API', prompt: 'Phân tích lỗi response API sau và đề xuất cách sửa.' }
-];
-
-// --- Subcomponents ---
-
-const Sidebar = ({ 
+// Sidebar component
+const Sidebar = ({
   projects, activeId, setActiveId,
   activeProject, handleNewChat, setActiveChatId,
   sidebarOpen, setSidebarOpen, updateProject, updateChat, onConfirmDelete, setShowAddProject
 }) => {
+  const { t } = useTranslation();
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState(null);
   const [menuType, setMenuType] = useState(null);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+
+  const activeChat = activeProject?.chats?.find(c => c.id === activeProject.activeChatId) || activeProject?.chats?.[0];
+  const isActiveNewChat = activeChat && (!activeChat.messages || activeChat.messages.length === 0);
 
   const openMenu = (e, id, type) => {
     e.preventDefault();
@@ -97,10 +67,31 @@ const Sidebar = ({
     const isPinned = item.pinned;
     const isProj = type === 'project';
 
-    const doPin = (e) => { e.stopPropagation(); if (isProj) updateProject(id, { pinned: !isPinned }); else updateChat(activeProject.id, id, { pinned: !isPinned }); closeMenu(); };
-    const doRename = (e) => { e.stopPropagation(); setMenuType(type); setEditingId(id); setEditName(isProj ? item.name : item.title || 'Đoạn chat mới'); closeMenu(); };
-    const doArchive = (e) => { e.stopPropagation(); if (isProj) updateProject(id, { archived: true }); else updateChat(activeProject.id, id, { archived: true }); if (activeId === id && isProj) setActiveId(projects.find(p => p.id !== id)?.id || projects[0]?.id); closeMenu(); };
-    const doDelete = (e) => { e.stopPropagation(); onConfirmDelete(isProj ? 'project' : 'chat', id); closeMenu(); };
+    const doPin = (e) => {
+      e.stopPropagation();
+      if (isProj) updateProject(id, { pinned: !isPinned });
+      else updateChat(activeProject.id, id, { pinned: !isPinned });
+      closeMenu();
+    };
+    const doRename = (e) => {
+      e.stopPropagation();
+      setMenuType(type);
+      setEditingId(id);
+      setEditName(isProj ? item.name : item.title || t('chat_dmp.sidebar.default_chat_title'));
+      closeMenu();
+    };
+    const doArchive = (e) => {
+      e.stopPropagation();
+      if (isProj) updateProject(id, { archived: true });
+      else updateChat(activeProject.id, id, { archived: true });
+      if (activeId === id && isProj) setActiveId(projects.find(p => p.id !== id)?.id || projects[0]?.id);
+      closeMenu();
+    };
+    const doDelete = (e) => {
+      e.stopPropagation();
+      onConfirmDelete(isProj ? 'project' : 'chat', id);
+      closeMenu();
+    };
 
     return ReactDOM.createPortal(
       <>
@@ -111,17 +102,17 @@ const Sidebar = ({
           onClick={e => e.stopPropagation()}
         >
           <button onClick={doPin} className="w-full text-left px-3 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors">
-            <Pin size={14} className={isPinned ? 'text-amber-400' : 'opacity-60'} /> {isPinned ? 'Bỏ ghim' : isProj ? 'Ghim dự án' : 'Ghim đoạn chat'}
+            <Pin size={14} className={isPinned ? 'text-amber-400' : 'opacity-60'} /> {isPinned ? t('chat_dmp.sidebar.unpin_option') : (isProj ? t('chat_dmp.sidebar.pin_option') : t('chat_dmp.sidebar.pin_option'))}
           </button>
           <button onClick={doRename} className="w-full text-left px-3 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors">
-            <Edit2 size={14} className="opacity-60" /> Đổi tên
+            <Edit2 size={14} className="opacity-60" /> {t('chat_dmp.sidebar.rename_option')}
           </button>
           <button onClick={doArchive} className="w-full text-left px-3 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 flex items-center gap-2.5 transition-colors">
-            <Archive size={14} className="opacity-60" /> Lưu trữ
+            <Archive size={14} className="opacity-60" /> {t('chat_dmp.sidebar.archive_option')}
           </button>
           <div className="h-px bg-white/10 my-1 mx-2" />
           <button onClick={doDelete} className="w-full text-left px-3 py-2.5 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2.5 transition-colors">
-            <Trash2 size={14} className="opacity-80" /> Xóa
+            <Trash2 size={14} className="opacity-80" /> {t('chat_dmp.sidebar.delete_option')}
           </button>
         </div>
       </>,
@@ -130,6 +121,7 @@ const Sidebar = ({
   };
 
   const getSortedItems = (list) => {
+    if (!list) return [];
     return [...list].filter(i => !i.archived).sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -138,7 +130,7 @@ const Sidebar = ({
   };
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900/60 backdrop-blur-2xl border-r border-white/5 transform transition-transform duration-300 ease-in-out flex flex-col p-4 space-y-4 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900/60 backdrop-blur-2xl border-r border-white/5 transform transition-transform duration-300 ease-in-out flex flex-col p-4 space-y-4 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
       <button className="md:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all z-10" onClick={() => setSidebarOpen(false)}>
         <X size={20} />
       </button>
@@ -154,12 +146,12 @@ const Sidebar = ({
       <div className="shrink-0 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
         <div className="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors" onClick={() => setIsProjectsOpen(!isProjectsOpen)}>
           <div className="flex items-center gap-2">
-            <Folder size={16} className="text-indigo-400"/> 
-            <span className="font-bold text-white text-sm tracking-wide">Dự án của tôi</span>
+            <Folder size={16} className="text-indigo-400"/>
+            <span className="font-bold text-white text-sm tracking-wide">{t('chat_dmp.sidebar.projects_title')}</span>
           </div>
           <ChevronDown size={14} className={`text-slate-400 transition-transform ${isProjectsOpen ? 'rotate-180' : ''}`} />
         </div>
-        
+
         {isProjectsOpen && (
           <div className="p-2 space-y-1 border-t border-white/5 bg-black/20 max-h-48 overflow-y-auto custom-scrollbar">
             {getSortedItems(projects).map(p => {
@@ -185,7 +177,7 @@ const Sidebar = ({
               );
             })}
             <button onClick={() => setShowAddProject(true)} className="w-full mt-2 py-2 text-xs font-bold flex items-center justify-center gap-1.5 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg transition-all border border-dashed border-indigo-500/30 active:scale-95">
-              <Plus size={14} /> Thêm dự án
+              <Plus size={14} /> {t('chat_dmp.sidebar.add_project_btn')}
             </button>
           </div>
         )}
@@ -193,11 +185,15 @@ const Sidebar = ({
 
       {/* Box 2: New Chat */}
       <div className="shrink-0 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl p-2 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-        <button onClick={handleNewChat} className="w-full flex items-center justify-start gap-3 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 text-white px-3 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 group">
-          <div className="bg-white/10 text-white p-1.5 rounded-lg group-hover:bg-white/15 transition-colors">
-            <Plus size={16} strokeWidth={3} />
-          </div>
-          Đoạn chat mới
+        <button
+          onClick={handleNewChat}
+          className={`w-full flex items-center justify-center px-3 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 border ${
+            isActiveNewChat
+              ? 'bg-gradient-to-r from-indigo-600 to-violet-600 border-indigo-500/20 text-white shadow-[0_0_20px_rgba(99,102,241,0.35)]'
+              : 'bg-white/5 hover:bg-white/10 border-white/5 hover:border-white/10 text-white'
+          }`}
+        >
+          {t('chat_dmp.sidebar.new_chat_btn')}
         </button>
       </div>
 
@@ -205,14 +201,14 @@ const Sidebar = ({
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
         <div className="px-4 py-3 border-b border-white/5 flex items-center gap-2 shrink-0 bg-black/20 shadow-inner">
           <HistoryIcon size={14} className="text-slate-400" />
-          <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">Lịch sử</span>
+          <span className="text-xs font-bold tracking-widest text-slate-300 uppercase">{t('chat_dmp.sidebar.history_title')}</span>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-          {(!activeProject?.chats || activeProject.chats.length === 0) ? (
-             <div className="text-center text-xs text-slate-500 p-4">Chưa có đoạn chat nào</div>
+          {(!activeProject?.chats || activeProject.chats.filter(c => c.messages && c.messages.length > 0).length === 0) ? (
+             <div className="text-center text-xs text-slate-500 p-4">{t('chat_dmp.sidebar.no_chats')}</div>
           ) : (
-            getSortedItems(activeProject.chats).map(chat => {
+            getSortedItems(activeProject.chats.filter(c => c.messages && c.messages.length > 0)).map(chat => {
               const isActive = activeProject.activeChatId === chat.id;
               const isEditing = editingId === chat.id && menuType === 'chat';
               return (
@@ -224,7 +220,7 @@ const Sidebar = ({
                         <input autoFocus value={editName} onChange={e => setEditName(e.target.value)} onBlur={handleRenameSubmit} className="w-full bg-slate-950 text-white text-xs px-2 py-0.5 rounded outline-none border border-indigo-500/50" />
                       </form>
                     ) : (
-                      <span className="truncate text-xs font-medium">{chat.title || 'Đoạn chat mới'}</span>
+                      <span className="truncate text-xs font-medium">{(chat.title === 'Đoạn chat mới' || chat.title === 'New chat' || chat.title === 'New Chat' || !chat.title) ? t('chat_dmp.sidebar.default_chat_title') : chat.title}</span>
                     )}
                   </div>
                   {!isEditing && (
@@ -242,13 +238,29 @@ const Sidebar = ({
   );
 };
 
-
-
-
 const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode }) => {
+  const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollContainerRef = useRef(null);
+
+  const isVi = i18n.language.startsWith('vi');
+
+  const aiModes = [
+    { id: 'chat', label: isVi ? 'Chat thường' : 'General Chat', icon: MessageSquare },
+    { id: 'code', label: isVi ? 'Sinh code' : 'Code Gen', icon: Code2 },
+    { id: 'api', label: isVi ? 'Sinh API' : 'API Gen', icon: Zap },
+    { id: 'debug', label: isVi ? 'Debug lỗi' : 'Debug Error', icon: Terminal },
+    { id: 'database', label: isVi ? 'Thiết kế Database' : 'Database Design', icon: Database },
+    { id: 'docs', label: isVi ? 'Viết tài liệu API' : 'API Docs', icon: Archive }
+  ];
+
+  const promptSuggestions = [
+    { label: isVi ? 'Sinh API đăng nhập' : 'Gen Login API', prompt: isVi ? 'Sinh API đăng nhập JWT gồm request, response, validate và lỗi thường gặp.' : 'Generate a JWT login API with request, response, validation, and common errors.' },
+    { label: isVi ? 'Tạo database cho hệ thống đặt vé' : 'Create Booking DB', prompt: isVi ? 'Tạo database schema cho hệ thống đặt vé gồm user, event, seat, booking và payment.' : 'Create a database schema for a booking system containing user, event, seat, booking, and payment.' },
+    { label: isVi ? 'Viết code React gọi API' : 'React API Fetch Code', prompt: isVi ? 'Viết code React gọi API với loading, error state và token bearer.' : 'Write React code to call an API with loading, error states, and bearer token.' },
+    { label: isVi ? 'Phân tích lỗi response API' : 'Analyze API Error', prompt: isVi ? 'Phân tích lỗi response API sau và đề xuất cách sửa.' : 'Analyze the following API error response and suggest a fix.' }
+  ];
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -264,48 +276,59 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
     return (
       <div className="flex flex-col flex-1 items-center justify-center text-slate-500">
         <Bot size={32} className="text-indigo-400 mb-4 opacity-50" />
-        <p>Chọn hoặc tạo đoạn chat để bắt đầu</p>
+        <p>{t('chat_dmp.sidebar.no_chats')}</p>
       </div>
     );
   }
 
   const buildAssistantReply = (message) => {
-    const modeLabel = aiModes.find((mode) => mode.id === activeMode)?.label || 'Chat thường';
+    const modeLabel = aiModes.find((mode) => mode.id === activeMode)?.label || (isVi ? 'Chat thường' : 'General Chat');
     if (activeMode === 'api') {
-      return `Mình đề xuất API request sau cho yêu cầu: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse nên trả về accessToken, refreshToken và thông tin user tối giản.`;
+      return isVi
+        ? `Mình đề xuất API request sau cho yêu cầu: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse nên trả về accessToken, refreshToken và thông tin user tối giản.`
+        : `Here is a proposed API request for: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse should return accessToken, refreshToken, and basic user info.`;
     }
     if (activeMode === 'database') {
-      return `Schema gợi ý cho yêu cầu: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nBạn có thể áp dụng schema này vào Database Designer rồi tinh chỉnh cột/quan hệ.`;
+      return isVi
+        ? `Schema gợi ý cho yêu cầu: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nBạn có thể áp dụng schema này vào Database Designer rồi tinh chỉnh cột/quan hệ.`
+        : `Suggested schema for: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nYou can apply this schema in the Database Designer.`;
     }
     if (activeMode === 'code') {
-      return `Đây là mẫu code cho yêu cầu: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``;
+      return isVi
+        ? `Đây là mẫu code cho yêu cầu: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``
+        : `Sample code for: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``;
     }
     if (activeMode === 'debug') {
-      return `Mình sẽ debug theo các bước:\n\n1. Kiểm tra status code và response body.\n2. Đối chiếu headers, auth token và environment variables.\n3. Thử lại request trong API Tester.\n\n\`\`\`json\n{\n  "hint": "Dán response lỗi vào đây để phân tích chi tiết"\n}\n\`\`\``;
+      return isVi
+        ? `Mình sẽ debug theo các bước:\n\n1. Kiểm tra status code và response body.\n2. Đối chiếu headers, auth token và environment variables.\n3. Thử lại request trong API Tester.\n\n\`\`\`json\n{\n  "hint": "Dán response lỗi vào đây để phân tích chi tiết"\n}\n\`\`\``
+        : `Debugging steps:\n\n1. Check status code and response body.\n2. Verify headers, auth token, and environment variables.\n3. Retry request in API Tester.\n\n\`\`\`json\n{\n  "hint": "Paste the error response here for detailed analysis"\n}\n\`\`\``;
     }
     if (activeMode === 'docs') {
-      return `Tài liệu API nháp:\n\n### Endpoint\n\`${message}\`\n\n### Mục tiêu\nMô tả request, authentication, response mẫu và lỗi phổ biến để team frontend/backend dùng chung.`;
+      return isVi
+        ? `Tài liệu API nháp:\n\n### Endpoint\n\`${message}\`\n\n### Mục tiêu\nMô tả request, authentication, response mẫu và lỗi phổ biến để team frontend/backend dùng chung.`
+        : `Draft API Documentation:\n\n### Endpoint\n\`${message}\`\n\n### Objective\nDescribe requests, authentication, mock responses, and errors.`;
     }
-    return `Đang ở mode ${modeLabel}. Đây là phản hồi mẫu cho: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``;
+    return isVi
+      ? `Đang ở mode ${modeLabel}. Đây là phản hồi mẫu cho: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``
+      : `AI Mode: ${activeMode}. Echo: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``;
   };
 
   const handleSend = (preset) => {
-    const content = (preset || input).trim();
+    const content = (typeof preset === 'string' ? preset : input).trim();
     if (!content) return;
-    
-    // Automatically set title based on first message if title is default
+
     const isFirstMsg = activeChat.messages.length === 0;
     const newTitle = isFirstMsg ? (content.length > 28 ? `${content.substring(0, 28)}...` : content) : undefined;
-    
+
     const newMsg = { id: generateId(), role: 'user', content, timestamp: Date.now(), mode: activeMode };
     const updatedMessages = [...activeChat.messages, newMsg];
-    
+
     updateChat({ messages: updatedMessages, ...(newTitle && { title: newTitle }) });
     setInput('');
     setIsTyping(true);
-    
-    logActivity('chatDmp', 'Đã gửi tin nhắn trong ChatDMP');
-    
+
+    logActivity('chatDmp', 'Sent message in ChatDMP');
+
     setTimeout(async () => {
       let aiMsg;
       try {
@@ -319,91 +342,97 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
     }, 1500);
   };
 
-  const handleClear = () => {
-    onClear();
-  };
-
   const renderMessage = (msg) => {
     const isUser = msg.role === 'user';
     const hasApiRequest = !isUser && /POST|GET|PUT|PATCH|DELETE|{{baseUrl}}|Content-Type/i.test(msg.content);
     const hasSchema = !isUser && /CREATE TABLE|PRIMARY KEY|schema/i.test(msg.content);
+
+    if (isUser) {
+      return (
+        <div key={msg.id} className="flex justify-end mb-6">
+          <div className="bg-slate-800/80 border border-slate-700/30 rounded-2xl rounded-tr-none px-5 py-3.5 text-slate-200 text-sm max-w-[75%] md:max-w-[70%] shadow-lg leading-relaxed font-medium whitespace-pre-wrap">
+            {msg.content}
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-8`}>
-        <div className={`flex gap-4 max-w-[92%] md:max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${isUser ? 'bg-gradient-to-br from-violet-600 to-indigo-600 shadow-indigo-500/20' : 'bg-slate-800 border border-white/10 shadow-black/20'}`}>
-            {isUser ? <User size={16} className="text-white" /> : <Bot size={18} className="text-indigo-400" />}
+      <div key={msg.id} className="flex justify-start mb-8 group/msg">
+        <div className="w-full max-w-4xl">
+          <div className="flex items-center justify-between mb-1 h-6">
+            <div />
+            <button
+              onClick={() => { navigator.clipboard.writeText(msg.content); toast.success(t('chat_dmp.chat_tab.copied_toast')); }}
+              className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 hover:bg-white/5 text-slate-500 hover:text-white rounded"
+              title={isVi ? 'Sao chép tin nhắn' : 'Copy message'}
+            >
+              <Copy size={13} />
+            </button>
           </div>
-          
-          <div className={`rounded-2xl p-5 shadow-xl border ${isUser ? 'bg-gradient-to-br from-indigo-500/90 to-violet-600/90 border-indigo-400/20 text-white rounded-tr-sm' : 'bg-slate-900/60 backdrop-blur-xl border-white/5 text-slate-200 rounded-tl-sm shadow-black/20'}`}>
-            <div className="flex justify-between items-center gap-4 mb-3">
-              <span className={`text-[10px] font-bold uppercase tracking-widest ${isUser ? 'text-indigo-200' : 'text-slate-500'}`}>{msg.role === 'assistant' ? 'ChatDMP' : msg.role}</span>
-              <div className="flex gap-2">
-                <button onClick={() => { navigator.clipboard.writeText(msg.content); toast.success('Đã copy nội dung'); }} className="opacity-50 hover:opacity-100 transition-opacity p-1 hover:bg-black/20 rounded" title="Copy message"><Copy size={14} /></button>
-              </div>
-            </div>
-            <div className="whitespace-pre-wrap text-sm leading-relaxed font-medium">
-              {msg.content.split('```').map((part, i) => {
-                if (i % 2 === 1) {
-                  const lines = part.split('\n');
-                  const lang = lines[0] || 'text';
-                  const code = lines.slice(1).join('\n');
-                  return (
-                    <div key={i} className="my-4 bg-slate-950/80 rounded-xl border border-white/5 overflow-hidden shadow-2xl">
-                      <div className="flex justify-between items-center px-4 py-2 bg-[#1e1e1e] border-b border-white/5 text-xs text-slate-400 uppercase tracking-widest font-bold">
-                        <span>{lang}</span>
-                        <button onClick={() => { navigator.clipboard.writeText(code); toast.success('Đã copy code'); }} className="hover:text-white flex items-center gap-1.5 transition-colors"><Copy size={12} /> Copy</button>
-                      </div>
-                      <SyntaxHighlighter 
-                        language={lang === 'text' ? 'javascript' : lang} 
-                        style={atomDark}
-                        customStyle={{ background: 'transparent', padding: '1.25rem', margin: 0, fontSize: '0.8rem', lineHeight: '1.6' }}
-                        className="custom-scrollbar"
-                      >
-                        {code}
-                      </SyntaxHighlighter>
+          <div className="text-slate-300 text-sm leading-relaxed font-medium space-y-4">
+            {msg.content.split('```').map((part, i) => {
+              if (i % 2 === 1) {
+                const lines = part.split('\n');
+                const lang = lines[0] || 'text';
+                const code = lines.slice(1).join('\n');
+                return (
+                  <div key={i} className="my-4 bg-slate-950 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
+                    <div className="flex justify-between items-center px-4 py-2 bg-[#181824] border-b border-white/5 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                      <span>{lang}</span>
+                      <button onClick={() => { navigator.clipboard.writeText(code); toast.success(t('chat_dmp.chat_tab.copied_code_toast')); }} className="hover:text-white flex items-center gap-1 transition-colors"><Copy size={12} /> {isVi ? 'Sao chép' : 'Copy'}</button>
                     </div>
-                  );
-                }
-                return <span key={i}>{part}</span>;
-              })}
-            </div>
-            {(hasApiRequest || hasSchema) && (
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/5 pt-4">
-                {hasApiRequest && (
-                  <button onClick={() => {
-                    localStorage.setItem('api_fe_pending_api_test_request', JSON.stringify(msg.metadata?.apiRequest || {
-                      method: 'POST',
-                      url: '{{baseUrl}}/auth/login',
-                      headers: [{ key: 'Content-Type', value: 'application/json' }],
-                      body: '{\n  "email": "user@example.com",\n  "password": "123456"\n}'
-                    }));
-                    toast.success('Đã gửi request sang API Tester');
-                  }} className="rounded-lg bg-indigo-600/20 px-3 py-2 text-xs font-bold text-indigo-200 transition hover:bg-indigo-600/30">
-                    Dùng trong API Tester
-                  </button>
-                )}
-                {hasSchema && (
-                  <button onClick={() => {
-                    localStorage.setItem('api_fe_pending_database_schema', JSON.stringify(msg.metadata?.databaseSchema || {
-                      dbType: 'postgresql',
-                      tables: [
-                        {
-                          name: 'users',
-                          columns: [
-                            { name: 'id', type: 'UUID', primaryKey: true, nullable: false, unique: true },
-                            { name: 'email', type: 'VARCHAR(255)', primaryKey: false, nullable: false, unique: true }
-                          ]
-                        }
-                      ]
-                    }));
-                    toast.success('Đã chuẩn bị áp dụng schema');
-                  }} className="rounded-lg bg-violet-600/20 px-3 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-600/30">
-                    Áp dụng vào Database
-                  </button>
-                )}
-              </div>
-            )}
+                    <SyntaxHighlighter
+                      language={lang === 'text' ? 'javascript' : lang}
+                      style={atomDark}
+                      customStyle={{ background: 'transparent', padding: '1rem', margin: 0, fontSize: '0.8rem', lineHeight: '1.6' }}
+                      className="custom-scrollbar"
+                    >
+                      {code}
+                    </SyntaxHighlighter>
+                  </div>
+                );
+              }
+              return <span key={i} className="whitespace-pre-wrap">{part}</span>;
+            })}
           </div>
+
+          {(hasApiRequest || hasSchema) && (
+            <div className="mt-4 flex flex-wrap gap-2 pt-2">
+              {hasApiRequest && (
+                <button onClick={() => {
+                  localStorage.setItem('api_fe_pending_api_test_request', JSON.stringify(msg.metadata?.apiRequest || {
+                    method: 'POST',
+                    url: '{{baseUrl}}/auth/login',
+                    headers: [{ key: 'Content-Type', value: 'application/json' }],
+                    body: '{\n  "email": "user@example.com",\n  "password": "123456"\n}'
+                  }));
+                  toast.success(t('chat_dmp.chat_tab.sent_to_tester_toast'));
+                }} className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/20">
+                  {t('chat_dmp.chat_tab.use_tester_btn')}
+                </button>
+              )}
+              {hasSchema && (
+                <button onClick={() => {
+                  localStorage.setItem('api_fe_pending_database_schema', JSON.stringify(msg.metadata?.databaseSchema || {
+                    dbType: 'postgresql',
+                    tables: [
+                      {
+                        name: 'users',
+                        columns: [
+                          { name: 'id', type: 'UUID', primaryKey: true, nullable: false, unique: true },
+                          { name: 'email', type: 'VARCHAR(255)', primaryKey: false, nullable: false, unique: true }
+                        ]
+                      }
+                    ]
+                  }));
+                  toast.success(t('chat_dmp.chat_tab.applied_schema_toast'));
+                }} className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-3.5 py-2 text-xs font-bold text-violet-300 transition hover:bg-violet-500/20">
+                  {t('chat_dmp.chat_tab.apply_db_btn')}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -411,38 +440,23 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full relative">
-      <div className="flex justify-between items-center px-4 py-2 border-b border-white/5 bg-slate-900/40 backdrop-blur-xl shrink-0 z-10">
-        <div className="min-w-0 flex items-center gap-3">
-          <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">
-            <MessageSquare size={16} />
-          </div>
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-bold text-white tracking-tight leading-tight">{activeChat.title || 'ChatDMP'}</h2>
-            <p className="text-[11px] text-slate-500 leading-tight mt-0.5">{aiModes.find((mode) => mode.id === activeMode)?.label}</p>
-          </div>
-        </div>
-        <button onClick={handleClear} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-red-400 px-2.5 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 transition-all">
-          <Trash2 size={13} /> <span className="hidden sm:inline">Xóa tin nhắn</span>
-        </button>
-      </div>
-      
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
         {activeChat.messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-slate-500">
-            <div className="w-20 h-20 bg-slate-900 rounded-3xl border border-white/5 flex items-center justify-center shadow-2xl mb-6 shadow-black/50 ring-1 ring-white/10">
-              <Bot size={32} className="text-indigo-400" />
+          <div className="h-full flex flex-col items-center justify-center text-slate-500 max-w-4xl mx-auto w-full px-4">
+            <div className="w-16 h-16 bg-slate-900 rounded-3xl border border-white/5 flex items-center justify-center shadow-2xl mb-6 shadow-black/50 ring-1 ring-white/10">
+              <Bot size={28} className="text-indigo-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2 tracking-tight">ChatDMP có thể giúp gì cho bạn?</h3>
-            <p className="text-sm">Chọn mode AI rồi bắt đầu bằng một prompt gợi ý.</p>
-            <div className="mt-8 grid w-full max-w-3xl gap-3 sm:grid-cols-2">
+            <h3 className="text-lg font-bold text-white mb-2 tracking-tight text-center">{t('chat_dmp.chat_tab.ready_title')}</h3>
+            <p className="text-xs text-slate-400 text-center">{t('chat_dmp.chat_tab.ready_desc')}</p>
+            <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
               {promptSuggestions.map((suggestion) => (
                 <button
                   key={suggestion.label}
                   onClick={() => handleSend(suggestion.prompt)}
-                  className="rounded-2xl border border-white/5 bg-slate-900/50 p-4 text-left text-sm font-bold text-slate-200 transition hover:border-indigo-500/40 hover:bg-white/5"
+                  className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 text-left transition hover:border-indigo-500/30 hover:bg-white/[0.02] group"
                 >
-                  {suggestion.label}
-                  <p className="mt-2 line-clamp-2 text-xs font-medium text-slate-500">{suggestion.prompt}</p>
+                  <p className="text-xs font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">{suggestion.label}</p>
+                  <p className="mt-1.5 line-clamp-2 text-[11px] font-medium text-slate-500 leading-relaxed">{suggestion.prompt}</p>
                 </button>
               ))}
             </div>
@@ -452,14 +466,9 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
             {activeChat.messages.map(renderMessage)}
             {isTyping && (
               <div className="flex justify-start mb-8">
-                 <div className="flex gap-4 max-w-[85%]">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-lg bg-slate-800 border border-white/10 shadow-black/20">
-                      <Bot size={18} className="text-indigo-400" />
-                    </div>
-                    <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-4 text-slate-400 text-sm flex items-center gap-3 shadow-xl">
-                      <RefreshCw size={16} className="animate-spin text-indigo-400" /> ChatDMP đang suy nghĩ...
-                    </div>
-                 </div>
+                <div className="bg-slate-900/40 border border-white/5 rounded-2xl px-4 py-3 text-slate-400 text-xs flex items-center gap-2.5 shadow-md">
+                  <RefreshCw size={14} className="animate-spin text-indigo-400" /> {t('chat_dmp.chat_tab.thinking')}
+                </div>
               </div>
             )}
           </div>
@@ -485,42 +494,39 @@ const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode })
             );
           })}
         </div>
-        <div className="relative max-w-4xl mx-auto flex items-end gap-3">
-          <div className="relative flex-1">
-            <textarea 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Hỏi ChatDMP..."
-              className="w-full bg-slate-950/60 border border-white/10 rounded-2xl pl-5 pr-5 py-4 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all resize-none custom-scrollbar shadow-inner text-white placeholder-slate-500"
-              rows={1}
-              style={{ minHeight: '56px', maxHeight: '200px' }}
-            />
-          </div>
-          <button 
+        <div className="relative max-w-4xl mx-auto flex items-end bg-slate-950/60 border border-white/10 rounded-2xl focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all pl-5 pr-2 py-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={t('chat_dmp.chat_tab.placeholder')}
+            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 py-2.5 text-sm text-white placeholder-slate-500 resize-none custom-scrollbar"
+            rows={1}
+            style={{ minHeight: '40px', maxHeight: '200px' }}
+          />
+          <button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="shrink-0 h-[56px] w-[56px] bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 shadow-lg relative overflow-hidden group"
+            className="shrink-0 h-10 w-10 text-slate-400 hover:text-indigo-400 disabled:opacity-30 disabled:hover:text-slate-400 transition-colors flex items-center justify-center ml-2 mb-0.5"
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
-            {isTyping ? <RefreshCw size={20} className="relative z-10 animate-spin" /> : <Send size={20} className="relative z-10" />}
+            {isTyping ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
         <div className="max-w-4xl mx-auto text-center mt-3">
-          <p className="text-[10px] text-slate-500 font-medium">ChatDMP có thể mắc lỗi. Hãy kiểm tra lại các thông tin quan trọng.</p>
+          <p className="text-[10px] text-slate-500 font-medium">{t('chat_dmp.chat_tab.disclaimer')}</p>
         </div>
       </div>
     </div>
   );
 };
 
-
 const EnvTab = ({ project, updateProject }) => {
+  const { t } = useTranslation();
   const addEnv = () => updateProject({ envs: [...project.envs, { id: generateId(), key: '', value: '', hidden: false }] });
   const updateEnv = (id, field, val) => updateProject({ envs: project.envs.map(e => e.id === id ? { ...e, [field]: val } : e) });
   const removeEnv = (id) => updateProject({ envs: project.envs.filter(e => e.id !== id) });
@@ -534,50 +540,50 @@ const EnvTab = ({ project, updateProject }) => {
               <Server size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Biến môi trường</h2>
-              <p className="text-xs text-slate-400 mt-1">Quản lý các khóa bí mật và môi trường cục bộ.</p>
+              <h2 className="text-xl font-bold text-white tracking-tight">{t('chat_dmp.env_tab.title')}</h2>
+              <p className="text-xs text-slate-400 mt-1">{t('chat_dmp.env_tab.subtitle')}</p>
             </div>
           </div>
           <button onClick={addEnv} className="bg-white/5 hover:bg-white/10 border border-white/5 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-bold transition-all active:scale-95">
-            <Plus size={18} /> Thêm biến
+            <Plus size={18} /> {t('chat_dmp.env_tab.add_btn')}
           </button>
         </div>
 
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
           <div className="grid grid-cols-12 gap-4 p-5 border-b border-white/5 bg-slate-950/40 text-xs font-bold text-slate-500 uppercase tracking-widest">
-            <div className="col-span-4 pl-2">Khóa (Key)</div>
-            <div className="col-span-6">Giá trị (Value)</div>
-            <div className="col-span-2 text-right pr-2">Thao tác</div>
+            <div className="col-span-4 pl-2">{t('chat_dmp.env_tab.key_col')}</div>
+            <div className="col-span-6">{t('chat_dmp.env_tab.val_col')}</div>
+            <div className="col-span-2 text-right pr-2">{t('chat_dmp.env_tab.actions_col')}</div>
           </div>
-          
+
           {project.envs.length === 0 ? (
             <div className="p-12 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-white/5 mb-4 shadow-inner">
                 <Database size={24} className="text-slate-600" />
               </div>
-              <p className="text-slate-400 font-medium text-sm">Chưa có biến môi trường nào.</p>
-              <p className="text-slate-500 text-xs mt-1">Nhấn "Thêm biến" để bắt đầu.</p>
+              <p className="text-slate-400 font-medium text-sm">{t('chat_dmp.env_tab.no_envs')}</p>
+              <p className="text-slate-500 text-xs mt-1">{t('chat_dmp.env_tab.no_envs_desc')}</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
               {project.envs.map(env => (
                 <div key={env.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-white/[0.02] transition-colors group">
                   <div className="col-span-4">
-                    <input 
-                      type="text" 
-                      value={env.key} 
-                      onChange={e => updateEnv(env.id, 'key', e.target.value)} 
-                      placeholder="vd: API_KEY"
+                    <input
+                      type="text"
+                      value={env.key}
+                      onChange={e => updateEnv(env.id, 'key', e.target.value)}
+                      placeholder={t('chat_dmp.env_tab.placeholder_key')}
                       className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3 py-2 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none text-sm font-mono text-emerald-300 transition-all"
                     />
                   </div>
                   <div className="col-span-6 relative flex items-center gap-2">
                     <div className="relative flex-1">
-                      <input 
-                        type={env.hidden ? "password" : "text"} 
-                        value={env.value} 
-                        onChange={e => updateEnv(env.id, 'value', e.target.value)} 
-                        placeholder="Nhập giá trị..."
+                      <input
+                        type={env.hidden ? "password" : "text"}
+                        value={env.value}
+                        onChange={e => updateEnv(env.id, 'value', e.target.value)}
+                        placeholder={t('chat_dmp.env_tab.placeholder_val')}
                         className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-3 py-2 pr-10 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none text-sm font-mono text-slate-300 transition-all"
                       />
                       <button onClick={() => updateEnv(env.id, 'hidden', !env.hidden)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
@@ -597,7 +603,7 @@ const EnvTab = ({ project, updateProject }) => {
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-400 bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl">
           <Zap size={16} className="text-amber-500 shrink-0" />
-          <span>Sử dụng biến trong các yêu cầu API với cú pháp <code className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-mono font-bold tracking-wider">{`{{KEY}}`}</code>.</span>
+          <span>{t('chat_dmp.env_tab.syntax_tip')}</span>
         </div>
       </div>
     </div>
@@ -605,6 +611,7 @@ const EnvTab = ({ project, updateProject }) => {
 };
 
 const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState(project.name);
   const [desc, setDesc] = useState(project.description);
   const [saved, setSaved] = useState(false);
@@ -634,67 +641,66 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
               <div className="p-2 bg-slate-800 rounded-lg text-slate-300">
                 <Settings size={20} />
               </div>
-              Project Configuration
+              {t('chat_dmp.settings_tab.title')}
             </h2>
-            <p className="text-sm text-slate-400 ml-[52px]">Cập nhật tên và các chức năng xuất dữ liệu.</p>
+            <p className="text-sm text-slate-400 ml-[52px]">{t('chat_dmp.settings_tab.subtitle')}</p>
           </div>
 
           <div className="space-y-6 bg-slate-900/40 backdrop-blur-2xl p-8 rounded-3xl border border-white/5 shadow-2xl">
             <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Tên dự án</label>
-              <input 
-                type="text" 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">{t('chat_dmp.settings_tab.proj_name')}</label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
                 className="w-full bg-slate-950/50 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-white font-medium placeholder-slate-600 shadow-inner"
               />
             </div>
             <div className="space-y-2.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Mô tả</label>
-              <textarea 
-                value={desc} 
-                onChange={e => setDesc(e.target.value)} 
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">{t('chat_dmp.settings_tab.desc')}</label>
+              <textarea
+                value={desc}
+                onChange={e => setDesc(e.target.value)}
                 rows={4}
                 className="w-full bg-slate-950/50 border border-white/5 rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all text-white font-medium resize-none placeholder-slate-600 shadow-inner"
               />
             </div>
-            <button onClick={handleSave} className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
-              {saved ? <Check size={18} className="text-emerald-300" /> : <Save size={18} />} 
-              {saved ? 'Đã lưu cài đặt' : 'Cập nhật cấu hình'}
+            <button onClick={handleSave} className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl flex items-center justify-center font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
+              {saved ? t('chat_dmp.settings_tab.toast_saved') : t('chat_dmp.settings_tab.update_btn')}
             </button>
           </div>
         </section>
 
         <section className="pt-4">
-          <h3 className="text-lg font-bold text-white mb-6 tracking-tight pl-1">Quản lý dữ liệu</h3>
+          <h3 className="text-lg font-bold text-white mb-6 tracking-tight pl-1">{t('chat_dmp.settings_tab.data_mgmt')}</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between p-5 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:bg-slate-800/40 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white tracking-tight">Xuất dự án</p>
-                <p className="text-xs text-slate-400 mt-0.5">Tải xuống tất cả đoạn chat và cấu hình dưới dạng JSON</p>
+                <p className="text-sm font-bold text-white tracking-tight">{t('chat_dmp.settings_tab.export_title')}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{t('chat_dmp.settings_tab.export_desc')}</p>
               </div>
               <button onClick={handleExport} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95">
-                <Download size={16} /> Xuất
+                <Download size={16} /> {t('chat_dmp.settings_tab.export_btn')}
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between p-5 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:bg-slate-800/40 transition-colors">
               <div>
-                <p className="text-sm font-bold text-white tracking-tight">Nhân bản dự án</p>
-                <p className="text-xs text-slate-400 mt-0.5">Tạo một bản sao chính xác của dự án này</p>
+                <p className="text-sm font-bold text-white tracking-tight">{t('chat_dmp.settings_tab.dup_title')}</p>
+                <p className="text-xs text-slate-400 mt-0.5">{t('chat_dmp.settings_tab.dup_desc')}</p>
               </div>
               <button onClick={handleDuplicate} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95">
-                <Copy size={16} /> Nhân bản
+                <Copy size={16} /> {t('chat_dmp.settings_tab.dup_btn')}
               </button>
             </div>
 
             <div className="flex items-center justify-between p-6 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-2xl transition-all">
               <div>
-                <p className="text-sm font-bold text-red-400 tracking-tight">Khu vực nguy hiểm</p>
-                <p className="text-xs text-red-500/70 mt-0.5 font-medium">Xóa vĩnh viễn dự án này và toàn bộ dữ liệu của nó</p>
+                <p className="text-sm font-bold text-red-400 tracking-tight">{t('chat_dmp.settings_tab.danger_zone')}</p>
+                <p className="text-xs text-red-500/70 mt-0.5 font-medium">{t('chat_dmp.settings_tab.delete_desc')}</p>
               </div>
               <button onClick={handleDelete} className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 hover:text-red-300 rounded-xl text-xs font-bold transition-all flex items-center gap-2 active:scale-95 shadow-lg shadow-red-500/10">
-                <Trash2 size={16} /> Xóa dự án
+                <Trash2 size={16} /> {t('chat_dmp.settings_tab.delete_btn')}
               </button>
             </div>
           </div>
@@ -704,29 +710,51 @@ const SettingsTab = ({ project, updateProject, handleDuplicate, handleDelete }) 
   );
 };
 
-
-// --- Main Component ---
-
 export default function ChatDMP() {
+  const { t, i18n } = useTranslation();
   const location = useLocation();
+
+  const isVi = i18n.language.startsWith('vi');
+
+  const initialChat = {
+    id: generateId(),
+    title: t('chat_dmp.sidebar.default_chat_title'),
+    messages: [],
+    createdAt: Date.now()
+  };
+
+  const initialProject = {
+    id: generateId(),
+    name: 'Project 1',
+    description: isVi ? 'Dự án mặc định' : 'Default Project',
+    status: 'active',
+    envs: [],
+    chats: [initialChat],
+    activeChatId: initialChat.id,
+    createdAt: Date.now()
+  };
+
   const [projects, setProjects] = useState(() => {
+    let list = [];
     const saved = localStorage.getItem('ai_projects_v2');
     if (saved) {
-      return JSON.parse(saved);
+      list = JSON.parse(saved);
+    } else {
+      const oldSaved = localStorage.getItem('ai_projects');
+      if (oldSaved) {
+        const parsedOld = JSON.parse(oldSaved);
+        list = parsedOld.map(p => ({
+          ...p,
+          chats: p.chats || [{ id: generateId(), title: p.name + ' Chat', messages: p.messages || [], createdAt: p.createdAt || Date.now() }],
+          activeChatId: p.activeChatId || null
+        }));
+      } else {
+        list = [initialProject];
+      }
     }
-    // Migration from old schema v1 to v2:
-    const oldSaved = localStorage.getItem('ai_projects');
-    if (oldSaved) {
-      const parsedOld = JSON.parse(oldSaved);
-      return parsedOld.map(p => ({
-        ...p,
-        chats: p.chats || [{ id: generateId(), title: p.name + ' Chat', messages: p.messages || [], createdAt: p.createdAt || Date.now() }],
-        activeChatId: p.activeChatId || null
-      }));
-    }
-    return [initialProject];
+    return list.filter((p) => p.id !== 'mp-1' && p.id !== 'mp-2');
   });
-  
+
   const [activeId, setActiveId] = useState(projects[0]?.id);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'chat');
   const [activeMode, setActiveMode] = useState('chat');
@@ -752,11 +780,10 @@ export default function ChatDMP() {
   }, [activeProject]);
 
   const activeChat = activeProject?.chats?.find(c => c.id === activeProject.activeChatId) || activeProject?.chats?.[0];
-  
+
   const updateCurrentProject = (updates) => {
     updateProject(activeProject.id, updates);
   };
-
 
   const updateChat = (projectId, chatId, updates) => {
     setProjects(projs => projs.map(p => {
@@ -777,22 +804,7 @@ export default function ChatDMP() {
     }));
   };
 
-  const handleNewProject = () => {
-    const newChatId = generateId();
-    const newProj = { 
-      ...initialProject, 
-      id: generateId(), 
-      name: `Dự án ${projects.length + 1}`,
-      chats: [{ id: newChatId, title: 'Đoạn chat mới', messages: [], createdAt: Date.now() }],
-      activeChatId: newChatId,
-      createdAt: Date.now()
-    };
-    setProjects([newProj, ...projects]);
-    setActiveId(newProj.id);
-  };
-
   const handleAddFromMyProject = (mpProject) => {
-    // Check if already added (match by mpId to avoid duplicates)
     if (projects.some(p => p.mpId === mpProject.id)) return;
     const newChatId = generateId();
     const newProj = {
@@ -802,7 +814,7 @@ export default function ChatDMP() {
       description: mpProject.desc || '',
       status: mpProject.status || 'active',
       envs: [],
-      chats: [{ id: newChatId, title: 'Đoạn chat mới', messages: [], createdAt: Date.now() }],
+      chats: [{ id: newChatId, title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() }],
       activeChatId: newChatId,
       createdAt: Date.now()
     };
@@ -819,23 +831,27 @@ export default function ChatDMP() {
   };
 
   const handleDuplicateProject = () => {
+    if (!activeProject) return;
     const cloneId = generateId();
-    const clone = { ...activeProject, id: cloneId, name: `${activeProject.name} (Copy)`, createdAt: Date.now() };
+    const suffix = isVi ? ' (Bản sao)' : ' (Copy)';
+    const clone = { ...activeProject, id: cloneId, name: `${activeProject.name}${suffix}`, createdAt: Date.now() };
     setProjects([clone, ...projects]);
     setActiveId(cloneId);
   };
 
   const handleNewChat = () => {
-    const newChat = { id: generateId(), title: 'Đoạn chat mới', messages: [], createdAt: Date.now() };
-    const updatedChats = [newChat, ...activeProject.chats];
+    if (!activeProject) return;
+    const newChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
+    const updatedChats = [newChat, ...(activeProject.chats || [])];
     updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
-    logActivity('chatDmp', 'Đã tạo đoạn chat mới');
+    logActivity('chatDmp', 'Created new chat thread');
   };
 
   const handleDeleteChat = (chatId) => {
-    const updatedChats = activeProject.chats.filter(c => c.id !== chatId);
+    if (!activeProject) return;
+    const updatedChats = (activeProject.chats || []).filter(c => c.id !== chatId);
     if (updatedChats.length === 0) {
-      const freshChat = { id: generateId(), title: 'Đoạn chat mới', messages: [], createdAt: Date.now() };
+      const freshChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
       updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
     } else {
       updateProject(activeProject.id, { chats: updatedChats, activeChatId: updatedChats[0].id });
@@ -844,8 +860,8 @@ export default function ChatDMP() {
 
   const tabs = [
     { id: 'chat', label: 'ChatDMP', icon: MessageSquare },
-    { id: 'env', label: 'Biến môi trường', icon: Server },
-    { id: 'settings', label: 'Cài đặt', icon: Settings },
+    { id: 'env', label: t('chat_dmp.env_tab.title'), icon: Server },
+    { id: 'settings', label: t('chat_dmp.settings_tab.title') === 'Project Configuration' ? 'Settings' : 'Cài đặt', icon: Settings },
   ];
 
   return (
@@ -869,7 +885,7 @@ export default function ChatDMP() {
             </div>
           </div>
         </div>
-        
+
         <div className="flex bg-slate-950/50 rounded-xl p-1 border border-white/5 overflow-x-auto hide-scrollbar">
           {tabs.map(tab => {
             const Icon = tab.icon;
@@ -880,7 +896,7 @@ export default function ChatDMP() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${isActive ? 'bg-white/10 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
               >
-                <Icon size={14} className={isActive ? 'text-indigo-400' : ''} /> 
+                <Icon size={14} className={isActive ? 'text-indigo-400' : ''} />
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
             );
@@ -890,36 +906,37 @@ export default function ChatDMP() {
 
       {/* Main Layout Area */}
       <div className="flex flex-1 overflow-hidden min-h-0 relative z-10 w-full">
-        <Sidebar 
-          projects={projects} 
-          activeId={activeId} 
+        <Sidebar
+          projects={projects}
+          activeId={activeId}
           setActiveId={setActiveId}
           activeProject={activeProject}
           handleNewChat={handleNewChat}
-          setActiveChatId={(id) => updateProject(activeProject.id, { activeChatId: id })}
+          setActiveChatId={(id) => activeProject && updateProject(activeProject.id, { activeChatId: id })}
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           updateProject={updateProject}
           updateChat={updateChat}
           setShowAddProject={setShowAddProject}
           onConfirmDelete={(type, id) => {
-            const msg = type === 'project' ? 'Bạn có muốn xóa dự án này không?' : 'Bạn có muốn xóa đoạn chat này không?';
+            const msg = type === 'project' ? t('chat_dmp.modals.delete_proj_confirm') : t('chat_dmp.modals.delete_chat_confirm');
             setConfirmState({ type, id, message: msg });
           }}
         />
 
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative z-10 bg-black/20">
           {activeTab === 'chat' && (
-            <ChatTab 
-              activeChat={activeChat} 
-              updateChat={updateCurrentChat} 
+            <ChatTab
+              key={activeChat?.id}
+              activeChat={activeChat}
+              updateChat={updateCurrentChat}
               activeMode={activeMode}
               setActiveMode={setActiveMode}
-              onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: 'Bạn có chắc chắn muốn xóa toàn bộ tin nhắn trong cuộc hội thoại này không?' })} 
+              onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: t('chat_dmp.modals.clear_chat_confirm') })}
             />
           )}
-          {activeTab === 'env' && <EnvTab project={activeProject} updateProject={updateCurrentProject} />}
-          {activeTab === 'settings' && <SettingsTab project={activeProject} updateProject={updateCurrentProject} handleDuplicate={handleDuplicateProject} handleDelete={() => handleDeleteProject(activeProject.id)} />}
+          {activeTab === 'env' && activeProject && <EnvTab project={activeProject} updateProject={updateCurrentProject} />}
+          {activeTab === 'settings' && activeProject && <SettingsTab project={activeProject} updateProject={updateCurrentProject} handleDuplicate={handleDuplicateProject} handleDelete={() => setConfirmState({ type: 'project', id: activeProject.id, message: t('chat_dmp.modals.delete_proj_confirm') })} />}
         </main>
       </div>
 
@@ -930,11 +947,13 @@ export default function ChatDMP() {
 
       {/* Add Project Picker Modal */}
       {showAddProject && (() => {
-        const myProjects = JSON.parse(localStorage.getItem('my_dashboard_projects') || '[]');
+        const myProjects = JSON.parse(localStorage.getItem('my_dashboard_projects') || '[]').filter(
+          (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
+        );
         const alreadyAdded = new Set(projects.map(p => p.mpId).filter(Boolean));
         return (
           <div
-            className="fixed inset-0 z-[300] flex items-center justify-center px-6 bg-black/60 backdrop-blur-md"
+            className="fixed inset-0 z-[300] flex items-center justify-center px-6 bg-black/35 backdrop-blur-[1px]"
             onClick={() => setShowAddProject(false)}
           >
             <div
@@ -947,7 +966,7 @@ export default function ChatDMP() {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Folder size={16} className="text-indigo-400" />
-                    <h3 className="text-white font-bold text-base">Thêm từ My Projects</h3>
+                    <h3 className="text-white font-bold text-base">{t('chat_dmp.modals.add_modal_title')}</h3>
                   </div>
                   <button onClick={() => setShowAddProject(false)} className="p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                     <X size={16} />
@@ -955,7 +974,7 @@ export default function ChatDMP() {
                 </div>
                 <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
                   {myProjects.length === 0 ? (
-                    <p className="text-slate-500 text-sm text-center py-6">Chưa có project nào trong My Projects</p>
+                    <p className="text-slate-500 text-sm text-center py-6">{t('chat_dmp.modals.add_modal_no_projects')}</p>
                   ) : (
                     myProjects.map(p => {
                       const added = alreadyAdded.has(p.id);
@@ -978,9 +997,9 @@ export default function ChatDMP() {
                             <p className="text-xs text-slate-400 truncate">{p.desc}</p>
                           </div>
                           {added ? (
-                            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0">Đã thêm</span>
+                            <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full shrink-0">{t('chat_dmp.modals.add_modal_added')}</span>
                           ) : (
-                            <span className="text-[10px] font-bold text-slate-500 px-2 py-0.5 shrink-0">Thêm →</span>
+                            <span className="text-[10px] font-bold text-slate-500 px-2 py-0.5 shrink-0">{t('chat_dmp.modals.add_modal_add')} →</span>
                           )}
                         </button>
                       );
@@ -996,7 +1015,7 @@ export default function ChatDMP() {
       {/* Custom Delete Confirm Modal */}
       {confirmState && (
         <div
-          className="fixed inset-0 z-[300] flex items-center justify-center px-6 bg-black/60 backdrop-blur-md"
+          className="fixed inset-0 z-[300] flex items-center justify-center px-6 bg-black/35 backdrop-blur-[1px]"
           onClick={() => setConfirmState(null)}
         >
           <div
@@ -1018,12 +1037,12 @@ export default function ChatDMP() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg tracking-tight">
-                    {confirmState.type === 'project' ? 'Xóa dự án?' : confirmState.type === 'clear_chat' ? 'Xóa tin nhắn?' : 'Xóa đoạn chat?'}
+                    {confirmState.type === 'project' ? t('chat_dmp.modals.delete_proj_title') : confirmState.type === 'clear_chat' ? t('chat_dmp.modals.clear_chat_title') : t('chat_dmp.modals.delete_chat_title')}
                   </h3>
                   <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">
                     {confirmState.message}
                   </p>
-                  <p className="text-slate-600 text-xs mt-2">Hành động này không thể hoàn tác.</p>
+                  <p className="text-slate-600 text-xs mt-2">{t('chat_dmp.modals.confirm_warning')}</p>
                 </div>
               </div>
 
@@ -1034,10 +1053,10 @@ export default function ChatDMP() {
                   className="flex-1 py-2.5 text-sm font-semibold text-slate-300 hover:text-white rounded-xl transition-all duration-200 border border-white/8 hover:border-white/15 hover:bg-white/5"
                   style={{ background: 'rgba(255,255,255,0.04)' }}
                 >
-                  Hủy
+                  {t('chat_dmp.modals.btn_cancel')}
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (confirmState.type === 'project') handleDeleteProject(confirmState.id);
                     else if (confirmState.type === 'chat') handleDeleteChat(confirmState.id);
                     else if (confirmState.type === 'clear_chat') updateCurrentChat({ messages: [] });
@@ -1046,7 +1065,7 @@ export default function ChatDMP() {
                   className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl transition-all duration-200 hover:brightness-110 active:scale-95"
                   style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', boxShadow: '0 4px 20px rgba(239,68,68,0.35)' }}
                 >
-                  Xóa
+                  {t('chat_dmp.modals.btn_delete')}
                 </button>
               </div>
             </div>

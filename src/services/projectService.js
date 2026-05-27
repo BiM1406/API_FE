@@ -5,54 +5,44 @@ import { createId, readStorage, writeStorage } from '../utils/storage';
 const PROJECTS_KEY = 'api_fe_projects';
 export const LEGACY_PROJECTS_KEY = 'my_dashboard_projects';
 
-const defaultProjects = [
-  {
-    id: 'mp-1',
-    name: 'E-commerce API',
-    description: 'Main microservice for the storefront',
-    type: 'API',
-    status: 'Active',
-    tags: ['Node', 'PostgreSQL', 'Redis'],
-    tech: ['Node', 'PostgreSQL', 'Redis'],
-    apiCount: 12,
-    databaseTableCount: 8,
-    aiChatCount: 3,
-    color: 'from-blue-500 to-indigo-500',
-    ownerId: 'user-1',
-    createdAt: '2026-04-01T08:00:00.000Z',
-    updatedAt: '2026-05-18T08:00:00.000Z'
-  },
-  {
-    id: 'mp-2',
-    name: 'Support AI Bot',
-    description: 'RAG-based customer support assistant',
-    type: 'AI',
-    status: 'Active',
-    tags: ['Python', 'Vector DB', 'LLM'],
-    tech: ['Python', 'Vector DB', 'LLM'],
-    apiCount: 6,
-    databaseTableCount: 4,
-    aiChatCount: 9,
-    color: 'from-violet-500 to-purple-500',
-    ownerId: 'user-1',
-    createdAt: '2026-04-06T08:00:00.000Z',
-    updatedAt: '2026-05-18T06:00:00.000Z'
-  }
-];
+const defaultProjects = [];
 
 const normalizeProject = (project) => {
   const tags = project.tags || project.tech || ['API'];
+  const projectId = project.id || createId('project');
+
+  // 1. Calculate actual apiCount
+  const collections = readStorage('api_fe_collections', []);
+  const projectCollections = collections.filter((c) => c.projectId === projectId);
+  let apiCount = 0;
+  projectCollections.forEach((c) => {
+    apiCount += (c.requests || []).length;
+    (c.folders || []).forEach((f) => {
+      apiCount += (f.requests || []).length;
+    });
+  });
+
+  // 2. Calculate actual databaseTableCount
+  const schemas = readStorage('api_fe_database_schemas', {});
+  const projectSchema = schemas[projectId] || { tables: [] };
+  const databaseTableCount = (projectSchema.tables || []).length;
+
+  // 3. Calculate actual aiChatCount
+  const conversations = readStorage('api_fe_ai_conversations', []);
+  const projectConversations = conversations.filter((c) => c.projectId === projectId);
+  const aiChatCount = projectConversations.length;
+
   return {
-    id: project.id || createId('project'),
+    id: projectId,
     name: project.name || 'Untitled Project',
     description: project.description || project.desc || '',
     type: project.type || 'API',
     status: project.status || 'Active',
     tags,
     tech: project.tech || tags,
-    apiCount: Number(project.apiCount || 0),
-    databaseTableCount: Number(project.databaseTableCount || 0),
-    aiChatCount: Number(project.aiChatCount || 0),
+    apiCount,
+    databaseTableCount,
+    aiChatCount,
     color: project.color || 'from-indigo-500 to-violet-500',
     ownerId: project.ownerId || getCurrentUser()?.id || 'user-1',
     createdAt: project.createdAt || new Date().toISOString(),
@@ -61,11 +51,29 @@ const normalizeProject = (project) => {
 };
 
 export function readProjects() {
-  const current = readStorage(PROJECTS_KEY, null);
-  if (Array.isArray(current)) return current.map(normalizeProject);
+  let current = readStorage(PROJECTS_KEY, null);
+  if (Array.isArray(current)) {
+    // Filter out the lifeless default projects by ID
+    const filtered = current.filter(
+      (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
+    );
+    if (filtered.length !== current.length) {
+      saveProjects(filtered);
+    }
+    return filtered.map(normalizeProject);
+  }
 
-  const legacy = readStorage(LEGACY_PROJECTS_KEY, null);
-  const projects = Array.isArray(legacy) ? legacy.map(normalizeProject) : defaultProjects;
+  let legacy = readStorage(LEGACY_PROJECTS_KEY, null);
+  if (Array.isArray(legacy)) {
+    const filtered = legacy.filter(
+      (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
+    );
+    const projects = filtered.map(normalizeProject);
+    saveProjects(projects);
+    return projects;
+  }
+
+  const projects = defaultProjects;
   saveProjects(projects);
   return projects;
 }

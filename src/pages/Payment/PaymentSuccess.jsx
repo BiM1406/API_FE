@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, CheckCircle2, CreditCard } from 'lucide-react';
 import { PAYMENT_STATUS } from './paymentConstants';
 import { getCurrentPayment } from './paymentService';
 import { formatCurrency, formatDateTime } from './paymentUtils';
+import { activateSubscription } from '../../services/profileService';
 
 const MotionDiv = motion.div;
 
@@ -18,6 +20,7 @@ function DetailRow({ label, value }) {
 }
 
 export default function PaymentSuccess() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [payment] = useState(() => getCurrentPayment());
 
@@ -32,6 +35,26 @@ export default function PaymentSuccess() {
       [PAYMENT_STATUS.FAILED, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.EXPIRED].includes(payment.status)
     ) {
       navigate('/payment/failed');
+      return;
+    }
+
+    if (payment?.status === PAYMENT_STATUS.PAID) {
+      const planNameLower = payment.planName?.toLowerCase() || '';
+      let planId = 'pro';
+      if (planNameLower.includes('ultra')) {
+        planId = 'ultra';
+      }
+      
+      const planObj = {
+        planId,
+        planName: planId === 'pro' ? 'Pro' : 'Ultra',
+        price: payment.amount,
+        cycle: 'tháng'
+      };
+      
+      activateSubscription(planObj, payment).catch(err => {
+        console.error('Failed to activate subscription:', err);
+      });
     }
   }, [navigate, payment]);
 
@@ -40,14 +63,14 @@ export default function PaymentSuccess() {
       <div className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-center text-white">
         <div className="max-w-md rounded-[2rem] border border-white/10 bg-slate-900/70 p-8 shadow-2xl">
           <CreditCard className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-          <h1 className="text-2xl font-black">Không tìm thấy giao dịch</h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">Giao dịch có thể đã bị xóa hoặc chưa được tạo.</p>
+          <h1 className="text-2xl font-black">{t('payment.success.error_not_found')}</h1>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">{t('payment.success.error_not_found_desc')}</p>
           <button
             type="button"
             onClick={() => navigate('/pricing')}
             className="mt-6 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-slate-200"
           >
-            Quay lại Pricing
+            {t('payment.btn_pricing')}
           </button>
         </div>
       </div>
@@ -55,50 +78,44 @@ export default function PaymentSuccess() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-950 px-6 py-10 text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-hidden bg-slate-950 px-6 py-6 text-white selection:bg-emerald-500/30">
       <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[40vw] w-[40vw] rounded-full bg-emerald-600/20 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-indigo-600/20 blur-[120px]" />
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-3xl items-center">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-48px)] max-w-md items-center">
         <MotionDiv
           initial={{ opacity: 0, y: 18, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.35 }}
-          className="w-full rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8"
+          className="w-full rounded-3xl border border-white/10 bg-slate-900/70 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-6"
         >
           <div className="text-center">
-            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-400/30">
-              <CheckCircle2 size={44} />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-400/30">
+              <CheckCircle2 size={28} />
             </div>
-            <h1 className="text-3xl font-black tracking-tight md:text-4xl">Thanh toán thành công</h1>
-            <p className="mt-3 text-slate-400">Gói {payment.planName} đã được kích hoạt.</p>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">{t('payment.success.title')}</h1>
+            <p className="mt-2 text-sm text-slate-400">
+              {t('payment.success.subtitle', { name: payment.planName })}
+            </p>
           </div>
 
-          <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-slate-950/40 p-5">
-            <DetailRow label="Mã đơn hàng" value={payment.orderCode} />
-            <DetailRow label="Tên gói" value={payment.planName} />
-            <DetailRow label="Chu kỳ" value={payment.cycle} />
-            <DetailRow label="Số tiền" value={formatCurrency(payment.amount)} />
-            <DetailRow label="Nhà cung cấp" value={payment.provider} />
-            <DetailRow label="Thời gian thanh toán" value={formatDateTime(payment.paidAt)} />
-            <DetailRow label="Trạng thái" value={PAYMENT_STATUS.PAID} />
+          <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+            <DetailRow label={t('payment.success.order_code')} value={payment.orderCode} />
+            <DetailRow label={t('payment.success.plan_name')} value={payment.planName} />
+            <DetailRow label={t('payment.success.cycle')} value={(payment.cycle === 'Hàng tháng' || payment.cycle === 'tháng' || payment.cycle === 'month' || payment.cycle === 'Monthly') ? t('payment.cycle_monthly') : payment.cycle} />
+            <DetailRow label={t('payment.success.amount')} value={formatCurrency(payment.amount)} />
+            <DetailRow label={t('payment.success.provider')} value={payment.provider} />
+            <DetailRow label={t('payment.success.paid_time')} value={formatDateTime(payment.paidAt)} />
+            <DetailRow label={t('payment.success.status')} value={t('payment.status_paid')} />
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6">
             <button
               type="button"
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]"
+              onClick={() => navigate('/dashboard', { replace: true })}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-violet-500/20 transition hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98]"
             >
-              Quay lại Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/pricing')}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 active:scale-[0.98]"
-            >
-              <ArrowLeft size={18} />
-              Quay lại Pricing
+              {t('payment.success.btn_dashboard')}
             </button>
           </div>
         </MotionDiv>

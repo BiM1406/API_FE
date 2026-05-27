@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Bot, Menu, X, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { isAuthenticated } from '../../services/authService';
 
 
 export default function Header() {
+  const { t } = useTranslation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggedIn] = useState(isAuthenticated());
   const navigate = useNavigate();
@@ -49,19 +51,19 @@ export default function Header() {
             onClick={() => handleNavigation('/#features')}
             className="hover:text-white transition-colors"
           >
-            Tính năng
+            {t('header.features')}
           </button>
           <button 
             onClick={() => handleNavigation('/#guide')}
             className="hover:text-white transition-colors"
           >
-            Hướng dẫn
+            {t('header.guide')}
           </button>
           <button 
             onClick={() => handleNavigation('/pricing')}
             className="hover:text-white transition-colors"
           >
-            Gói dịch vụ
+            {t('header.pricing')}
           </button>
         </nav>
 
@@ -71,7 +73,7 @@ export default function Header() {
               <button
                 onClick={() => handleNavigation('/dashboard')}
                 className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white hover:bg-white/10 hover:border-white/40 transition-all hover:scale-105 active:scale-95"
-                title="Vào Dashboard"
+                title={t('header.dashboard')}
               >
                 <ArrowRight size={20} />
               </button>
@@ -81,13 +83,13 @@ export default function Header() {
                 onClick={() => handleNavigation('/auth')}
                 className="px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
               >
-                Đăng nhập
+                {t('header.login')}
               </button>
               <button
                 onClick={() => handleNavigation('/auth?mode=register')}
                 className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
-                Bắt đầu miễn phí
+                {t('header.start_free')}
               </button>
             </>
           )}
@@ -109,19 +111,19 @@ export default function Header() {
             onClick={() => handleNavigation('/#features')}
             className="block text-gray-300 hover:text-white py-2 w-full text-left"
           >
-            Tính năng
+            {t('header.features')}
           </button>
           <button 
             onClick={() => handleNavigation('/#guide')}
             className="block text-gray-300 hover:text-white py-2 w-full text-left"
           >
-            Hướng dẫn
+            {t('header.guide')}
           </button>
           <button 
             onClick={() => handleNavigation('/pricing')}
             className="block text-gray-300 hover:text-white py-2 w-full text-left"
           >
-            Gói dịch vụ
+            {t('header.pricing')}
           </button>
           <div className="pt-4 flex flex-col gap-3 border-t border-white/10">
             {isLoggedIn ? (
@@ -129,7 +131,7 @@ export default function Header() {
                 onClick={() => handleNavigation('/dashboard')}
                 className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity"
               >
-                <span>Vào Dashboard</span>
+                <span>{t('header.dashboard')}</span>
                 <ArrowRight size={18} />
               </button>
             ) : (
@@ -138,13 +140,13 @@ export default function Header() {
                   onClick={() => handleNavigation('/auth')}
                   className="w-full px-5 py-2.5 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/5 transition-colors"
                 >
-                  Đăng nhập
+                  {t('header.login')}
                 </button>
                 <button
                   onClick={() => handleNavigation('/auth?mode=register')}
                   className="w-full px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full hover:opacity-90 transition-opacity"
                 >
-                  Bắt đầu miễn phí
+                  {t('header.start_free')}
                 </button>
               </>
             )}

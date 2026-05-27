@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, User, Zap, ArrowLeft, X, Mail, Send, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getProfile, getSubscription } from '../../services/profileService';
 
@@ -12,6 +13,7 @@ const getInitials = (name = 'User') => {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,25 +46,25 @@ export default function Profile() {
   const handleInvite = (e) => {
     e.preventDefault();
     if (!inviteEmail) {
-      toast.error('Vui lòng nhập địa chỉ email hợp lệ!');
+      toast.error(t('profile.toast_invalid_email'));
       return;
     }
-    toast.success(`Đã gửi lời mời thành công đến ${inviteEmail}`);
+    toast.success(t('profile.toast_invite_success', { email: inviteEmail }));
     setIsInviteOpen(false);
     setInviteEmail('');
   };
 
   const savedPlan = String(subscription?.plan || profile?.plan || 'free').toLowerCase();
-  const userName = profile?.name || profile?.username || 'Người dùng';
+  const userName = profile?.name || profile?.username || 'User';
   const userEmail = profile?.email || 'user@example.com';
   const initialsVal = getInitials(userName);
 
   const planStyles = {
-    free: { label: 'Gói Free', style: 'bg-slate-500/10 text-slate-300 border-slate-500/20' },
-    pro: { label: 'Gói Pro', style: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-    ultra: { label: 'Gói Ultra', style: 'bg-violet-500/10 text-violet-400 border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.2)]' }
+    free: { label: t('profile.plan_free'), style: 'bg-slate-500/10 text-slate-300 border-slate-500/20' },
+    pro: { label: t('profile.plan_pro'), style: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+    ultra: { label: t('profile.plan_ultra'), style: 'bg-violet-500/10 text-violet-400 border-violet-500/20 shadow-[0_0_15px_rgba(139,92,246,0.2)]' }
   };
-  
+
   const currentPlanInfo = planStyles[savedPlan] || planStyles['free'];
 
   return (
@@ -74,7 +76,7 @@ export default function Profile() {
       <header className="h-16 bg-slate-900/40 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-6 shrink-0 z-20">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
-          <h1 className="font-bold text-white tracking-tight">Quản lý tài khoản</h1>
+          <h1 className="font-bold text-white tracking-tight">{t('profile.title')}</h1>
         </div>
       </header>
 
@@ -82,7 +84,7 @@ export default function Profile() {
         {loading ? (
           <div className="rounded-2xl border border-slate-800/50 bg-slate-900/40 p-10 text-center text-slate-400">
             <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-violet-400" />
-            Đang tải hồ sơ...
+            {t('profile.loading')}
           </div>
         ) : (
           <>
@@ -91,12 +93,16 @@ export default function Profile() {
                 <div className="p-2 bg-violet-500/10 rounded-lg text-violet-400">
                   <User size={18} />
                 </div>
-                Hồ sơ cá nhân
+                {t('profile.section_profile')}
               </h2>
               <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl flex flex-col sm:flex-row sm:items-center gap-8 relative group overflow-hidden">
                 <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                 <div className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 shrink-0 relative z-10 overflow-hidden">
-                  {initialsVal}
+                  {profile?.avatar ? (
+                    <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    initialsVal
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 relative z-10">
                   <h3 className="text-2xl font-bold text-white tracking-tight truncate">{userName}</h3>
@@ -109,7 +115,7 @@ export default function Profile() {
                   onClick={() => navigate('/profile/edit')}
                   className="px-5 py-2.5 bg-slate-950/50 border border-slate-800 hover:border-violet-500/50 text-white rounded-xl text-xs font-bold transition-all active:scale-95 relative z-10"
                 >
-                  Chỉnh sửa hồ sơ
+                  {t('profile.btn_edit')}
                 </button>
               </div>
             </section>
@@ -119,16 +125,16 @@ export default function Profile() {
                 <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400">
                   <Zap size={18} />
                 </div>
-                Thành viên nhóm
+                {t('profile.section_team')}
               </h3>
               <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/50 rounded-2xl overflow-hidden shadow-xl">
                 <div className="p-5 border-b border-slate-800/50 flex justify-between items-center bg-slate-900/40">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Quyền truy cập</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">{t('profile.team_access')}</span>
                   <button onClick={() => setIsInviteOpen(true)} className="text-xs font-bold text-violet-400 hover:text-violet-300 flex items-center gap-2 transition-colors">
-                    <Plus size={16} /> Mời thành viên
+                    <Plus size={16} /> {t('profile.invite_member')}
                   </button>
                 </div>
-                
+
                 <div className="divide-y divide-slate-800/50">
                   <div className="p-5 flex items-center justify-between hover:bg-slate-800/20 transition-all">
                     <div className="flex items-center gap-4 min-w-0">
@@ -138,7 +144,7 @@ export default function Profile() {
                         <p className="text-[11px] text-slate-500 font-medium truncate">{userEmail}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">Chủ sở hữu</span>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full uppercase tracking-tighter">{t('profile.role_owner')}</span>
                   </div>
 
                   <div className="p-5 flex items-center justify-between hover:bg-slate-800/20 transition-all">
@@ -150,8 +156,8 @@ export default function Profile() {
                       </div>
                     </div>
                     <select className="bg-slate-950/50 text-[11px] font-bold text-slate-400 border border-slate-800 rounded-lg px-3 py-1.5 outline-none focus:border-violet-500/50 transition-all cursor-pointer">
-                      <option>Chỉnh sửa</option>
-                      <option>Chỉ xem</option>
+                      <option>{t('profile.role_editor')}</option>
+                      <option>{t('profile.role_viewer')}</option>
                     </select>
                   </div>
                 </div>
@@ -165,13 +171,13 @@ export default function Profile() {
       {isInviteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsInviteOpen(false)}></div>
-          
+
           <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
               <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 <User size={18} className="text-violet-400" />
-                Mời thành viên mới
+                {t('profile.invite_title')}
               </h3>
               <button onClick={() => setIsInviteOpen(false)} className="text-slate-500 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition-colors">
                 <X size={18} />
@@ -181,11 +187,11 @@ export default function Profile() {
             {/* Modal Body */}
             <form onSubmit={handleInvite} className="p-6 space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email người nhận</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('profile.invite_email_label')}</label>
                 <div className="relative group">
                   <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-violet-400 transition-colors" />
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     required
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
@@ -196,25 +202,25 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cấp quyền ban đầu</label>
-                <select 
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('profile.invite_role_label')}</label>
+                <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value)}
                   className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-sm font-medium text-white appearance-none outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all cursor-pointer shadow-inner"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '0.65em auto' }}
                 >
-                  <option value="viewer">Chỉ xem (Viewer)</option>
-                  <option value="editor">Chỉnh sửa (Editor)</option>
-                  <option value="admin">Quản trị viên (Admin)</option>
+                  <option value="viewer">{t('profile.role_viewer')}</option>
+                  <option value="editor">{t('profile.role_editor')}</option>
+                  <option value="admin">{t('profile.role_admin')}</option>
                 </select>
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3">
                 <button type="button" onClick={() => setIsInviteOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
-                  Huỷ
+                  {t('profile.btn_cancel')}
                 </button>
                 <button type="submit" className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-violet-500/20 active:scale-95">
-                  <Send size={16} /> Gửi lời mời
+                  <Send size={16} /> {t('profile.btn_send_invite')}
                 </button>
               </div>
             </form>

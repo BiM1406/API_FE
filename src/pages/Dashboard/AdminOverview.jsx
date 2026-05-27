@@ -1,54 +1,81 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, DollarSign, Activity, Server, FolderKanban, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getOverviewStats } from '../../services/adminService';
-
-const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(Number(amount || 0)) + 'đ';
+import { formatCurrency, mapRecentTransactions } from './adminOverview.helpers';
 
 export default function AdminOverview() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
+  const [stats, setStats] = useState(() => {
+    try {
+      const users = JSON.parse(localStorage.getItem('api_fe_users') || '[]');
+      const projects = JSON.parse(localStorage.getItem('api_fe_projects') || '[]');
+      const payments = JSON.parse(localStorage.getItem('api_fe_payment_history') || '[]');
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const recentPaidPayments = payments.filter((payment) =>
+        ['PAID', 'SUCCESS'].includes(payment.status) &&
+        new Date(payment.createdAt || payment.paidAt).getTime() >= oneDayAgo
+      );
+      const revenue = recentPaidPayments.reduce((total, payment) => total + Number(payment.amount || 0), 0);
+      return {
+        totalUsers: users.length,
+        totalProjects: projects.length,
+        revenue,
+        isRevenueEstimated: false,
+        revenueSource: 'transactions',
+        paidCount: recentPaidPayments.length,
+        apiCalls: JSON.parse(localStorage.getItem('api_fe_api_test_history') || '[]').length,
+        aiUsage: JSON.parse(localStorage.getItem('api_fe_ai_conversations') || '[]').length,
+        serverLoad: projects.length > 0 ? Math.min(95, projects.length * 5) : null,
+        recentTransactions: payments.slice(0, 5)
+      };
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
     getOverviewStats()
-      .then((data) => {
-        if (mounted) {
-          setStats(data);
-          setError('');
-        }
-      })
-      .catch((err) => {
-        if (mounted) setError(err.message || 'Không thể tải thống kê');
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+      .then((data) => { if (mounted) { setStats(data); setError(''); } })
+      .catch((err) => { if (mounted) setError(err.message || t('admin.error_loading')); })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, []);
 
-  const cards = [
-    { label: 'Tổng người dùng', value: stats?.totalUsers || 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { label: 'Tổng dự án', value: stats?.totalProjects || 0, icon: FolderKanban, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-    { label: 'Doanh thu', value: formatCurrency(stats?.revenue), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Tải máy chủ', value: `${stats?.serverLoad || 0}%`, icon: Server, color: 'text-rose-400', bg: 'bg-rose-400/10' }
-  ];
+  const cards = stats ? (() => {
+    const serverLoadValue = stats.serverLoad !== null && stats.serverLoad !== undefined
+      ? `${stats.serverLoad}%`
+      : '--';
+
+    const revenueSubtitle = stats.revenueSource === 'transactions'
+      ? t('admin.recent_tx_count', { count: stats.paidCount })
+      : stats.revenueSource === 'subscriptions'
+      ? t('admin.estimated_desc')
+      : null;
+
+    return [
+      { label: t('admin.card_users'), value: stats.totalUsers || 0, icon: Users, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+      { label: t('admin.card_projects'), value: stats.totalProjects || 0, icon: FolderKanban, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+      { label: t('admin.card_revenue'), value: formatCurrency(stats.revenue), icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-400/10', isEstimated: stats.isRevenueEstimated, subtitle: revenueSubtitle },
+      { label: t('admin.card_server'), value: serverLoadValue, icon: Server, color: 'text-rose-400', bg: 'bg-rose-400/10', subtitle: stats.serverLoad === null ? t('admin.no_data') : null }
+    ];
+  })() : [];
 
   return (
     <div className="p-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Tổng quan Hệ thống</h1>
-        <p className="text-slate-400">Giám sát hoạt động và thông số của API_FE</p>
+        <h1 className="text-2xl font-bold text-white">{t('admin.overview_title')}</h1>
+        <p className="text-slate-400">{t('admin.overview_desc')}</p>
       </motion.div>
 
       {loading && (
         <div className="rounded-2xl border border-white/5 bg-slate-900 p-8 text-center text-slate-400">
           <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-violet-400" />
-          Đang tải dữ liệu quản trị...
+          {t('admin.loading')}
         </div>
       )}
 
@@ -71,8 +98,18 @@ export default function AdminOverview() {
                   <stat.icon className={`w-6 h-6 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-400">{stat.label}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-400">{stat.label}</p>
+                    {stat.isEstimated && (
+                      <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-md font-medium select-none" title="Doanh thu ước tính dựa trên các gói cước đang hoạt động">
+                        {t('admin.estimated') || 'Ước tính'}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  {stat.subtitle && (
+                    <p className="text-[11px] text-slate-500 mt-0.5">{stat.subtitle}</p>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -82,28 +119,28 @@ export default function AdminOverview() {
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 rounded-2xl bg-slate-900 border border-white/5 min-h-[260px]">
               <div className="mb-5 flex items-center gap-2 text-white font-semibold">
                 <Activity className="h-5 w-5 text-violet-400" />
-                Hoạt động hệ thống
+                {t('admin.activity_title')}
               </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
-                  <span className="text-slate-400">Lượt gọi API mock</span>
-                  <span className="font-bold text-white">{stats.apiCalls}</span>
+                  <span className="text-slate-400">{t('admin.api_calls')}</span>
+                  <span className="font-bold text-white">{stats.apiCalls !== null ? stats.apiCalls : '--'}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
-                  <span className="text-slate-400">Giao dịch gần đây</span>
+                  <span className="text-slate-400">{t('admin.recent_transactions')}</span>
                   <span className="font-bold text-white">{stats.recentTransactions?.length || 0}</span>
                 </div>
               </div>
             </motion.div>
 
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-6 rounded-2xl bg-slate-900 border border-white/5 min-h-[260px]">
-              <h3 className="mb-5 font-semibold text-white">Giao dịch thanh toán gần đây</h3>
+              <h3 className="mb-5 font-semibold text-white">{t('admin.recent_tx_title')}</h3>
               {stats.recentTransactions?.length ? (
                 <div className="space-y-3">
-                  {stats.recentTransactions.map((item) => (
+                  {mapRecentTransactions(stats.recentTransactions).map((item) => (
                     <div key={item.orderCode || item.id} className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
                       <div>
-                        <p className="font-semibold text-white">{item.planName || 'Payment'}</p>
+                        <p className="font-semibold text-white">{item.planName || t('admin.payment_label')}</p>
                         <p className="text-xs text-slate-500">{item.orderCode}</p>
                       </div>
                       <span className="font-bold text-emerald-400">{formatCurrency(item.amount)}</span>
@@ -111,7 +148,7 @@ export default function AdminOverview() {
                   ))}
                 </div>
               ) : (
-                <div className="flex h-40 items-center justify-center text-sm text-slate-500">Chưa có giao dịch thanh toán</div>
+                <div className="flex h-40 items-center justify-center text-sm text-slate-500">{t('admin.no_transactions')}</div>
               )}
             </motion.div>
           </div>

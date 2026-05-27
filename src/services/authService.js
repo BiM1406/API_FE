@@ -12,6 +12,11 @@ const AUTH_KEYS = {
   USER_ROLE: 'userRole'
 };
 
+// SEED/DEMO data — chỉ dùng khi localStorage chưa có user nào.
+// Không phải dữ liệu production. Ngày tháng tương đối để dễ nhận biết khi dev.
+const _30daysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+const _25daysAgo = new Date(Date.now() - 25 * 24 * 3600 * 1000).toISOString();
+
 const DEFAULT_USERS = [
   {
     id: 'admin-1',
@@ -20,20 +25,22 @@ const DEFAULT_USERS = [
     email: 'admin@example.com',
     password: '123456',
     role: 'ADMIN',
-    plan: 'Pro',
+    plan: null,           // ADMIN không có gói cước
     status: 'Active',
-    createdAt: '2026-01-01T00:00:00.000Z'
+    createdAt: _30daysAgo,
+    lastLoginAt: null
   },
   {
     id: 'user-1',
     username: 'user',
-    name: 'User',
+    name: 'User Test',
     email: 'user@example.com',
     password: '123456',
     role: 'USER',
-    plan: 'Free',
+    plan: 'Free',         // Gói thật của tài khoản demo
     status: 'Active',
-    createdAt: '2026-01-02T00:00:00.000Z'
+    createdAt: _25daysAgo,
+    lastLoginAt: null
   }
 ];
 
@@ -43,8 +50,32 @@ const publicUser = (user) => {
 };
 
 export const getUsers = () => {
-  const users = readStorage(AUTH_KEYS.USERS, null);
-  if (Array.isArray(users) && users.length > 0) return users;
+  let users = readStorage(AUTH_KEYS.USERS, null);
+  if (Array.isArray(users) && users.length > 0) {
+    let updated = false;
+    users = users.map(user => {
+      // Normalize tên gói cũ sang tiếng Anh
+      if (user.plan === 'Miễn Phí' || user.plan === 'miễn phí') {
+        user.plan = 'Free';
+        updated = true;
+      }
+      // Migration: đảm bảo field lastLoginAt tồn tại (null nếu chưa đăng nhập)
+      if (!('lastLoginAt' in user)) {
+        user.lastLoginAt = null;
+        updated = true;
+      }
+      // Migration: ADMIN không có gói cước — chuẩn hóa về null
+      if (user.role === 'ADMIN' && user.plan && user.plan !== '--') {
+        user.plan = null;
+        updated = true;
+      }
+      return user;
+    });
+    if (updated) {
+      writeStorage(AUTH_KEYS.USERS, users);
+    }
+    return users;
+  }
   return writeStorage(AUTH_KEYS.USERS, DEFAULT_USERS);
 };
 
@@ -55,6 +86,20 @@ export function saveAuth(user, token) {
   writeStorage(AUTH_KEYS.USER, user);
   localStorage.setItem(AUTH_KEYS.TOKEN, token);
   localStorage.setItem(AUTH_KEYS.USER_ROLE, user.role === 'ADMIN' ? 'admin' : 'user');
+}
+
+/**
+ * Đồng bộ session đang đăng nhập nếu userId trùng với user đang đăng nhập.
+ * Gọi hàm này sau mỗi lần admin cập nhật thông tin user để tránh session cũ.
+ */
+export function syncUserSession(updatedUser) {
+  const auth = readStorage(AUTH_KEYS.AUTH, null);
+  if (!auth?.user) return; // chưa ai đăng nhập
+  if (auth.user.id !== updatedUser.id) return; // không phải user đang đăng nhập
+
+  const { password: _pw, ...safeUser } = updatedUser;
+  writeStorage(AUTH_KEYS.AUTH, { ...auth, user: safeUser });
+  writeStorage(AUTH_KEYS.USER, safeUser);
 }
 
 export function clearAuth() {
@@ -69,7 +114,50 @@ export function getToken() {
 }
 
 export function getCurrentUser() {
-  return readStorage(AUTH_KEYS.AUTH, null)?.user || readStorage(AUTH_KEYS.USER, null) || readStorage('currentUser', null);
+  const sessionUser = readStorage(AUTH_KEYS.AUTH, null)?.user
+    || readStorage(AUTH_KEYS.USER, null)
+    || readStorage('currentUser', null);
+
+  if (!sessionUser) return null;
+
+  // Luôn lấy dữ liệu mới nhất từ danh sách users để tránh session cũ
+  // (ví dụ: admin vừa đổi plan/role/status của user này)
+  const allUsers = readStorage(AUTH_KEYS.USERS, null);
+  const freshFromList = Array.isArray(allUsers)
+    ? allUsers.find((u) => u.id === sessionUser.id)
+    : null;
+
+  // Merge: ưu tiên dữ liệu mới từ danh sách, giữ lại token-related fields từ session
+  const user = freshFromList
+    ? { ...sessionUser, ...freshFromList }
+    : sessionUser;
+
+  // Đảm bảo plan mặc định cho USER nếu vẫn trống
+  if (!user.plan && user.role !== 'ADMIN') {
+    user.plan = 'Free';
+    const token = getToken() || 'mock-token';
+    writeStorage(AUTH_KEYS.AUTH, { user, token });
+    writeStorage(AUTH_KEYS.USER, user);
+
+    if (Array.isArray(allUsers)) {
+      writeStorage(AUTH_KEYS.USERS, allUsers.map(u => u.id === user.id ? { ...u, plan: 'Free' } : u));
+    }
+
+    const now = new Date();
+    const expiredDate = new Date();
+    expiredDate.setMonth(now.getMonth() + 1);
+    writeStorage(`api_fe_subscription_${user.id}`, {
+      planId: 'free',
+      planName: 'Free',
+      price: 0,
+      cycle: 'tháng',
+      status: 'ACTIVE',
+      startedAt: now.toISOString(),
+      expiredAt: expiredDate.toISOString()
+    });
+  }
+
+  return user;
 }
 
 export function isAuthenticated() {
@@ -93,15 +181,21 @@ export async function login(credentials) {
   const password = String(credentials.password || '');
   if (!identifier || !password) throw new Error('Vui lòng nhập tài khoản và mật khẩu');
 
-  const user = getUsers().find((item) => (
+  const users = getUsers();
+  const user = users.find((item) => (
     item.username.toLowerCase() === identifier || item.email.toLowerCase() === identifier
   ));
 
   if (!user || user.password !== password) throw new Error('Tài khoản hoặc mật khẩu không chính xác');
   if (user.status && user.status !== 'Active') throw new Error('Tài khoản đang bị khóa hoặc chưa xác thực');
 
+  // Ghi nhận thời gian đăng nhập cuối vào bản ghi user
+  const now = new Date().toISOString();
+  const updatedUser = { ...user, lastLoginAt: now };
+  saveUsers(users.map((u) => u.id === user.id ? updatedUser : u));
+
   const token = `mock-token-${user.id}-${Date.now()}`;
-  const safeUser = publicUser(user);
+  const safeUser = publicUser(updatedUser);
   saveAuth(safeUser, token);
   addActivity({ module: 'auth', action: 'Login', description: `${safeUser.email} đăng nhập`, status: 'success' });
   return mockDelay({ user: safeUser, token });

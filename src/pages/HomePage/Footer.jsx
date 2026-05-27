@@ -1,243 +1,145 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bot, X } from 'lucide-react';
-
-// ─── Nội dung modal ───────────────────────────────────────────────
-const MODAL_CONTENT = {
-  // Chính sách bảo mật
-  'Chính sách dữ liệu cá nhân': {
-    title: 'Chính sách Dữ liệu Cá nhân',
-    content: [
-      {
-        heading: '1. Thu thập dữ liệu',
-        body: 'Chúng tôi thu thập thông tin cá nhân của bạn (email, tên, ảnh đại diện) khi bạn đăng ký tài khoản trên nền tảng AI Backend Builder. Dữ liệu được thu thập nhằm mục đích xác thực danh tính và cá nhân hóa trải nghiệm.',
-      },
-      {
-        heading: '2. Sử dụng dữ liệu',
-        body: 'Dữ liệu của bạn chỉ được dùng để vận hành dịch vụ, gửi thông báo liên quan đến tài khoản và cải thiện chất lượng nền tảng. Chúng tôi không bán hay chia sẻ dữ liệu cho bên thứ ba vì mục đích thương mại.',
-      },
-      {
-        heading: '3. Lưu trữ & Bảo vệ',
-        body: 'Toàn bộ dữ liệu được mã hóa AES-256 khi lưu trữ và TLS 1.3 khi truyền tải. Chúng tôi áp dụng kiểm soát truy cập nghiêm ngặt, chỉ nhân viên được ủy quyền mới có thể truy cập dữ liệu người dùng.',
-      },
-      {
-        heading: '4. Quyền của bạn',
-        body: 'Bạn có quyền yêu cầu xem, chỉnh sửa hoặc xóa toàn bộ dữ liệu cá nhân bất cứ lúc nào bằng cách liên hệ DMPVipProMax@gmail.com. Yêu cầu sẽ được xử lý trong vòng 7 ngày làm việc.',
-      },
-    ],
-  },
-  'Bảo mật tài khoản người dùng': {
-    title: 'Bảo mật Tài khoản Người dùng',
-    content: [
-      {
-        heading: '1. Xác thực hai lớp (2FA)',
-        body: 'Chúng tôi khuyến nghị người dùng bật xác thực hai lớp qua OTP email để bảo vệ tài khoản. Tính năng này giúp ngăn chặn truy cập trái phép ngay cả khi mật khẩu bị lộ.',
-      },
-      {
-        heading: '2. Chính sách mật khẩu',
-        body: 'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt. Mật khẩu được băm bằng bcrypt trước khi lưu — chúng tôi không bao giờ lưu mật khẩu dạng plaintext.',
-      },
-      {
-        heading: '3. Phát hiện bất thường',
-        body: 'Hệ thống tự động phát hiện các lần đăng nhập bất thường (địa điểm lạ, thiết bị mới) và gửi cảnh báo ngay đến email của bạn. Tài khoản sẽ bị khóa tạm thời sau 5 lần đăng nhập sai liên tiếp.',
-      },
-      {
-        heading: '4. Phiên đăng nhập',
-        body: 'Mỗi phiên làm việc có thời hạn 7 ngày. Bạn có thể xem và thu hồi tất cả phiên đăng nhập đang hoạt động trong phần Cài đặt tài khoản.',
-      },
-    ],
-  },
-  'Chính sách Cookie': {
-    title: 'Chính sách Cookie',
-    content: [
-      {
-        heading: '1. Cookie là gì?',
-        body: 'Cookie là các tệp văn bản nhỏ được lưu trên thiết bị của bạn khi truy cập nền tảng. Chúng giúp chúng tôi ghi nhớ tùy chọn của bạn và cải thiện hiệu suất trang web.',
-      },
-      {
-        heading: '2. Các loại cookie chúng tôi dùng',
-        body: 'Cookie bắt buộc: duy trì phiên đăng nhập. Cookie phân tích: thu thập dữ liệu ẩn danh về cách người dùng sử dụng nền tảng (Google Analytics). Cookie tùy chọn: lưu ngôn ngữ và giao diện ưa thích.',
-      },
-      {
-        heading: '3. Kiểm soát Cookie',
-        body: 'Bạn có thể tắt cookie không thiết yếu trong phần Cài đặt nền tảng hoặc thông qua trình duyệt. Lưu ý: tắt cookie bắt buộc có thể ảnh hưởng đến chức năng đăng nhập.',
-      },
-    ],
-  },
-  'Quyền truy cập dữ liệu API': {
-    title: 'Quyền truy cập Dữ liệu API',
-    content: [
-      {
-        heading: '1. API key & phạm vi',
-        body: 'Mỗi tài khoản được cấp API key riêng với phạm vi truy cập được giới hạn theo gói dịch vụ. API key cần được bảo mật và không được chia sẻ công khai.',
-      },
-      {
-        heading: '2. Rate limiting',
-        body: [
-          '⭐ Gói miễn phí: 100 request/ngày.',
-          '⭐⭐ Gói Pro: 5,000 request/ngày.',
-          '⭐⭐⭐ Gói Ultra Promax Plus Unlimited: không giới hạn số lượng request trong ngày — vượt qua mọi sức tưởng tượng của bạn về nhân sinh.',
-        ],
-      },
-      {
-        heading: '3. Dữ liệu được truy cập',
-        body: 'API chỉ trả về dữ liệu thuộc sở hữu của tài khoản đang xác thực. Không có endpoint nào cho phép truy cập dữ liệu của người dùng khác. Mọi truy vấn đều được ghi log để kiểm tra bảo mật.',
-      },
-    ],
-  },
-
-  // Điều khoản dịch vụ
-  'Điều khoản sử dụng nền tảng': {
-    title: 'Điều khoản Sử dụng Nền tảng',
-    content: [
-      {
-        heading: '1. Chấp nhận điều khoản',
-        body: 'Khi đăng ký và sử dụng AI Backend Builder, bạn đồng ý tuân thủ toàn bộ điều khoản này. Nếu không đồng ý, vui lòng ngừng sử dụng dịch vụ.',
-      },
-      {
-        heading: '2. Tài khoản người dùng',
-        body: 'Bạn chịu trách nhiệm bảo mật thông tin đăng nhập và mọi hoạt động xảy ra dưới tài khoản của mình. Nghiêm cấm chia sẻ tài khoản hoặc sử dụng tài khoản cho mục đích thương mại trái phép.',
-      },
-      {
-        heading: '3. Sử dụng hợp lệ',
-        body: 'Nền tảng chỉ được sử dụng cho mục đích phát triển phần mềm hợp pháp. Nghiêm cấm sử dụng để tạo mã độc, tấn công hệ thống, spam, hoặc vi phạm quyền sở hữu trí tuệ.',
-      },
-      {
-        heading: '4. Chấm dứt dịch vụ',
-        body: 'Chúng tôi có quyền tạm ngưng hoặc xóa tài khoản vi phạm điều khoản mà không cần thông báo trước. Người dùng có thể yêu cầu xóa tài khoản bất cứ lúc nào.',
-      },
-    ],
-  },
-  'Giới hạn trách nhiệm pháp lý': {
-    title: 'Giới hạn Trách nhiệm Pháp lý',
-    content: [
-      {
-        heading: '1. Không đảm bảo tuyệt đối',
-        body: 'AI Backend Builder cung cấp dịch vụ theo trạng thái "AS IS". Chúng tôi không đảm bảo mã nguồn được AI tạo ra hoàn toàn không có lỗi hay phù hợp cho mọi môi trường production.',
-      },
-      {
-        heading: '2. Giới hạn bồi thường',
-        body: 'Trong mọi trường hợp, trách nhiệm bồi thường của DMP Company không vượt quá số tiền bạn đã thanh toán cho dịch vụ trong 3 tháng gần nhất. Chúng tôi không chịu trách nhiệm về thiệt hại gián tiếp.',
-      },
-      {
-        heading: '3. Bảo trì & Downtime',
-        body: 'Chúng tôi cam kết SLA 99.5% uptime mỗi tháng. Các khoảng thời gian bảo trì định kỳ sẽ được thông báo trước ít nhất 24 giờ qua email.',
-      },
-    ],
-  },
-  'Chính sách hoàn tiền': {
-    title: 'Chính sách Hoàn tiền',
-    content: [
-      {
-        heading: '1. Điều kiện hoàn tiền',
-        body: 'Bạn có thể yêu cầu hoàn tiền 100% trong vòng 7 ngày kể từ ngày thanh toán nếu chưa sử dụng quá 20% hạn mức dịch vụ. Sau 7 ngày, không áp dụng hoàn tiền.',
-      },
-      {
-        heading: '2. Quy trình hoàn tiền',
-        body: 'Gửi email đến DMPVipProMax@gmail.com với tiêu đề "Yêu cầu hoàn tiền - [Mã đơn hàng]". Chúng tôi sẽ xử lý trong 3-5 ngày làm việc. Tiền được hoàn về phương thức thanh toán ban đầu.',
-      },
-      {
-        heading: '3. Trường hợp không hoàn tiền',
-        body: 'Không hoàn tiền nếu tài khoản vi phạm điều khoản sử dụng, đã hết thời hạn 7 ngày, hoặc yêu cầu hoàn tiền quá 2 lần trong 12 tháng.',
-      },
-    ],
-  },
-  'Quy định sử dụng AI': {
-    title: 'Quy định Sử dụng AI',
-    content: [
-      {
-        heading: '1. Sở hữu mã nguồn',
-        body: 'Mã nguồn được AI tạo ra thuộc sở hữu của bạn. Bạn có toàn quyền sử dụng, chỉnh sửa và phân phối mã nguồn đó theo giấy phép bạn chọn cho dự án của mình.',
-      },
-      {
-        heading: '2. Giới hạn nội dung',
-        body: 'AI sẽ từ chối tạo mã phục vụ mục đích bất hợp pháp, bao gồm: malware, phishing, bypass bảo mật, hay nội dung vi phạm pháp luật. Prompt vi phạm sẽ bị ghi nhận và có thể dẫn đến khóa tài khoản.',
-      },
-      {
-        heading: '3. Độ chính xác của AI',
-        body: 'AI có thể tạo ra mã có lỗi. Chúng tôi khuyến nghị luôn review, test kỹ trước khi deploy lên môi trường production. DMP không chịu trách nhiệm về hậu quả của việc dùng trực tiếp mã AI chưa qua kiểm tra.',
-      },
-    ],
-  },
-
-  // Liên hệ
-  'Hỗ trợ kỹ thuật': {
-    title: 'Hỗ trợ Kỹ thuật',
-    content: [
-      {
-        heading: 'Email hỗ trợ',
-        body: 'DMPVipProMax@gmail.com — Thời gian phản hồi: trong vòng 24 giờ làm việc (Thứ 2 – Thứ 6, 8:00 – 17:30).',
-      },
-      {
-        heading: 'Hotline',
-        body: 'TEL: 1900-1chiecdeptong — Hỗ trợ trực tiếp từ 8:00 – 17:30 các ngày làm việc. Ngoài giờ vui lòng để lại tin nhắn, chúng tôi sẽ callback sớm nhất.',
-      },
-      {
-        heading: 'Đội kỹ thuật',
-        body:[ 'Lục xanh đuôi đỏ: Nguyễn Tuấn Đạt - nguyentuandat4@dtu.edu.vn',
-          'Thợ nhậu: Bùi Văn Minh - buivanminh1@dtu.edu.vn',
-          'Thợ đụng: Trần Hoàng Phú - tranhoangphu3@dtu.edu.vn'
-        ]
-      },
-    ],
-  },
-  'Hợp tác kinh doanh': {
-    title: 'Hợp tác Kinh doanh',
-    content: [
-      {
-        heading: 'Đề xuất hợp tác',
-        body: 'Chúng tôi chào đón các đề xuất hợp tác từ doanh nghiệp công nghệ, đơn vị đào tạo lập trình, và nhà đầu tư. Vui lòng gửi hồ sơ đề xuất đến DMPVipProMax@gmail.com.',
-      },
-      {
-        heading: 'Chương trình đối tác',
-        body: 'Trở thành đối tác reseller của DMP để nhận hoa hồng 20-30% trên mỗi gói dịch vụ bán được. Đối tác được hưởng hỗ trợ marketing và tài liệu đào tạo độc quyền.',
-      },
-      {
-        heading: 'Địa chỉ văn phòng',
-        body: 'Văn phòng 211, Tầng 2, Tòa nhà 15 LEHIENMAI. Đặt lịch gặp trực tiếp qua email hoặc hotline.',
-      },
-    ],
-  },
-  'Báo lỗi & Góp ý': {
-    title: 'Báo lỗi & Góp ý',
-    content: [
-      {
-        heading: 'Báo lỗi hệ thống',
-        body: 'Nếu phát hiện lỗi, vui lòng gửi email về DMPVipProMax@gmail.com với tiêu đề "[BUG] Mô tả lỗi ngắn gọn", kèm ảnh chụp màn hình và bước tái hiện lỗi. Lỗi nghiêm trọng sẽ được xử lý trong 24 giờ.',
-      },
-      {
-        heading: 'Góp ý tính năng',
-        body: 'Chúng tôi luôn lắng nghe! Gửi ý tưởng tính năng mới qua email hoặc bình chọn trực tiếp trên bảng Feature Request (sắp ra mắt). Góp ý được cộng đồng vote nhiều nhất sẽ được ưu tiên phát triển.',
-      },
-      {
-        heading: 'Bug Bounty',
-        body: 'Phát hiện lỗ hổng bảo mật? Chúng tôi có chương trình Bug Bounty với phần thưởng từ 1.000đ – 10.000đ coi như lấy hương lấy hoa. Liên hệ ngay để biết thêm chi tiết.',
-      },
-    ],
-  },
-  'Tuyển dụng': {
-    title: 'Tuyển dụng tại DMP',
-    content: [
-      {
-        heading: 'Vị trí đang tuyển',
-        body: 'Senior Full-stack Developer (React + Node.js), AI/ML Engineer (Python, LLM), Product Designer (UI/UX), DevOps Engineer (AWS, Docker, K8s). Xem chi tiết JD tại website (sắp ra mắt).',
-      },
-      {
-        heading: 'Văn hóa công ty',
-        body: 'DMP là startup công nghệ trẻ, môi trường flat hierarchy, đề cao sự sáng tạo và tự chủ. Remote-friendly, flexible hours, stock option cho nhân sự sớm tham gia.',
-      },
-      {
-        heading: 'Nộp hồ sơ',
-        body: 'Gửi CV về DMPVipProMax@gmail.com với tiêu đề "[APPLY] Tên vị trí – Họ tên". Quy trình: CV Review → Technical Test → Interview → Offer. Phản hồi trong vòng 5 ngày làm việc.',
-      },
-    ],
-  },
-};
-
 
 // ─── Modal Component ───────────────────────────────────────────────
 export function PolicyModal({ item, onClose }) {
+  const { t } = useTranslation();
   if (!item) return null;
-  const data = MODAL_CONTENT[item];
+
+  const getModalData = (key) => {
+    switch (key) {
+      case 'personal_data':
+        return {
+          title: t('footer.modal.personal_data.title'),
+          content: [
+            { heading: t('footer.modal.personal_data.h1'), body: t('footer.modal.personal_data.b1') },
+            { heading: t('footer.modal.personal_data.h2'), body: t('footer.modal.personal_data.b2') },
+            { heading: t('footer.modal.personal_data.h3'), body: t('footer.modal.personal_data.b3') },
+            { heading: t('footer.modal.personal_data.h4'), body: t('footer.modal.personal_data.b4') }
+          ]
+        };
+      case 'account_security':
+        return {
+          title: t('footer.modal.account_security.title'),
+          content: [
+            { heading: t('footer.modal.account_security.h1'), body: t('footer.modal.account_security.b1') },
+            { heading: t('footer.modal.account_security.h2'), body: t('footer.modal.account_security.b2') },
+            { heading: t('footer.modal.account_security.h3'), body: t('footer.modal.account_security.b3') },
+            { heading: t('footer.modal.account_security.h4'), body: t('footer.modal.account_security.b4') }
+          ]
+        };
+      case 'cookie_policy':
+        return {
+          title: t('footer.modal.cookie_policy.title'),
+          content: [
+            { heading: t('footer.modal.cookie_policy.h1'), body: t('footer.modal.cookie_policy.b1') },
+            { heading: t('footer.modal.cookie_policy.h2'), body: t('footer.modal.cookie_policy.b2') },
+            { heading: t('footer.modal.cookie_policy.h3'), body: t('footer.modal.cookie_policy.b3') }
+          ]
+        };
+      case 'api_access':
+        return {
+          title: t('footer.modal.api_access.title'),
+          content: [
+            { heading: t('footer.modal.api_access.h1'), body: t('footer.modal.api_access.b1') },
+            {
+              heading: t('footer.modal.api_access.h2'),
+              body: [
+                t('footer.modal.api_access.b2_1'),
+                t('footer.modal.api_access.b2_2'),
+                t('footer.modal.api_access.b2_3')
+              ]
+            },
+            { heading: t('footer.modal.api_access.h3'), body: t('footer.modal.api_access.b3') }
+          ]
+        };
+      case 'terms_of_use':
+        return {
+          title: t('footer.modal.terms_of_use.title'),
+          content: [
+            { heading: t('footer.modal.terms_of_use.h1'), body: t('footer.modal.terms_of_use.b1') },
+            { heading: t('footer.modal.terms_of_use.h2'), body: t('footer.modal.terms_of_use.b2') },
+            { heading: t('footer.modal.terms_of_use.h3'), body: t('footer.modal.terms_of_use.b3') },
+            { heading: t('footer.modal.terms_of_use.h4'), body: t('footer.modal.terms_of_use.b4') }
+          ]
+        };
+      case 'liability':
+        return {
+          title: t('footer.modal.liability.title'),
+          content: [
+            { heading: t('footer.modal.liability.h1'), body: t('footer.modal.liability.b1') },
+            { heading: t('footer.modal.liability.h2'), body: t('footer.modal.liability.b2') },
+            { heading: t('footer.modal.liability.h3'), body: t('footer.modal.liability.b3') }
+          ]
+        };
+      case 'refund':
+        return {
+          title: t('footer.modal.refund.title'),
+          content: [
+            { heading: t('footer.modal.refund.h1'), body: t('footer.modal.refund.b1') },
+            { heading: t('footer.modal.refund.h2'), body: t('footer.modal.refund.b2') },
+            { heading: t('footer.modal.refund.h3'), body: t('footer.modal.refund.b3') }
+          ]
+        };
+      case 'ai_rules':
+        return {
+          title: t('footer.modal.ai_rules.title'),
+          content: [
+            { heading: t('footer.modal.ai_rules.h1'), body: t('footer.modal.ai_rules.b1') },
+            { heading: t('footer.modal.ai_rules.h2'), body: t('footer.modal.ai_rules.b2') },
+            { heading: t('footer.modal.ai_rules.h3'), body: t('footer.modal.ai_rules.b3') }
+          ]
+        };
+      case 'tech_support':
+        return {
+          title: t('footer.modal.tech_support.title'),
+          content: [
+            { heading: t('footer.modal.tech_support.h1'), body: t('footer.modal.tech_support.b1') },
+            { heading: t('footer.modal.tech_support.h2'), body: t('footer.modal.tech_support.b2') },
+            {
+              heading: t('footer.modal.tech_support.h3'),
+              body: [
+                t('footer.modal.tech_support.b3_1'),
+                t('footer.modal.tech_support.b3_2'),
+                t('footer.modal.tech_support.b3_3')
+              ]
+            }
+          ]
+        };
+      case 'business':
+        return {
+          title: t('footer.modal.business.title'),
+          content: [
+            { heading: t('footer.modal.business.h1'), body: t('footer.modal.business.b1') },
+            { heading: t('footer.modal.business.h2'), body: t('footer.modal.business.b2') },
+            { heading: t('footer.modal.business.h3'), body: t('footer.modal.business.b3') }
+          ]
+        };
+      case 'bug_report':
+        return {
+          title: t('footer.modal.bug_report.title'),
+          content: [
+            { heading: t('footer.modal.bug_report.h1'), body: t('footer.modal.bug_report.b1') },
+            { heading: t('footer.modal.bug_report.h2'), body: t('footer.modal.bug_report.b2') },
+            { heading: t('footer.modal.bug_report.h3'), body: t('footer.modal.bug_report.b3') }
+          ]
+        };
+      case 'careers':
+        return {
+          title: t('footer.modal.careers.title'),
+          content: [
+            { heading: t('footer.modal.careers.h1'), body: t('footer.modal.careers.b1') },
+            { heading: t('footer.modal.careers.h2'), body: t('footer.modal.careers.b2') },
+            { heading: t('footer.modal.careers.h3'), body: t('footer.modal.careers.b3') }
+          ]
+        };
+      default:
+        return null;
+    }
+  };
+
+  const data = getModalData(item);
   if (!data) return null;
 
   return (
@@ -285,7 +187,7 @@ export function PolicyModal({ item, onClose }) {
             onClick={onClose}
             className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-indigo-600 rounded-lg hover:opacity-90 transition-opacity"
           >
-            Đã hiểu
+            {t('footer.modal.understand')}
           </button>
         </div>
       </div>
@@ -295,10 +197,32 @@ export function PolicyModal({ item, onClose }) {
 
 // ─── Footer Component ──────────────────────────────────────────────
 export default function Footer() {
+  const { t } = useTranslation();
   const [activeModal, setActiveModal] = useState(null);
 
   const openModal = (key) => setActiveModal(key);
   const closeModal = () => setActiveModal(null);
+
+  const privacyLinks = [
+    { key: 'personal_data', label: t('footer.links.personal_data') },
+    { key: 'account_security', label: t('footer.links.account_security') },
+    { key: 'cookie_policy', label: t('footer.links.cookie_policy') },
+    { key: 'api_access', label: t('footer.links.api_access') }
+  ];
+
+  const termsLinks = [
+    { key: 'terms_of_use', label: t('footer.links.terms_of_use') },
+    { key: 'liability', label: t('footer.links.liability') },
+    { key: 'refund', label: t('footer.links.refund') },
+    { key: 'ai_rules', label: t('footer.links.ai_rules') }
+  ];
+
+  const contactLinks = [
+    { key: 'tech_support', label: t('footer.links.tech_support') },
+    { key: 'business', label: t('footer.links.business') },
+    { key: 'bug_report', label: t('footer.links.bug_report') },
+    { key: 'careers', label: t('footer.links.careers') }
+  ];
 
   return (
     <>
@@ -319,30 +243,30 @@ export default function Footer() {
           <div className="flex gap-12 text-sm">
             {/* Chính sách bảo mật */}
             <div className="flex flex-col gap-2">
-              <p className="font-bold text-white">Chính sách bảo mật</p>
-              {['Chính sách dữ liệu cá nhân', 'Bảo mật tài khoản người dùng', 'Chính sách Cookie', 'Quyền truy cập dữ liệu API'].map((item) => (
-                <button key={item} onClick={() => openModal(item)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
-                  {item}
+              <p className="font-bold text-white">{t('footer.sections.privacy')}</p>
+              {privacyLinks.map((link) => (
+                <button key={link.key} onClick={() => openModal(link.key)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
+                  {link.label}
                 </button>
               ))}
             </div>
 
             {/* Điều khoản dịch vụ */}
             <div className="flex flex-col gap-2">
-              <p className="font-bold text-white">Điều khoản dịch vụ</p>
-              {['Điều khoản sử dụng nền tảng', 'Giới hạn trách nhiệm pháp lý', 'Chính sách hoàn tiền', 'Quy định sử dụng AI'].map((item) => (
-                <button key={item} onClick={() => openModal(item)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
-                  {item}
+              <p className="font-bold text-white">{t('footer.sections.terms')}</p>
+              {termsLinks.map((link) => (
+                <button key={link.key} onClick={() => openModal(link.key)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
+                  {link.label}
                 </button>
               ))}
             </div>
 
             {/* Liên hệ */}
             <div className="flex flex-col gap-2">
-              <p className="font-bold text-white">Liên hệ</p>
-              {['Hỗ trợ kỹ thuật', 'Hợp tác kinh doanh', 'Báo lỗi & Góp ý', 'Tuyển dụng'].map((item) => (
-                <button key={item} onClick={() => openModal(item)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
-                  {item}
+              <p className="font-bold text-white">{t('footer.sections.contact')}</p>
+              {contactLinks.map((link) => (
+                <button key={link.key} onClick={() => openModal(link.key)} className="text-xs text-gray-500 hover:text-gray-300 transition-colors text-left">
+                  {link.label}
                 </button>
               ))}
             </div>
@@ -351,8 +275,8 @@ export default function Footer() {
           {/* Company info */}
           <div className="text-xs text-gray-500 text-center md:text-right space-y-0.5">
             <p>© 2026 DMP. All rights reserved.</p>
-            <p>Công ty cổ phần Công nghệ Trí tuệ nhân tạo DMP Company</p>
-            <p>Trụ sở chính : Văn phòng 211, Tầng 2, Tòa nhà 15 LEHIENMAI</p>
+            <p>{t('footer.company.desc')}</p>
+            <p>{t('footer.company.address')}</p>
           </div>
 
         </div>

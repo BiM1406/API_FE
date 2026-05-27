@@ -1,6 +1,7 @@
 import { mockDelay } from './api';
-import { getCurrentUser, getUsers as readAuthUsers, saveUsers } from './authService';
+import { getCurrentUser, getUsers as readAuthUsers, saveUsers, syncUserSession } from './authService';
 import { readProjects } from './projectService';
+import { readPaymentHistory, calculateRevenue, calculateDailyRevenue } from './paymentService';
 
 const readJson = (key, fallback = []) => {
   try {
@@ -10,25 +11,35 @@ const readJson = (key, fallback = []) => {
   }
 };
 
-const readPaymentHistory = () => readJson('api_fe_payment_history', []);
 const readApiHistory = () => readJson('api_fe_api_test_history', []);
 const readConversations = () => readJson('api_fe_ai_conversations', []);
 
 export async function getOverviewStats() {
   const users = readAuthUsers();
   const projects = readProjects();
+  const { revenue, count: paidCount } = (() => {
+    const { revenue: rev, count } = calculateDailyRevenue();
+    return { revenue: rev, count };
+  })();
+
+  const apiCallsCount = readApiHistory().length;
+  const serverLoad = projects.length > 0 ? Math.min(95, projects.length * 5) : null;
   const payments = readPaymentHistory();
-  const revenue = payments.filter((payment) => ['PAID', 'SUCCESS'].includes(payment.status)).reduce((total, payment) => total + Number(payment.amount || 0), 0);
+
   return mockDelay({
     totalUsers: users.length,
     totalProjects: projects.length,
     revenue,
-    apiCalls: readApiHistory().length,
+    isRevenueEstimated: false,
+    revenueSource: 'transactions',
+    paidCount,
+    apiCalls: apiCallsCount > 0 ? apiCallsCount : null,
     aiUsage: readConversations().length,
-    serverLoad: Math.min(95, 25 + projects.length * 3),
+    serverLoad,
     recentTransactions: payments.slice(0, 5)
   });
 }
+
 
 export async function getUsers() {
   return mockDelay(readAuthUsers().map(({ password: _password, ...user }) => user));
@@ -41,7 +52,9 @@ export async function getAdminUsers() {
 export async function updateUserStatus(userId, status) {
   const users = readAuthUsers().map((user) => user.id === userId ? { ...user, status, updatedAt: new Date().toISOString() } : user);
   saveUsers(users);
-  return mockDelay(users.find((user) => user.id === userId));
+  const updated = users.find((user) => user.id === userId);
+  if (updated) syncUserSession(updated);
+  return mockDelay(updated);
 }
 
 export async function updateUserRole(userId, role) {
@@ -67,11 +80,9 @@ export async function getTransactions() {
 }
 
 export async function getRevenue() {
-  const transactions = readPaymentHistory();
-  return mockDelay({
-    total: transactions.filter((item) => ['PAID', 'SUCCESS'].includes(item.status)).reduce((sum, item) => sum + Number(item.amount || 0), 0),
-    transactions
-  });
+  const users = readAuthUsers();
+  const { total, isEstimated, transactions } = calculateRevenue(null, users);
+  return mockDelay({ total, isEstimated, transactions });
 }
 
 export async function getAiUsage() {
@@ -93,5 +104,45 @@ export async function updatePlan(planId, payload) {
 
 
 export async function updateAdminUser(userId, payload) {
-  return mockDelay({ id: userId, ...payload, updatedAt: new Date().toISOString() });
+  const users = readAuthUsers();
+  const userIndex = users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) throw new Error('Không tìm thấy người dùng');
+
+  const updatedUser = {
+    ...users[userIndex],
+    ...payload,
+    updatedAt: new Date().toISOString()
+  };
+
+  // Nếu vai trò chuyển thành ADMIN, reset gói cước về '--'
+  if (updatedUser.role === 'ADMIN') {
+    updatedUser.plan = '--';
+  }
+
+  users[userIndex] = updatedUser;
+  saveUsers(users);
+  syncUserSession(updatedUser); // Đồng bộ session nếu đây là user đang đăng nhập
+  return mockDelay(updatedUser);
+}
+
+export async function resetUserPassword(userId) {
+  const users = readAuthUsers();
+  const userIndex = users.findIndex((u) => u.id === userId);
+  if (userIndex === -1) throw new Error('Không tìm thấy người dùng');
+
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let newPass = '';
+  for (let i = 0; i < 8; i++) {
+    newPass += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const updatedUser = {
+    ...users[userIndex],
+    password: newPass,
+    updatedAt: new Date().toISOString()
+  };
+
+  users[userIndex] = updatedUser;
+  saveUsers(users);
+  return mockDelay({ success: true, password: newPass });
 }

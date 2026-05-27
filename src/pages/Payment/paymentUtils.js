@@ -1,11 +1,23 @@
+const getLang = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('api_fe_language') || 'vi';
+  }
+  return 'vi';
+};
+
 export const formatCurrency = (amount) => {
   const value = Number(amount);
 
   if (!Number.isFinite(value) || value < 0) {
-    return '0đ';
+    return getLang() === 'vi' ? '0đ' : '₫0';
   }
 
-  return `${new Intl.NumberFormat('vi-VN').format(value)}đ`;
+  const lang = getLang();
+  if (lang === 'vi') {
+    return `${new Intl.NumberFormat('vi-VN').format(value)}đ`;
+  } else {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND', minimumFractionDigits: 0 }).format(value);
+  }
 };
 
 export const formatDateTime = (date) => {
@@ -15,7 +27,8 @@ export const formatDateTime = (date) => {
     return '--';
   }
 
-  return new Intl.DateTimeFormat('vi-VN', {
+  const lang = getLang();
+  return new Intl.DateTimeFormat(lang === 'vi' ? 'vi-VN' : 'en-US', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

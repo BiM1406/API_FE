@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
@@ -13,22 +14,27 @@ const Database = lazy(() => import('./pages/Editor/Database'));
 const History = lazy(() => import('./pages/Dashboard/History'));
 const Profile = lazy(() => import('./pages/Dashboard/Profile'));
 const EditProfile = lazy(() => import('./pages/Dashboard/EditProfile'));
+const Settings = lazy(() => import('./pages/Dashboard/Settings'));
 const TestApi = lazy(() => import('./pages/ApiTester/TestApi'));
-const PlaceholderTool = lazy(() => import('./pages/Dashboard/PlaceholderTool'));
-const AdminOverview = lazy(() => import('./pages/Dashboard/AdminOverview'));
-const UserManagement = lazy(() => import('./pages/Dashboard/UserManagement'));
-const RevenueManagement = lazy(() => import('./pages/Dashboard/RevenueManagement'));
+const Collections = lazy(() => import('./pages/Dashboard/Collections'));
+const Environments = lazy(() => import('./pages/Dashboard/Environments'));
+const Documentation = lazy(() => import('./pages/Dashboard/Documentation'));
+const MockServer = lazy(() => import('./pages/Dashboard/MockServer'));
+import AdminOverview from './pages/Dashboard/AdminOverview';
+import UserManagement from './pages/Dashboard/UserManagement';
+import RevenueManagement from './pages/Dashboard/RevenueManagement';
 const PaymentPage = lazy(() => import('./pages/Payment/PaymentPage'));
 const PaymentSuccess = lazy(() => import('./pages/Payment/PaymentSuccess'));
 const PaymentFailed = lazy(() => import('./pages/Payment/PaymentFailed'));
 const ResetPassword = lazy(() => import('./pages/Auth/ForgotPassword').then((module) => ({ default: module.ResetPasswordView })));
 
 function RouteLoader() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
       <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/70 px-5 py-4 shadow-2xl shadow-black/30">
         <div className="h-5 w-5 rounded-full border-2 border-violet-400 border-t-transparent animate-spin" />
-        <span className="text-sm font-semibold text-slate-300">Đang tải giao diện...</span>
+        <span className="text-sm font-semibold text-slate-300">{t('common.loading_ui')}</span>
       </div>
     </div>
   );
@@ -37,16 +43,6 @@ function RouteLoader() {
 function App() {
   return (
     <BrowserRouter>
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            background: '#1e293b',
-            color: '#fff',
-            border: '1px solid #334155'
-          }
-        }}
-      />
 
       <Suspense fallback={<RouteLoader />}>
         <Routes>
@@ -66,11 +62,12 @@ function App() {
               <Route path="/history" element={<History />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/edit" element={<EditProfile />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/test-api" element={<TestApi />} />
-              <Route path="/collections" element={<PlaceholderTool type="collections" />} />
-              <Route path="/environments" element={<PlaceholderTool type="environments" />} />
-              <Route path="/documentation" element={<PlaceholderTool type="documentation" />} />
-              <Route path="/mock-server" element={<PlaceholderTool type="mockServer" />} />
+              <Route path="/collections" element={<Collections />} />
+              <Route path="/environments" element={<Environments />} />
+              <Route path="/documentation" element={<Documentation />} />
+              <Route path="/mock-server" element={<MockServer />} />
             </Route>
           </Route>
 

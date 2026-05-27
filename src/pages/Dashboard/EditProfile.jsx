@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getCurrentUser, getUsers, saveUsers, saveAuth } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getProfile, getSubscription, updateProfile } from '../../services/profileService';
+import { getProfile, getSubscription, updateProfile, changePassword } from '../../services/profileService';
 
 const plans = [
-  { id: 'free', name: 'Miễn Phí', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
+  { id: 'free', name: 'Free', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
   { id: 'pro', name: 'Pro', price: '199.999', icon: Zap, color: 'from-violet-500 to-indigo-600', popular: true },
   { id: 'ultra', name: 'Ultra', price: '999.999', icon: Crown, color: 'from-amber-500 to-orange-600' },
 ];
 
 export default function EditProfile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const user = getCurrentUser();
 
   const [formData, setFormData] = useState({
-    name: user?.name || 'Người dùng',
+    name: user?.name || 'User',
     email: user?.email || 'user@example.com'
   });
 
@@ -41,7 +43,9 @@ export default function EditProfile() {
   const savedPlan = user?.plan?.toLowerCase() || 'free';
   const [currentPlan, setCurrentPlan] = useState(savedPlan);
   const [activeTab, setActiveTab] = useState('profile');
-  
+
+  const isNewSameAsCurrent = passwords.newPassword && passwords.newPassword === passwords.currentPassword;
+
   const fileInputRef = useRef(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
 
@@ -52,9 +56,12 @@ export default function EditProfile() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
-      toast.success('Ảnh đại diện đã được hiển thị (Local Preview)!');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+        toast.success(t('edit_profile.avatar_preview_toast'));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -66,6 +73,9 @@ export default function EditProfile() {
         name: profile?.name || profile?.username || '',
         email: profile?.email || ''
       });
+      if (profile?.avatar) {
+        setAvatarPreview(profile.avatar);
+      }
       setCurrentPlan(String(subscription?.plan || profile?.plan || 'free').toLowerCase());
     });
 
@@ -84,55 +94,71 @@ export default function EditProfile() {
 
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error('Vui lòng nhập đủ tên và email');
+      toast.error(t('edit_profile.toast_fill_fields'));
       return;
     }
-    await updateProfile(formData);
-    
-    // Ensure the updated plan is saved to mock db & current user auth session
+    await updateProfile({
+      ...formData,
+      avatar: avatarPreview
+    });
+
     const currentUser = getCurrentUser();
     if (currentUser) {
       currentUser.plan = currentPlan;
-      const users = getUsers().map((u) => u.id === currentUser.id ? { ...u, plan: currentPlan } : u);
+      currentUser.avatar = avatarPreview;
+      const users = getUsers().map((u) => u.id === currentUser.id ? { ...u, plan: currentPlan, avatar: avatarPreview } : u);
       saveUsers(users);
       saveAuth(currentUser, localStorage.getItem('token') || 'mock-token');
     }
-    toast.success('Đã lưu thông tin hồ sơ!');
+    toast.success(t('edit_profile.toast_saved'));
     navigate('/profile');
   };
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword) {
-      toast.error('Vui lòng nhập mật khẩu hiện tại!');
-      return;
-    }
-    if (passwords.currentPassword !== '123456') {
-      toast.error('Mật khẩu hiện tại không chính xác!');
+      toast.error(t('edit_profile.toast_current_pwd_required'));
       return;
     }
     if (!passwords.newPassword || passwords.newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự!');
+      toast.error(t('edit_profile.toast_new_pwd_min'));
+      return;
+    }
+    if (passwords.newPassword === passwords.currentPassword) {
+      toast.error(t('edit_profile.toast_new_pwd_same_as_old'));
       return;
     }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp!');
+      toast.error(t('edit_profile.toast_confirm_pwd_mismatch'));
       return;
     }
-    toast.success('Đổi mật khẩu thành công!');
-    setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    try {
+      await changePassword({
+        currentPassword: passwords.currentPassword,
+        newPassword: passwords.newPassword,
+        confirmPassword: passwords.confirmPassword
+      });
+      toast.success(t('edit_profile.toast_pwd_changed'));
+      setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
+        toast.error(t('edit_profile.toast_current_pwd_incorrect'));
+      } else {
+        toast.error(err.message || 'Error');
+      }
+    }
   };
 
   const handleChangePlan = (planId) => {
     if (planId === currentPlan) return;
     setCurrentPlan(planId);
     const plan = plans.find(p => p.id === planId);
-    toast.success(`Đã chuyển sang gói ${plan.name}!`);
+    toast.success(t('edit_profile.plan_switch_toast', { name: plan.name }));
   };
 
   const tabs = [
-    { id: 'profile', label: 'Hồ sơ' },
-    { id: 'password', label: 'Mật khẩu' },
-    { id: 'plan', label: 'Gói dịch vụ' },
+    { id: 'profile', label: t('edit_profile.tab_profile') },
+    { id: 'password', label: t('edit_profile.tab_password') },
   ];
 
   return (
@@ -140,24 +166,24 @@ export default function EditProfile() {
       {/* Background Orbs */}
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[20%] left-[10%] w-[30%] h-[30%] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none"></div>
-      
+
       <header className="h-16 bg-slate-900/40 backdrop-blur-xl border-b border-slate-800/50 flex items-center justify-between px-6 shrink-0 z-20">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => navigate('/profile')}
             className="p-2 text-slate-400 hover:text-white bg-slate-800/50 hover:bg-slate-800 rounded-lg transition-all"
-            title="Quay lại"
+            title={t('edit_profile.back_tooltip')}
           >
             <ArrowLeft size={18} />
           </button>
           <div className="flex items-center gap-2">
-            <h1 className="font-bold text-white tracking-tight">Chỉnh sửa hồ sơ</h1>
+            <h1 className="font-bold text-white tracking-tight">{t('edit_profile.title')}</h1>
           </div>
         </div>
       </header>
 
       <div className="p-8 max-w-2xl mx-auto w-full space-y-6 overflow-y-auto custom-scrollbar flex-1 z-10">
-        
+
         {/* Tabs */}
         <div className="flex gap-1 bg-slate-900/60 backdrop-blur-md p-1 rounded-xl border border-slate-800/50">
           {tabs.map(tab => (
@@ -165,8 +191,8 @@ export default function EditProfile() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20' 
+                activeTab === tab.id
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/20'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -179,14 +205,14 @@ export default function EditProfile() {
         {activeTab === 'profile' && (
           <div className="bg-slate-900/40 backdrop-blur-md p-8 rounded-2xl border border-slate-800/50 shadow-xl">
             <div className="flex flex-col items-center mb-8">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                accept="image/*" 
-                style={{ display: 'none' }} 
-                onChange={handleFileChange} 
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
               />
-              <div 
+              <div
                 className="w-24 h-24 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl shadow-indigo-500/30 relative group mb-4 cursor-pointer overflow-hidden"
                 onClick={handleAvatarClick}
               >
@@ -195,27 +221,27 @@ export default function EditProfile() {
                 ) : (
                   initials
                 )}
-                <button className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                <button className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center pointer-events-none">
                   <Camera size={24} className="text-white" />
                 </button>
               </div>
-              <p 
+              <p
                 onClick={handleAvatarClick}
                 className="text-xs font-bold text-violet-400 cursor-pointer hover:text-violet-300 transition-colors"
               >
-                Thay đổi ảnh đại diện
+                {t('edit_profile.change_avatar')}
               </p>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Tên hiển thị</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('edit_profile.display_name')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                     <User size={18} />
                   </div>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
@@ -225,13 +251,13 @@ export default function EditProfile() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('edit_profile.email')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                     <Mail size={18} />
                   </div>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -239,19 +265,19 @@ export default function EditProfile() {
                   />
                 </div>
               </div>
-              
+
               <div className="pt-4 flex gap-4">
-                <button 
+                <button
                   onClick={handleSave}
-                  className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center"
                 >
-                  <Save size={18} /> Lưu thay đổi
+                  {t('edit_profile.btn_save')}
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/profile')}
                   className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all border border-slate-700 active:scale-[0.98]"
                 >
-                  Hủy bỏ
+                  {t('edit_profile.btn_cancel')}
                 </button>
               </div>
             </div>
@@ -266,28 +292,28 @@ export default function EditProfile() {
                 <Lock size={20} className="text-violet-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Đổi mật khẩu</h2>
-                <p className="text-xs text-slate-500">Cập nhật mật khẩu để bảo vệ tài khoản của bạn</p>
+                <h2 className="text-lg font-bold text-white">{t('edit_profile.change_pwd_title')}</h2>
+                <p className="text-xs text-slate-500">{t('edit_profile.change_pwd_desc')}</p>
               </div>
             </div>
 
             <div className="space-y-5">
               {/* Current Password */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mật khẩu hiện tại</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('edit_profile.current_pwd')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                     <Lock size={18} />
                   </div>
-                  <input 
+                  <input
                     type={showPasswords.current ? "text" : "password"}
                     name="currentPassword"
                     value={passwords.currentPassword}
                     onChange={handlePasswordChange}
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder={t('edit_profile.current_pwd_placeholder')}
                     className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
@@ -299,20 +325,24 @@ export default function EditProfile() {
 
               {/* New Password */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mật khẩu mới</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('edit_profile.new_pwd')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                     <Lock size={18} />
                   </div>
-                  <input 
+                  <input
                     type={showPasswords.new ? "text" : "password"}
                     name="newPassword"
                     value={passwords.newPassword}
                     onChange={handlePasswordChange}
-                    placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
+                    placeholder={t('edit_profile.new_pwd_placeholder')}
+                    className={`w-full bg-slate-950/50 border rounded-xl py-3 pl-12 pr-12 text-white font-medium outline-none transition-all placeholder:text-slate-600 ${
+                      isNewSameAsCurrent
+                        ? 'border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/50'
+                        : 'border-slate-800 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50'
+                    }`}
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
@@ -320,24 +350,29 @@ export default function EditProfile() {
                     {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {isNewSameAsCurrent && (
+                  <p className="text-red-500 text-[11px] font-semibold mt-2 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {t('edit_profile.pwd_same_as_old_error')}
+                  </p>
+                )}
               </div>
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Xác nhận mật khẩu mới</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('edit_profile.confirm_pwd')}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
                     <Lock size={18} />
                   </div>
-                  <input 
+                  <input
                     type={showPasswords.confirm ? "text" : "password"}
                     name="confirmPassword"
                     value={passwords.confirmPassword}
                     onChange={handlePasswordChange}
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder={t('edit_profile.confirm_pwd_placeholder')}
                     className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
@@ -348,73 +383,14 @@ export default function EditProfile() {
               </div>
 
               <div className="pt-4">
-                <button 
+                <button
                   onClick={handleChangePassword}
                   className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-violet-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
-                  <Lock size={18} /> Đổi mật khẩu
+                  <Lock size={18} /> {t('edit_profile.btn_change_pwd')}
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ─── Tab: Plan ─── */}
-        {activeTab === 'plan' && (
-          <div className="space-y-4">
-            <div className="bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl border border-slate-800/50 shadow-xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-emerald-500/10 rounded-xl">
-                  <CreditCard size={20} className="text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-white">Gói dịch vụ</h2>
-                  <p className="text-xs text-slate-500">Chọn gói phù hợp với nhu cầu của bạn</p>
-                </div>
-              </div>
-            </div>
-
-            {plans.map((plan) => {
-              const isActive = currentPlan === plan.id;
-              return (
-                <div 
-                  key={plan.id}
-                  className={`p-6 rounded-2xl border transition-all cursor-pointer ${
-                    isActive 
-                      ? 'bg-slate-900/60 border-violet-500/50 ring-1 ring-violet-500/30 shadow-lg shadow-violet-900/10' 
-                      : 'bg-slate-900/40 border-slate-800/50 hover:border-slate-700'
-                  }`}
-                  onClick={() => handleChangePlan(plan.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${plan.color} flex items-center justify-center shadow-lg`}>
-                        <plan.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-white">{plan.name}</h3>
-                          {plan.popular && (
-                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-500/20 text-violet-400 rounded-full border border-violet-500/30">Phổ biến</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-400 mt-0.5">
-                          <span className="font-bold text-white">đ{plan.price}</span> VND / tháng
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isActive 
-                        ? 'border-violet-500 bg-violet-500' 
-                        : 'border-slate-600'
-                    }`}>
-                      {isActive && <Check size={14} className="text-white" />}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         )}
       </div>

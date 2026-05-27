@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { verifyOtp } from '../../services/authService';
 
 export default function OtpVerification({ email, onBack, onVerified }) {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef([]);
@@ -41,17 +43,17 @@ export default function OtpVerification({ email, onBack, onVerified }) {
     e.preventDefault();
     const otpCode = otp.join('');
     if (otpCode.length < 6) {
-      toast.error('Vui lòng nhập đủ 6 số OTP!');
+      toast.error(t('auth.otp_toast_required'));
       return;
     }
 
     setIsLoading(true);
     try {
       await verifyOtp({ email, otp: otpCode });
-      toast.success('Xác thực tài khoản thành công! Vui lòng đăng nhập.');
+      toast.success(t('auth.otp_toast_success'));
       onVerified();
     } catch (error) {
-      toast.error(error.message || 'Xác thực thất bại');
+      toast.error(error.message || t('auth.otp_toast_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -60,9 +62,9 @@ export default function OtpVerification({ email, onBack, onVerified }) {
   return (
     <div>
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Xác thực Email</h2>
+        <h2 className="text-3xl font-bold text-white mb-2">{t('auth.otp_title')}</h2>
         <p className="text-slate-400 text-sm">
-          Chúng tôi đã gửi mã 6 số tới<br />
+          {t('auth.otp_subtitle')}<br />
           <span className="font-semibold text-violet-400">{email}</span>
         </p>
       </div>
@@ -94,19 +96,19 @@ export default function OtpVerification({ email, onBack, onVerified }) {
           type="submit"
           className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-violet-500/20"
         >
-          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Xác nhận mã <ArrowRight className="w-4 h-4" /></>}
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t('auth.otp_resend')} <ArrowRight className="w-4 h-4" /></>}
         </motion.button>
       </form>
 
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-400 mb-2">
-          Không nhận được mã?{' '}
-          <button type="button" onClick={() => toast.success('Đã gửi lại mã mock: 123456')} className="text-violet-400 font-medium hover:text-violet-300 transition-colors">
-            Gửi lại
+          {t('auth.otp_not_received')}{' '}
+          <button type="button" onClick={() => toast.success(t('auth.otp_resend_success_toast'))} className="text-violet-400 font-medium hover:text-violet-300 transition-colors">
+            {t('auth.otp_resend')}
           </button>
         </p>
         <button onClick={onBack} type="button" className="text-sm text-slate-500 hover:text-slate-400 transition-colors">
-          Trở về trang đăng nhập
+          {t('auth.otp_back_to_login')}
         </button>
       </div>
     </div>
