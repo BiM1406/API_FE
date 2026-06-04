@@ -28,7 +28,9 @@ if (currentBuildId && lastBuildId !== String(currentBuildId)) {
       if (cleaned.length !== items.length) {
         localStorage.setItem(key, JSON.stringify(cleaned))
       }
-    } catch (_) {}
+    } catch {
+      // Ignore JSON parse errors
+    }
   })
 })()
 

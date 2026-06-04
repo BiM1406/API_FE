@@ -2,6 +2,7 @@ import { mockDelay } from './api';
 import { getCurrentUser, getToken, getUsers, saveAuth, saveUsers } from './authService';
 import { addActivity } from './activityService';
 import { readStorage, removeStorage, writeStorage } from '../utils/storage';
+import { PLANS, PLAN_LIMITS } from '../pages/Payment/paymentConstants';
 
 const SUBSCRIPTION_KEY = 'api_fe_subscription';
 const SELECTED_PLAN_KEY = 'api_fe_selected_plan';
@@ -11,30 +12,7 @@ const getSubscriptionKey = () => {
   return user ? `api_fe_subscription_${user.id}` : SUBSCRIPTION_KEY;
 };
 
-export const PLANS = [
-  {
-    planId: 'free',
-    planName: 'Free',
-    price: 0,
-    cycle: 'tháng',
-    description: 'Gói miễn phí cho người dùng mới'
-  },
-  {
-    planId: 'pro',
-    planName: 'Pro',
-    price: 199999,
-    cycle: 'tháng',
-    badge: 'PHỔ BIẾN',
-    description: 'Gói nâng cao cho người dùng chuyên nghiệp'
-  },
-  {
-    planId: 'ultra',
-    planName: 'Ultra',
-    price: 999999,
-    cycle: 'tháng',
-    description: 'Gói cao cấp với đầy đủ tính năng'
-  }
-];
+export { PLANS };
 
 const DEFAULT_SUBSCRIPTION = () => {
   const now = new Date();
@@ -49,27 +27,6 @@ const DEFAULT_SUBSCRIPTION = () => {
     startedAt: now.toISOString(),
     expiredAt: expiredDate.toISOString()
   };
-};
-
-const PLAN_LIMITS = {
-  free: {
-    projects: 1,
-    apiRequestsPerDay: 100,
-    aiMessagesPerMonth: 100,
-    storageMb: 100
-  },
-  pro: {
-    projects: 10,
-    apiRequestsPerDay: 5000,
-    aiMessagesPerMonth: 5000,
-    storageMb: 2048
-  },
-  ultra: {
-    projects: -1,
-    apiRequestsPerDay: -1,
-    aiMessagesPerMonth: -1,
-    storageMb: 10240
-  }
 };
 
 const requireUser = () => {
@@ -315,9 +272,9 @@ export function clearSelectedPlan() {
 }
 
 export async function getUsageStats() {
-  const apiHistory = JSON.parse(localStorage.getItem('api_fe_api_test_history') || '[]');
-  const conversations = JSON.parse(localStorage.getItem('api_fe_ai_conversations') || '[]');
-  const schemas = JSON.parse(localStorage.getItem('api_fe_database_schemas') || '{}');
+  const apiHistory = readStorage('api_fe_api_test_history', []);
+  const conversations = readStorage('api_fe_ai_conversations', []);
+  const schemas = readStorage('api_fe_database_schemas', {});
   const tableCount = Object.values(schemas).reduce((sum, schema) => sum + (schema.tables?.length || 0), 0);
   return mockDelay({
     apiRequests: apiHistory.length,

@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { Trash2, Plus, RefreshCw, Play, ArrowLeft, Server } from 'lucide-react';
+import { Trash2, Plus, RefreshCw, Play, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { logActivity } from '../../utils/activityLogger';
+import { saveRequestHistory } from '../../services/testService';
+import { readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function TestApi() {
   const { t } = useTranslation();
   const [projects, setProjects] = useState(() => {
-    const saved = localStorage.getItem('ai_projects');
-    return saved ? JSON.parse(saved) : [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }];
+    return readStorage('ai_projects', [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }]);
   });
   const [activeId, setActiveId] = useState(projects[0]?.id);
 
@@ -20,7 +21,7 @@ export default function TestApi() {
   const updateProject = (id, updates) => {
     const newProjects = projects.map(p => p.id === id ? { ...p, ...updates } : p);
     setProjects(newProjects);
-    localStorage.setItem('ai_projects', JSON.stringify(newProjects));
+    writeStorage('ai_projects', newProjects);
   };
 
   const [method, setMethod] = useState('GET');
@@ -74,6 +75,16 @@ export default function TestApi() {
       const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: res.status };
       updateProject(project.id, { apiHistory: [historyItem, ...project.apiHistory] });
       logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: res.status }));
+
+      saveRequestHistory({
+        id: historyItem.id,
+        method,
+        url: finalUrl,
+        responseStatus: res.status,
+        durationMs: time,
+        responseSizeBytes: size,
+        projectId: project.id
+      });
     } catch (err) {
       setResponse({ status: 'Error', statusText: err.message, time: Date.now() - startTime, size: 0, data: err.message, headers: {} });
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal, Database, Zap, Eye, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getActivities, hideActivity, clearAllActivities } from '../../utils/activityLogger';
@@ -43,7 +43,7 @@ export default function History() {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const loadActivities = () => {
+  const loadActivities = useCallback(() => {
     const activities = getActivities();
     const lang = i18n.language;
     const categorized = { chatDmp: [], database: [], api: [] };
@@ -65,7 +65,7 @@ export default function History() {
       { id: 'database', title: t('history.cat_database'), icon: Database, color: 'text-indigo-400', hoverBorderColor: 'hover:border-indigo-500/30', shadowColor: 'shadow-indigo-500/10', items: categorized.database },
       { id: 'api', title: t('history.cat_api'), icon: Zap, color: 'text-amber-400', hoverBorderColor: 'hover:border-amber-500/30', shadowColor: 'shadow-amber-500/10', items: categorized.api }
     ]);
-  };
+  }, [i18n.language, t]);
 
   useEffect(() => {
     loadActivities();
@@ -76,7 +76,7 @@ export default function History() {
       window.removeEventListener('activityLogged', handleActivityLogged);
       clearInterval(interval);
     };
-  }, [i18n.language]);
+  }, [loadActivities]);
 
   const handleHide = (_categoryId, itemId) => hideActivity(itemId);
 

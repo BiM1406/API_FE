@@ -2,18 +2,23 @@
 // Tập hợp các helper functions để chuẩn hóa dữ liệu user trước khi render bảng.
 // Không render dữ liệu raw hoặc hard-code logic trực tiếp trong JSX.
 
-export const PLAN_LIMITS = {
-  Free: 500,
-  Pro: 50000,
-  Ultra: 100000,
-};
-
 /**
  * Chuẩn hóa raw user object từ localStorage/API → dạng bảng hiển thị.
  * Không tự bịa dữ liệu, không fallback ngầm gây sai lệch.
  */
-export function mapUserToTableRow(rawUser) {
+export function mapUserToTableRow(rawUser, apiHistory = [], projects = []) {
+  const userApiHistory = Array.isArray(apiHistory) ? apiHistory.filter(h => {
+    if (h.userId) {
+      return h.userId === rawUser.id;
+    }
+    if (h.projectId) {
+      const proj = projects.find(p => p.id === h.projectId);
+      return proj && proj.ownerId === rawUser.id;
+    }
+    return false;
+  }) : [];
   return {
+    ...rawUser,
     id:          rawUser.id,
     displayName: rawUser.name || rawUser.username || '(Không tên)',
     email:       rawUser.email || '--',
@@ -22,7 +27,7 @@ export function mapUserToTableRow(rawUser) {
     status:      rawUser.status || 'PENDING',
     createdAt:   rawUser.createdAt || null,
     lastLoginAt: rawUser.lastLoginAt || null,
-    // apiUsage: rawUser.apiUsage || null,   // bật khi nối API thật
+    apiUsage:    rawUser.role === 'ADMIN' ? null : userApiHistory.length,
   };
 }
 

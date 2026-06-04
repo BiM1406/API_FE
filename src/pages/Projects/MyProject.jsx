@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import {
   Plus,
   Activity,
@@ -63,7 +63,7 @@ export default function MyProject() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  const loadProjects = () => {
+  const loadProjects = useCallback(() => {
     let mounted = true;
     setLoading(true);
     getProjects()
@@ -86,11 +86,11 @@ export default function MyProject() {
     return () => {
       mounted = false;
     };
-  };
+  }, [t]);
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   const filteredProjects = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -150,9 +150,8 @@ export default function MyProject() {
         description: t('projects.add_activity_create_desc', { name: project.name }),
         status: 'success'
       });
-      // toast.success('Đã tạo dự án mới');
-    } catch (err) {
-      // toast.error(err.message || 'Không thể tạo dự án');
+    } catch {
+      // toast.error('Không thể tạo dự án');
     } finally {
       setCreating(false);
     }
@@ -218,9 +217,8 @@ export default function MyProject() {
         description: t('projects.add_activity_duplicate_desc', { name: project.name }),
         status: 'success'
       });
-      // toast.success('Đã nhân bản dự án');
-    } catch (err) {
-      // toast.error(err.message || 'Không thể nhân bản dự án');
+    } catch {
+      // toast.error('Không thể nhân bản dự án');
     } finally {
       setCreating(false);
     }
@@ -238,10 +236,9 @@ export default function MyProject() {
     try {
       await updateProject(renameState.id, { name: renameState.value });
       setProjects((current) => current.map((p) => p.id === renameState.id ? { ...p, name: renameState.value } : p));
-      // toast.success('Đã đổi tên dự án');
       setRenameState({ isOpen: false, id: null, value: '' });
-    } catch (err) {
-      // toast.error(err.message || 'Không thể đổi tên dự án');
+    } catch {
+      // toast.error('Không thể đổi tên dự án');
     }
   };
 

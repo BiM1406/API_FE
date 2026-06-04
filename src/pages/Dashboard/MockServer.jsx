@@ -45,7 +45,7 @@ export default function MockServer() {
       const generated = await generateMockResponse(draft);
       setDraft((current) => ({ ...current, ...generated }));
       toast.success(t('mock_server.toast_ai_done'));
-    } catch (_e) {
+    } catch {
       toast.error(t('mock_server.toast_ai_error'));
     } finally {
       setIsGenerating(false);

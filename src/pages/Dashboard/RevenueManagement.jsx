@@ -259,7 +259,7 @@ const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(Number(
 const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(new Date(value)) : '--';
 
 export default function RevenueManagement() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [revenue, setRevenue] = useState(() => {
     try {
       const tx = JSON.parse(localStorage.getItem('api_fe_payment_history') || '[]');
@@ -285,7 +285,7 @@ export default function RevenueManagement() {
       .catch((err) => { if (mounted) setError(err.message || t('revenue.error_loading')); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [t]);
 
   const handleTimeRangeChange = (e) => {
     const val = e.target.value;

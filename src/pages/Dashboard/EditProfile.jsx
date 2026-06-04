@@ -6,12 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { getProfile, getSubscription, updateProfile, changePassword } from '../../services/profileService';
 
-const plans = [
-  { id: 'free', name: 'Free', price: '0', icon: Bot, color: 'from-slate-700 to-slate-800' },
-  { id: 'pro', name: 'Pro', price: '199.999', icon: Zap, color: 'from-violet-500 to-indigo-600', popular: true },
-  { id: 'ultra', name: 'Ultra', price: '999.999', icon: Crown, color: 'from-amber-500 to-orange-600' },
-];
-
 export default function EditProfile() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -149,12 +143,6 @@ export default function EditProfile() {
     }
   };
 
-  const handleChangePlan = (planId) => {
-    if (planId === currentPlan) return;
-    setCurrentPlan(planId);
-    const plan = plans.find(p => p.id === planId);
-    toast.success(t('edit_profile.plan_switch_toast', { name: plan.name }));
-  };
 
   const tabs = [
     { id: 'profile', label: t('edit_profile.tab_profile') },

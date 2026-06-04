@@ -14,6 +14,7 @@ import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 import { sendChatMessage } from '../../services/aiService';
+import { readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -238,7 +239,7 @@ const Sidebar = ({
   );
 };
 
-const ChatTab = ({ activeChat, updateChat, onClear, activeMode, setActiveMode }) => {
+const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode }) => {
   const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -735,14 +736,10 @@ export default function ChatDMP() {
   };
 
   const [projects, setProjects] = useState(() => {
-    let list = [];
-    const saved = localStorage.getItem('ai_projects_v2');
-    if (saved) {
-      list = JSON.parse(saved);
-    } else {
-      const oldSaved = localStorage.getItem('ai_projects');
-      if (oldSaved) {
-        const parsedOld = JSON.parse(oldSaved);
+    let list = readStorage('ai_projects_v2', null);
+    if (!Array.isArray(list)) {
+      const parsedOld = readStorage('ai_projects', null);
+      if (Array.isArray(parsedOld)) {
         list = parsedOld.map(p => ({
           ...p,
           chats: p.chats || [{ id: generateId(), title: p.name + ' Chat', messages: p.messages || [], createdAt: p.createdAt || Date.now() }],
@@ -763,7 +760,7 @@ export default function ChatDMP() {
   const [showAddProject, setShowAddProject] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('ai_projects_v2', JSON.stringify(projects));
+    writeStorage('ai_projects_v2', projects);
   }, [projects]);
 
   const activeProject = projects.find(p => p.id === activeId) || projects[0];
@@ -947,7 +944,7 @@ export default function ChatDMP() {
 
       {/* Add Project Picker Modal */}
       {showAddProject && (() => {
-        const myProjects = JSON.parse(localStorage.getItem('my_dashboard_projects') || '[]').filter(
+        const myProjects = readStorage('my_dashboard_projects', []).filter(
           (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
         );
         const alreadyAdded = new Set(projects.map(p => p.mpId).filter(Boolean));

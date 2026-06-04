@@ -20,7 +20,7 @@ export default function Settings() {
     try {
       const saved = localStorage.getItem('api_fe_settings_notifs');
       return saved ? JSON.parse(saved) : { email: true, push: false, alerts: true };
-    } catch (e) {
+    } catch {
       return { email: true, push: false, alerts: true };
     }
   });
@@ -29,7 +29,7 @@ export default function Settings() {
     try {
       const saved = localStorage.getItem('api_fe_settings_privacy');
       return saved ? JSON.parse(saved) : { publicProfile: false, activityLog: true, shareStats: false };
-    } catch (e) {
+    } catch {
       return { publicProfile: false, activityLog: true, shareStats: false };
     }
   });
@@ -40,7 +40,7 @@ export default function Settings() {
       return saved ? JSON.parse(saved) : [
         { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
       ];
-    } catch (e) {
+    } catch {
       return [
         { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
       ];
@@ -630,8 +630,8 @@ export default function Settings() {
                       });
                       setSubscription(updated);
                       // toast.success(t('settings.subscription_section.cancel_success'));
-                    } catch (e) {
-                      // toast.error(t('settings.subscription_section.cancel_error', { message: e.message }));
+                    } catch {
+                      // ignore
                     }
                   }}
                   className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl transition-all duration-200 hover:brightness-110 active:scale-95"

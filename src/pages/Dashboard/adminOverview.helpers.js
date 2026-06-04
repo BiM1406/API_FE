@@ -1,12 +1,4 @@
-// src/pages/Dashboard/adminOverview.helpers.js
-// Helpers and mappers for the Admin Overview Dashboard.
-// Avoids raw data manipulations or complex calculations in JSX.
-
-export const PLAN_PRICES = {
-  Free: 0,
-  Pro: 199999,
-  Ultra: 999999,
-};
+import { PLAN_PRICES } from '../Payment/paymentConstants';
 
 /**
  * Formats a numeric currency value into a Vietnamese Dong string representation.

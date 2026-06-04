@@ -4,7 +4,33 @@ import { Search, Filter, Edit, Trash2, X, Loader2, Copy, Key, ChevronUp, Chevron
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { deleteUser, getAdminUsers, updateUserStatus, updateAdminUser, resetUserPassword } from '../../services/adminService';
-import { getPlanLabel, getRoleBadgeClass, getStatusColor, getStatusDotClass } from './userManagement.helpers';
+import { getPlanLabel, getRoleBadgeClass, getStatusColor, getStatusDotClass, mapUserToTableRow } from './userManagement.helpers';
+import { USER_TABLE_PAGE_SIZE } from '../../config/adminConfig';
+import { readStorage } from '../../utils/storage';
+
+const SortHeader = ({ columnKey, label, sortConfig, onRequestSort }) => {
+  const isSorted = sortConfig && sortConfig.key === columnKey;
+  return (
+    <th
+      onClick={() => onRequestSort(columnKey)}
+      className="px-6 py-4 cursor-pointer hover:text-white select-none transition-colors"
+    >
+      <div className="flex items-center gap-1">
+        <span>{label}</span>
+        {!isSorted ? (
+          <span className="inline-flex flex-col gap-0.5 ml-1 opacity-20 group-hover:opacity-60 transition-opacity">
+            <ChevronUp size={10} />
+            <ChevronDown size={10} />
+          </span>
+        ) : sortConfig.direction === 'asc' ? (
+          <ChevronUp size={12} className="text-violet-400" />
+        ) : (
+          <ChevronDown size={12} className="text-violet-400" />
+        )}
+      </div>
+    </th>
+  );
+};
 
 export default function UserManagement() {
   const { t, i18n } = useTranslation();
@@ -31,7 +57,7 @@ export default function UserManagement() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = USER_TABLE_PAGE_SIZE;
 
   const formatDate = (value) => {
     if (!value) return '--';
@@ -58,7 +84,7 @@ export default function UserManagement() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -120,13 +146,18 @@ export default function UserManagement() {
     }
   };
 
+  const mappedUsers = useMemo(() => {
+    const apiHistory = readStorage('api_fe_api_test_history', []);
+    const projects = readStorage('api_fe_projects', []);
+    return users.map(u => mapUserToTableRow(u, apiHistory, projects));
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
-    let result = users;
+    let result = mappedUsers;
     const keyword = search.trim().toLowerCase();
     if (keyword) {
       result = result.filter((user) => (
-        user.name?.toLowerCase().includes(keyword) ||
-        user.username?.toLowerCase().includes(keyword) ||
+        user.displayName?.toLowerCase().includes(keyword) ||
         user.email?.toLowerCase().includes(keyword) ||
         user.role?.toLowerCase().includes(keyword)
       ));
@@ -138,7 +169,7 @@ export default function UserManagement() {
       result = result.filter(user => user.status === statusFilter);
     }
     return result;
-  }, [users, search, roleFilter, statusFilter]);
+  }, [mappedUsers, search, roleFilter, statusFilter]);
 
   const sortedUsers = useMemo(() => {
     let result = [...filteredUsers];
@@ -148,8 +179,8 @@ export default function UserManagement() {
         let bVal = b[sortConfig.key];
 
         if (sortConfig.key === 'member') {
-          aVal = a.name || a.username || a.email || '';
-          bVal = b.name || b.username || b.email || '';
+          aVal = a.displayName || a.email || '';
+          bVal = b.displayName || b.email || '';
         }
 
         if (aVal === undefined || aVal === null) return 1;
@@ -173,30 +204,6 @@ export default function UserManagement() {
   }, [sortedUsers, currentPage, itemsPerPage]);
 
   const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
-
-  const SortHeader = ({ columnKey, label }) => {
-    const isSorted = sortConfig && sortConfig.key === columnKey;
-    return (
-      <th
-        onClick={() => requestSort(columnKey)}
-        className="px-6 py-4 cursor-pointer hover:text-white select-none transition-colors"
-      >
-        <div className="flex items-center gap-1">
-          <span>{label}</span>
-          {!isSorted ? (
-            <span className="inline-flex flex-col gap-0.5 ml-1 opacity-20 group-hover:opacity-60 transition-opacity">
-              <ChevronUp size={10} />
-              <ChevronDown size={10} />
-            </span>
-          ) : sortConfig.direction === 'asc' ? (
-            <ChevronUp size={12} className="text-violet-400" />
-          ) : (
-            <ChevronDown size={12} className="text-violet-400" />
-          )}
-        </div>
-      </th>
-    );
-  };
 
   return (
     <div className="p-8">
@@ -286,14 +293,14 @@ export default function UserManagement() {
             <table className="w-full text-left text-sm text-slate-300 table-auto min-w-[1000px]">
               <thead className="bg-white/5 text-xs uppercase font-semibold text-slate-400 border-b border-white/5">
                 <tr>
-                  <SortHeader columnKey="id" label={t('user_mgmt.col_id')} />
-                  <SortHeader columnKey="member" label={t('user_mgmt.col_member')} />
-                  <SortHeader columnKey="role" label={t('user_mgmt.col_role')} />
-                  <SortHeader columnKey="plan" label={t('user_mgmt.col_plan')} />
+                  <SortHeader columnKey="id" label={t('user_mgmt.col_id')} sortConfig={sortConfig} onRequestSort={requestSort} />
+                  <SortHeader columnKey="member" label={t('user_mgmt.col_member')} sortConfig={sortConfig} onRequestSort={requestSort} />
+                  <SortHeader columnKey="role" label={t('user_mgmt.col_role')} sortConfig={sortConfig} onRequestSort={requestSort} />
+                  <SortHeader columnKey="plan" label={t('user_mgmt.col_plan')} sortConfig={sortConfig} onRequestSort={requestSort} />
                   <th className="px-6 py-4">{t('user_mgmt.col_api_usage')}</th>
-                  <SortHeader columnKey="status" label={t('user_mgmt.col_status')} />
+                  <SortHeader columnKey="status" label={t('user_mgmt.col_status')} sortConfig={sortConfig} onRequestSort={requestSort} />
                   <th className="px-6 py-4">{t('user_mgmt.col_last_login')}</th>
-                  <SortHeader columnKey="createdAt" label={t('user_mgmt.col_date')} />
+                  <SortHeader columnKey="createdAt" label={t('user_mgmt.col_date')} sortConfig={sortConfig} onRequestSort={requestSort} />
                   <th className="px-6 py-4 text-right">{t('user_mgmt.col_actions')}</th>
                 </tr>
               </thead>
@@ -322,10 +329,10 @@ export default function UserManagement() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shrink-0">
-                            {(user.name || user.username || user.email || 'U').charAt(0).toUpperCase()}
+                            {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-medium text-white truncate max-w-[150px]">{user.name || user.username}</div>
+                            <div className="font-medium text-white truncate max-w-[150px]">{user.displayName}</div>
                             <div className="text-xs text-slate-500 truncate max-w-[180px]">{user.email}</div>
                           </div>
                         </div>
@@ -341,9 +348,11 @@ export default function UserManagement() {
                       {/* Plan */}
                       <td className="px-6 py-4">{getPlanLabel(user)}</td>
 
-                      {/* API Usage — chờ API thật, hiển thị '--' tạm thời */}
+                      {/* API Usage */}
                       <td className="px-6 py-4">
-                        <span className="text-slate-500 text-xs">--</span>
+                        <span className="text-slate-300 text-xs font-semibold">
+                          {user.apiUsage !== null && user.apiUsage !== undefined ? user.apiUsage : '--'}
+                        </span>
                       </td>
 
                       {/* Status */}

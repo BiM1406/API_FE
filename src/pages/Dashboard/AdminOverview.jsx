@@ -2,34 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, DollarSign, Activity, Server, FolderKanban, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getOverviewStats } from '../../services/adminService';
+import { getOverviewStats, calculateOverviewStats } from '../../services/adminService';
 import { formatCurrency, mapRecentTransactions } from './adminOverview.helpers';
 
 export default function AdminOverview() {
   const { t } = useTranslation();
   const [stats, setStats] = useState(() => {
     try {
-      const users = JSON.parse(localStorage.getItem('api_fe_users') || '[]');
-      const projects = JSON.parse(localStorage.getItem('api_fe_projects') || '[]');
-      const payments = JSON.parse(localStorage.getItem('api_fe_payment_history') || '[]');
-      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-      const recentPaidPayments = payments.filter((payment) =>
-        ['PAID', 'SUCCESS'].includes(payment.status) &&
-        new Date(payment.createdAt || payment.paidAt).getTime() >= oneDayAgo
-      );
-      const revenue = recentPaidPayments.reduce((total, payment) => total + Number(payment.amount || 0), 0);
-      return {
-        totalUsers: users.length,
-        totalProjects: projects.length,
-        revenue,
-        isRevenueEstimated: false,
-        revenueSource: 'transactions',
-        paidCount: recentPaidPayments.length,
-        apiCalls: JSON.parse(localStorage.getItem('api_fe_api_test_history') || '[]').length,
-        aiUsage: JSON.parse(localStorage.getItem('api_fe_ai_conversations') || '[]').length,
-        serverLoad: projects.length > 0 ? Math.min(95, projects.length * 5) : null,
-        recentTransactions: payments.slice(0, 5)
-      };
+      return calculateOverviewStats();
     } catch {
       return null;
     }
@@ -44,7 +24,7 @@ export default function AdminOverview() {
       .catch((err) => { if (mounted) setError(err.message || t('admin.error_loading')); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, []);
+  }, [t]);
 
   const cards = stats ? (() => {
     const serverLoadValue = stats.serverLoad !== null && stats.serverLoad !== undefined
@@ -125,6 +105,10 @@ export default function AdminOverview() {
                 <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
                   <span className="text-slate-400">{t('admin.api_calls')}</span>
                   <span className="font-bold text-white">{stats.apiCalls !== null ? stats.apiCalls : '--'}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
+                  <span className="text-slate-400">{t('admin.ai_usage') || 'Hội thoại AI'}</span>
+                  <span className="font-bold text-white">{stats.aiUsage !== null ? stats.aiUsage : '--'}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-sm">
                   <span className="text-slate-400">{t('admin.recent_transactions')}</span>

@@ -85,8 +85,20 @@ export function getRequestHistory() {
   return readStorage(HISTORY_KEY, []);
 }
 
+import { getCurrentUser } from './authService';
+
 export function saveRequestHistory(item) {
-  const history = [{ id: item.id || createId('request'), createdAt: new Date().toISOString(), ...item }, ...getRequestHistory()].slice(0, 100);
+  const currentUser = getCurrentUser();
+  const userId = currentUser ? currentUser.id : null;
+  const history = [
+    { 
+      id: item.id || createId('request'), 
+      createdAt: new Date().toISOString(), 
+      userId, 
+      ...item 
+    }, 
+    ...getRequestHistory()
+  ].slice(0, 100);
   writeStorage(HISTORY_KEY, history);
   return history;
 }

@@ -12,6 +12,7 @@ import {
 } from '../../services/databaseService';
 import { addActivity } from '../../services/activityService';
 import { generateDatabaseSchema } from '../../services/aiService';
+import { readStorage, removeStorage } from '../../utils/storage';
 
 const projectId = () => localStorage.getItem('api_fe_active_project_id') || 'default';
 
@@ -114,10 +115,10 @@ export default function Database() {
     getSchema(projectId())
       .then(data => {
         if (!mounted) return;
-        const pending = localStorage.getItem('api_fe_pending_database_schema');
-        const nextSchema = pending ? JSON.parse(pending) : data.tables?.length ? data : { tables: [] };
+        const pending = readStorage('api_fe_pending_database_schema', null);
+        const nextSchema = pending || (data.tables?.length ? data : { tables: [] });
         if (pending) {
-          localStorage.removeItem('api_fe_pending_database_schema');
+          removeStorage('api_fe_pending_database_schema');
           toast.success(t('db.toast_schema_imported'));
         }
         setSchema(nextSchema);

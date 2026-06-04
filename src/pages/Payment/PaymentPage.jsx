@@ -71,7 +71,7 @@ function InfoRow({ label, value }) {
   );
 }
 
-function CopyRow({ label, value, copyValue, translationKey }) {
+function CopyRow({ value, copyValue, translationKey }) {
   const { t } = useTranslation();
   const handleCopy = async () => {
     const copied = await copyToClipboard(copyValue ?? value);

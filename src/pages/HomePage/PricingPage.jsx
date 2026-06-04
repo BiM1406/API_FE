@@ -29,7 +29,7 @@ export default function PricingPage() {
       });
       setActivePlan(downgradeTarget.planKey);
       toast.success(t('pricing.downgrade_success', { name: downgradeTarget.name }));
-    } catch (e) {
+    } catch {
       toast.error(t('pricing.downgrade_error'));
     } finally {
       setDowngradeTarget(null);

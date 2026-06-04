@@ -9,21 +9,12 @@
  *   - addPayment()         → POST /api/payments
  *   - calculateRevenue()   → tính từ data trả về GET /api/payments
  */
-
 import { mockDelay } from './api';
 import { readStorage, writeStorage } from '../utils/storage';
+import { PLAN_PRICES } from '../pages/Payment/paymentConstants';
+import { OVERVIEW_REVENUE_WINDOW_HOURS } from '../config/adminConfig';
 
 const PAYMENT_KEY = 'api_fe_payment_history';
-
-/**
- * Bảng giá gói cước chuẩn.
- * Khi có Backend: bỏ constant này, lấy từ API /api/plans.
- */
-export const PLAN_PRICES = {
-  Free: 0,
-  Pro: 199_999,
-  Ultra: 999_999,
-};
 
 /**
  * Đọc toàn bộ lịch sử giao dịch.
@@ -79,7 +70,7 @@ export function calculateRevenue(payments, users = []) {
   // Nếu chưa có giao dịch thật, ước tính từ gói cước active của users
   if (total === 0 && users.length > 0) {
     const activeSubRevenue = users
-      .filter((u) => u.role !== 'ADMIN' && u.status === 'Active')
+      .filter((u) => u.role !== 'ADMIN' && u.status === 'ACTIVE')
       .reduce((sum, u) => sum + (PLAN_PRICES[u.plan] || 0), 0);
 
     if (activeSubRevenue > 0) {
@@ -98,7 +89,7 @@ export function calculateRevenue(payments, users = []) {
  */
 export function calculateDailyRevenue(payments) {
   const txList = payments ?? readPaymentHistory();
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const oneDayAgo = Date.now() - OVERVIEW_REVENUE_WINDOW_HOURS * 60 * 60 * 1000;
   const recent = txList.filter((p) =>
     ['PAID', 'SUCCESS'].includes(p.status) &&
     new Date(p.createdAt || p.paidAt || 0).getTime() >= oneDayAgo

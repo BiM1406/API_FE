@@ -33,7 +33,7 @@ export default function Documentation() {
       }
       setDocs(generated);
       toast.success(t('documentation.toast_generated'));
-    } catch (_error) {
+    } catch {
       toast.error(t('documentation.toast_error'));
     }
   };

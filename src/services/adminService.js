@@ -2,6 +2,11 @@ import { mockDelay } from './api';
 import { getCurrentUser, getUsers as readAuthUsers, saveUsers, syncUserSession } from './authService';
 import { readProjects } from './projectService';
 import { readPaymentHistory, calculateRevenue, calculateDailyRevenue } from './paymentService';
+import { 
+  SERVER_LOAD_PER_PROJECT, 
+  SERVER_LOAD_MAX, 
+  RECENT_TRANSACTIONS_LIMIT 
+} from '../config/adminConfig';
 
 const readJson = (key, fallback = []) => {
   try {
@@ -14,30 +19,34 @@ const readJson = (key, fallback = []) => {
 const readApiHistory = () => readJson('api_fe_api_test_history', []);
 const readConversations = () => readJson('api_fe_ai_conversations', []);
 
-export async function getOverviewStats() {
+export function calculateOverviewStats() {
   const users = readAuthUsers();
   const projects = readProjects();
-  const { revenue, count: paidCount } = (() => {
-    const { revenue: rev, count } = calculateDailyRevenue();
-    return { revenue: rev, count };
-  })();
-
-  const apiCallsCount = readApiHistory().length;
-  const serverLoad = projects.length > 0 ? Math.min(95, projects.length * 5) : null;
+  const { revenue, count: paidCount } = calculateDailyRevenue();
+  const apiCalls = readApiHistory().length;
+  const aiUsage = readConversations().length;
   const payments = readPaymentHistory();
 
-  return mockDelay({
+  const serverLoad = projects.length > 0 
+    ? Math.min(SERVER_LOAD_MAX, projects.length * SERVER_LOAD_PER_PROJECT) 
+    : null;
+
+  return {
     totalUsers: users.length,
     totalProjects: projects.length,
     revenue,
     isRevenueEstimated: false,
     revenueSource: 'transactions',
     paidCount,
-    apiCalls: apiCallsCount > 0 ? apiCallsCount : null,
-    aiUsage: readConversations().length,
+    apiCalls: apiCalls > 0 ? apiCalls : null,
+    aiUsage,
     serverLoad,
-    recentTransactions: payments.slice(0, 5)
-  });
+    recentTransactions: payments.slice(0, RECENT_TRANSACTIONS_LIMIT)
+  };
+}
+
+export async function getOverviewStats() {
+  return mockDelay(calculateOverviewStats());
 }
 
 
