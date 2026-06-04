@@ -13,7 +13,7 @@ export const PAYMENT_STORAGE_KEYS = {
 
 export const MOCK_PAYMENT_PLAN = {
   planName: 'Pro',
-  cycle: 'Hàng tháng',
+  cycle: 'monthly',
   amount: 199000,
   provider: 'Sepay'
 };
@@ -22,7 +22,7 @@ export const MOCK_PAYMENT_PLANS = {
   pro: MOCK_PAYMENT_PLAN,
   ultra: {
     planName: 'Ultra',
-    cycle: 'Hàng tháng',
+    cycle: 'monthly',
     amount: 999999,
     provider: 'Sepay'
   }

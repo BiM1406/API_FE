@@ -37,7 +37,7 @@ const normalizeProject = (project) => {
     name: project.name || 'Untitled Project',
     description: project.description || project.desc || '',
     type: project.type || 'API',
-    status: project.status || 'Active',
+    status: project.status || 'ACTIVE',
     tags,
     tech: project.tech || tags,
     apiCount,
@@ -85,7 +85,7 @@ export function saveProjects(projects) {
     ...project,
     desc: project.description,
     updated: 'Vừa xong',
-    activeColor: project.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500'
+    activeColor: project.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'
   })));
   return normalized;
 }
@@ -108,7 +108,7 @@ export async function createProject(payload) {
     name: payload.name?.trim() || 'Dự án mới',
     description: payload.description?.trim() || 'Dự án API mới',
     type: payload.type || 'API',
-    status: payload.status || 'Active',
+    status: payload.status || 'ACTIVE',
     tags,
     tech: tags,
     apiCount: payload.apiCount || 0,

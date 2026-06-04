@@ -73,11 +73,11 @@ export default function UserManagement() {
   };
 
   const handleToggleStatus = async (user, targetStatus) => {
-    const status = targetStatus || (user.status === 'Active' ? 'Suspended' : 'Active');
+    const status = targetStatus || (user.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE');
     try {
       const updated = await updateUserStatus(user.id, status);
       setUsers((current) => current.map((item) => item.id === user.id ? updated : item));
-      const statusLabel = status === 'Active' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
+      const statusLabel = status === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
       toast.success(t('user_mgmt.toast_status_updated', { status: statusLabel }));
     } catch (err) {
       toast.error(err.message || t('user_mgmt.toast_update_error'));
@@ -251,9 +251,9 @@ export default function UserManagement() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 px-2 text-xs text-white outline-none focus:border-violet-500 cursor-pointer"
                   >
                     <option value="ALL">{t('user_mgmt.filter_all')}</option>
-                    <option value="Active">{t('user_mgmt.status_active')}</option>
-                    <option value="Suspended">{t('user_mgmt.status_suspended')}</option>
-                    <option value="Pending">{t('user_mgmt.status_pending')}</option>
+                    <option value="ACTIVE">{t('user_mgmt.status_active')}</option>
+                    <option value="BANNED">{t('user_mgmt.status_suspended')}</option>
+                    <option value="PENDING">{t('user_mgmt.status_pending')}</option>
                   </select>
                 </div>
                 
@@ -351,15 +351,15 @@ export default function UserManagement() {
                         <span
                           className={`flex items-center gap-1.5 cursor-pointer ${getStatusColor(user.status)}`}
                           onClick={() => {
-                            const next = user.status === 'Active' ? 'Suspended' : 'Active';
+                            const next = user.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
                             setStatusConfirmUser({ user, nextStatus: next });
                           }}
                           title="Nhấp để đổi trạng thái"
                         >
                           <div className={`w-1.5 h-1.5 rounded-full ${getStatusDotClass(user.status)}`} />
-                          {user.status === 'Active'
+                          {user.status === 'ACTIVE'
                             ? t('user_mgmt.status_active')
-                            : user.status === 'Suspended'
+                            : user.status === 'BANNED' || user.status === 'INACTIVE'
                             ? t('user_mgmt.status_suspended')
                             : t('user_mgmt.status_pending')}
                         </span>
@@ -599,7 +599,7 @@ export default function UserManagement() {
                   <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">
                     {t('user_mgmt.status_confirm_desc', { 
                       name: statusConfirmUser.user.name || statusConfirmUser.user.username || statusConfirmUser.user.email,
-                      status: statusConfirmUser.nextStatus === 'Active' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended')
+                      status: statusConfirmUser.nextStatus === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended')
                     })}
                   </p>
                 </div>

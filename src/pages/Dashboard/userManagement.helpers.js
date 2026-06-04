@@ -19,7 +19,7 @@ export function mapUserToTableRow(rawUser) {
     email:       rawUser.email || '--',
     role:        rawUser.role || 'USER',
     plan:        rawUser.plan || null,       // null = chưa có gói, KHÔNG default 'Free'
-    status:      rawUser.status || 'Pending',
+    status:      rawUser.status || 'PENDING',
     createdAt:   rawUser.createdAt || null,
     lastLoginAt: rawUser.lastLoginAt || null,
     // apiUsage: rawUser.apiUsage || null,   // bật khi nối API thật
@@ -49,13 +49,13 @@ export function getRoleBadgeClass(role) {
  * Trả về Tailwind class cho badge Trạng thái.
  */
 export function getStatusColor(status) {
-  if (status === 'Active')    return 'text-emerald-400';
-  if (status === 'Suspended') return 'text-rose-400';
-  return 'text-amber-400'; // Pending / unknown
+  if (status === 'ACTIVE')    return 'text-emerald-400';
+  if (status === 'BANNED' || status === 'INACTIVE') return 'text-rose-400';
+  return 'text-amber-400'; // PENDING / unknown
 }
 
 export function getStatusDotClass(status) {
-  if (status === 'Active')    return 'bg-emerald-400';
-  if (status === 'Suspended') return 'bg-rose-400';
+  if (status === 'ACTIVE')    return 'bg-emerald-400';
+  if (status === 'BANNED' || status === 'INACTIVE') return 'bg-rose-400';
   return 'bg-amber-400';
 }

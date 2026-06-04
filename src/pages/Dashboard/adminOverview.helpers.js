@@ -56,7 +56,7 @@ export const calculateRevenue = (users = [], transactions = []) => {
 
   if (total === 0) {
     const activeSubRevenue = users
-      .filter(u => u.role !== 'ADMIN' && u.status === 'Active')
+      .filter(u => u.role !== 'ADMIN' && u.status === 'ACTIVE')
       .reduce((sum, u) => sum + getPlanPrice(u.plan), 0);
     
     if (activeSubRevenue > 0) {

@@ -26,7 +26,7 @@ const DEFAULT_USERS = [
     password: '123456',
     role: 'ADMIN',
     plan: null,           // ADMIN không có gói cước
-    status: 'Active',
+    status: 'ACTIVE',
     createdAt: _30daysAgo,
     lastLoginAt: null
   },
@@ -38,7 +38,7 @@ const DEFAULT_USERS = [
     password: '123456',
     role: 'USER',
     plan: 'Free',         // Gói thật của tài khoản demo
-    status: 'Active',
+    status: 'ACTIVE',
     createdAt: _25daysAgo,
     lastLoginAt: null
   }
@@ -150,7 +150,7 @@ export function getCurrentUser() {
       planId: 'free',
       planName: 'Free',
       price: 0,
-      cycle: 'tháng',
+      cycle: 'monthly',
       status: 'ACTIVE',
       startedAt: now.toISOString(),
       expiredAt: expiredDate.toISOString()
@@ -187,7 +187,7 @@ export async function login(credentials) {
   ));
 
   if (!user || user.password !== password) throw new Error('Tài khoản hoặc mật khẩu không chính xác');
-  if (user.status && user.status !== 'Active') throw new Error('Tài khoản đang bị khóa hoặc chưa xác thực');
+  if (user.status && user.status !== 'ACTIVE') throw new Error('Tài khoản đang bị khóa hoặc chưa xác thực');
 
   // Ghi nhận thời gian đăng nhập cuối vào bản ghi user
   const now = new Date().toISOString();
@@ -220,7 +220,7 @@ export async function register(payload) {
     password,
     role: 'USER',
     plan: 'Free',
-    status: 'Pending',
+    status: 'PENDING',
     createdAt: new Date().toISOString()
   };
 
@@ -239,7 +239,7 @@ export async function verifyOtp(payload) {
   if (Date.now() > pending.expiresAt) throw new Error('Mã OTP đã hết hạn. Vui lòng gửi lại mã');
 
   saveUsers(getUsers().map((user) => (
-    user.email.toLowerCase() === email ? { ...user, status: 'Active', updatedAt: new Date().toISOString() } : user
+    user.email.toLowerCase() === email ? { ...user, status: 'ACTIVE', updatedAt: new Date().toISOString() } : user
   )));
   removeStorage(AUTH_KEYS.PENDING_OTP);
   addActivity({ module: 'auth', action: 'Verify OTP', description: `${email} xác thực OTP`, status: 'success' });

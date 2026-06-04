@@ -378,7 +378,7 @@ export default function MyProject() {
           {!loading && !error && filteredProjects.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProjects.map((project) => {
-                const activeColor = project.status === 'Active' ? 'bg-emerald-500' : 'bg-amber-500';
+                const activeColor = project.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500';
                 return (
                   <div
                     key={project.id}
