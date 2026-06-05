@@ -69,6 +69,17 @@ export const getUsers = () => {
         user.plan = null;
         updated = true;
       }
+      // Migration: Chuẩn hóa status cũ từ 'Active', 'Pending', 'Suspended' sang 'ACTIVE', 'PENDING', 'BANNED'
+      if (user.status === 'Active') {
+        user.status = 'ACTIVE';
+        updated = true;
+      } else if (user.status === 'Pending') {
+        user.status = 'PENDING';
+        updated = true;
+      } else if (user.status === 'Suspended') {
+        user.status = 'BANNED';
+        updated = true;
+      }
       return user;
     });
     if (updated) {
@@ -122,7 +133,7 @@ export function getCurrentUser() {
 
   // Luôn lấy dữ liệu mới nhất từ danh sách users để tránh session cũ
   // (ví dụ: admin vừa đổi plan/role/status của user này)
-  const allUsers = readStorage(AUTH_KEYS.USERS, null);
+  const allUsers = getUsers();
   const freshFromList = Array.isArray(allUsers)
     ? allUsers.find((u) => u.id === sessionUser.id)
     : null;
