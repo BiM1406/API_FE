@@ -2,22 +2,15 @@ import { mockDelay } from './api';
 import { getCurrentUser, getUsers as readAuthUsers, saveUsers, syncUserSession } from './authService';
 import { readProjects } from './projectService';
 import { readPaymentHistory, calculateRevenue, calculateDailyRevenue } from './paymentService';
+import { readArrayStorage } from '../utils/storage';
 import { 
   SERVER_LOAD_PER_PROJECT, 
   SERVER_LOAD_MAX, 
   RECENT_TRANSACTIONS_LIMIT 
 } from '../config/adminConfig';
 
-const readJson = (key, fallback = []) => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-  } catch {
-    return fallback;
-  }
-};
-
-const readApiHistory = () => readJson('api_fe_api_test_history', []);
-const readConversations = () => readJson('api_fe_ai_conversations', []);
+const readApiHistory = () => readArrayStorage('api_fe_api_test_history', []);
+const readConversations = () => readArrayStorage('api_fe_ai_conversations', []);
 
 export function calculateOverviewStats() {
   const users = readAuthUsers();

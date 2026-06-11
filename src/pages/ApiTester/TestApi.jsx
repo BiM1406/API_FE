@@ -5,14 +5,14 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { logActivity } from '../../utils/activityLogger';
 import { saveRequestHistory } from '../../services/testService';
-import { readStorage, writeStorage } from '../../utils/storage';
+import { readArrayStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function TestApi() {
   const { t } = useTranslation();
   const [projects, setProjects] = useState(() => {
-    return readStorage('ai_projects', [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }]);
+    return readArrayStorage('ai_projects', [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }]);
   });
   const [activeId, setActiveId] = useState(projects[0]?.id);
 

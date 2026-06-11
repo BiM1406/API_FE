@@ -1,14 +1,19 @@
 import { mockDelay } from './api';
 import { getCollections } from './collectionService';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readObjectStorage, writeStorage } from '../utils/storage';
 
 const DOC_KEY = 'api_fe_documentation';
 
-const readAll = () => readStorage(DOC_KEY, {});
+const readAll = () => readObjectStorage(DOC_KEY, {});
 const saveAll = (value) => writeStorage(DOC_KEY, value);
 
 export async function getDocumentation(projectId = 'default') {
-  return mockDelay(readAll()[projectId] || { projectId, endpoints: [], updatedAt: null });
+  const docs = readAll()[projectId] || { projectId, endpoints: [], updatedAt: null };
+  return mockDelay({
+    ...docs,
+    projectId,
+    endpoints: Array.isArray(docs.endpoints) ? docs.endpoints : []
+  });
 }
 
 export async function saveDocumentation(projectId = 'default', docs) {
@@ -40,7 +45,8 @@ export async function generateDocumentationFromCollections(projectId = 'default'
 
 export async function updateEndpointDoc(projectId, endpointId, payload) {
   const docs = await getDocumentation(projectId);
-  const next = { ...docs, endpoints: docs.endpoints.map((endpoint) => endpoint.id === endpointId ? { ...endpoint, ...payload } : endpoint) };
+  const endpoints = Array.isArray(docs.endpoints) ? docs.endpoints : [];
+  const next = { ...docs, endpoints: endpoints.map((endpoint) => endpoint.id === endpointId ? { ...endpoint, ...payload } : endpoint) };
   return saveDocumentation(projectId, next);
 }
 

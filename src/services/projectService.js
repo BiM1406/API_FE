@@ -1,6 +1,6 @@
 import { mockDelay } from './api';
 import { getCurrentUser } from './authService';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, readObjectStorage, readStorage, writeStorage } from '../utils/storage';
 
 const PROJECTS_KEY = 'api_fe_projects';
 export const LEGACY_PROJECTS_KEY = 'my_dashboard_projects';
@@ -12,7 +12,7 @@ const normalizeProject = (project) => {
   const projectId = project.id || createId('project');
 
   // 1. Calculate actual apiCount
-  const collections = readStorage('api_fe_collections', []);
+  const collections = readArrayStorage('api_fe_collections', []);
   const projectCollections = collections.filter((c) => c.projectId === projectId);
   let apiCount = 0;
   projectCollections.forEach((c) => {
@@ -23,12 +23,12 @@ const normalizeProject = (project) => {
   });
 
   // 2. Calculate actual databaseTableCount
-  const schemas = readStorage('api_fe_database_schemas', {});
+  const schemas = readObjectStorage('api_fe_database_schemas', {});
   const projectSchema = schemas[projectId] || { tables: [] };
   const databaseTableCount = (projectSchema.tables || []).length;
 
   // 3. Calculate actual aiChatCount
-  const conversations = readStorage('api_fe_ai_conversations', []);
+  const conversations = readArrayStorage('api_fe_ai_conversations', []);
   const projectConversations = conversations.filter((c) => c.projectId === projectId);
   const aiChatCount = projectConversations.length;
 

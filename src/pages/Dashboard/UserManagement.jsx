@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { deleteUser, getAdminUsers, updateUserStatus, updateAdminUser, resetUserPassword } from '../../services/adminService';
 import { getPlanLabel, getRoleBadgeClass, getStatusColor, getStatusDotClass, mapUserToTableRow } from './userManagement.helpers';
 import { USER_TABLE_PAGE_SIZE } from '../../config/adminConfig';
-import { readStorage } from '../../utils/storage';
+import { readArrayStorage } from '../../utils/storage';
 
 const SortHeader = ({ columnKey, label, sortConfig, onRequestSort }) => {
   const isSorted = sortConfig && sortConfig.key === columnKey;
@@ -34,13 +34,7 @@ const SortHeader = ({ columnKey, label, sortConfig, onRequestSort }) => {
 
 export default function UserManagement() {
   const { t, i18n } = useTranslation();
-  const [users, setUsers] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('api_fe_users') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [users, setUsers] = useState(() => readArrayStorage('api_fe_users', []));
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -147,8 +141,8 @@ export default function UserManagement() {
   };
 
   const mappedUsers = useMemo(() => {
-    const apiHistory = readStorage('api_fe_api_test_history', []);
-    const projects = readStorage('api_fe_projects', []);
+    const apiHistory = readArrayStorage('api_fe_api_test_history', []);
+    const projects = readArrayStorage('api_fe_projects', []);
     return users.map(u => mapUserToTableRow(u, apiHistory, projects));
   }, [users]);
 

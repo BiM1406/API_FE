@@ -1,12 +1,12 @@
 import { mockDelay } from './api';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, readObjectStorage, writeStorage } from '../utils/storage';
 
 const ENV_KEY = 'api_fe_environments';
 const ACTIVE_KEY = 'api_fe_active_environment';
 
-const readAll = () => readStorage(ENV_KEY, []);
+const readAll = () => readArrayStorage(ENV_KEY, []);
 const saveAll = (items) => writeStorage(ENV_KEY, items);
-const readActiveMap = () => readStorage(ACTIVE_KEY, {});
+const readActiveMap = () => readObjectStorage(ACTIVE_KEY, {});
 const saveActiveMap = (value) => writeStorage(ACTIVE_KEY, value);
 const now = () => new Date().toISOString();
 

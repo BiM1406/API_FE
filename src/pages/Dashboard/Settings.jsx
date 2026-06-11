@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { getSubscription, updateSubscription, PLANS } from '../../services/profileService';
 import { getPaymentHistory } from '../Payment/paymentService';
 import { getCurrentUser } from '../../services/authService';
+import { readArrayStorage } from '../../utils/storage';
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
@@ -35,16 +36,9 @@ export default function Settings() {
   });
 
   const [apiKeys, setApiKeys] = useState(() => {
-    try {
-      const saved = localStorage.getItem('api_fe_settings_apikeys');
-      return saved ? JSON.parse(saved) : [
-        { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
-      ];
-    } catch {
-      return [
-        { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
-      ];
-    }
+    return readArrayStorage('api_fe_settings_apikeys', [
+      { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
+    ]);
   });
 
   const [subscription, setSubscription] = useState(null);

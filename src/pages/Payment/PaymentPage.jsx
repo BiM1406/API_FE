@@ -302,7 +302,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-950 text-white selection:bg-violet-500/30">
+    <div className="relative min-h-screen overflow-x-hidden bg-slate-950 text-white selection:bg-violet-500/30">
       <div className="pointer-events-none absolute left-[-12%] top-[-16%] h-[42vw] w-[42vw] rounded-full bg-violet-600/20 blur-[130px]" />
       <div className="pointer-events-none absolute bottom-[-18%] right-[-12%] h-[42vw] w-[42vw] rounded-full bg-indigo-600/20 blur-[130px]" />
 

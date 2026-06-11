@@ -1,4 +1,4 @@
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, writeStorage } from '../utils/storage';
 
 const HISTORY_KEY = 'api_fe_api_test_history';
 
@@ -82,7 +82,7 @@ export async function sendApiRequest(config) {
 }
 
 export function getRequestHistory() {
-  return readStorage(HISTORY_KEY, []);
+  return readArrayStorage(HISTORY_KEY, []);
 }
 
 import { getCurrentUser } from './authService';

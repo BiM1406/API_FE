@@ -1,5 +1,5 @@
 import { mockDelay } from './api';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, readObjectStorage, writeStorage } from '../utils/storage';
 import { getActiveEnvironment } from './environmentService';
 
 const WORKSPACES_KEY = 'api_fe_workspaces';
@@ -8,11 +8,11 @@ const MESSAGES_KEY = 'api_fe_ai_messages';
 const LEGACY_WORKSPACE_KEY = 'ai_projects_v2';
 
 const now = () => new Date().toISOString();
-const readWorkspaces = () => readStorage(WORKSPACES_KEY, {});
+const readWorkspaces = () => readObjectStorage(WORKSPACES_KEY, {});
 const saveWorkspaces = (data) => writeStorage(WORKSPACES_KEY, data);
-const readConversations = () => readStorage(CONVERSATIONS_KEY, []);
+const readConversations = () => readArrayStorage(CONVERSATIONS_KEY, []);
 const saveConversations = (items) => writeStorage(CONVERSATIONS_KEY, items);
-const readMessages = () => readStorage(MESSAGES_KEY, {});
+const readMessages = () => readObjectStorage(MESSAGES_KEY, {});
 const saveAllMessages = (items) => writeStorage(MESSAGES_KEY, items);
 
 export async function getWorkspace(projectId = 'default') {
@@ -27,7 +27,7 @@ export async function getWorkspace(projectId = 'default') {
 export async function getConversations(projectId = 'default') {
   let conversations = readConversations().filter((item) => item.projectId === projectId);
   if (conversations.length === 0) {
-    const legacy = readStorage(LEGACY_WORKSPACE_KEY, []).find((project) => project.id === projectId || project.mpId === projectId);
+    const legacy = readArrayStorage(LEGACY_WORKSPACE_KEY, []).find((project) => project.id === projectId || project.mpId === projectId);
     if (legacy?.chats?.length) {
       conversations = legacy.chats.map((chat) => ({
         id: chat.id,

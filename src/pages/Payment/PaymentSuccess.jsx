@@ -78,7 +78,7 @@ export default function PaymentSuccess() {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-950 px-6 py-6 text-white selection:bg-emerald-500/30">
+    <div className="relative min-h-screen overflow-x-hidden bg-slate-950 px-6 py-6 text-white selection:bg-emerald-500/30">
       <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[40vw] w-[40vw] rounded-full bg-emerald-600/20 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-indigo-600/20 blur-[120px]" />
 

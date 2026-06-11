@@ -1,9 +1,9 @@
 import { mockDelay } from './api';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readObjectStorage, writeStorage } from '../utils/storage';
 
 const SCHEMA_KEY = 'api_fe_database_schemas';
 
-const readSchemas = () => readStorage(SCHEMA_KEY, {});
+const readSchemas = () => readObjectStorage(SCHEMA_KEY, {});
 const saveSchemas = (schemas) => writeStorage(SCHEMA_KEY, schemas);
 const normalizeName = (value) => String(value || '').trim();
 
@@ -22,7 +22,7 @@ const normalizeTable = (table) => ({
   id: table.id || createId('table'),
   name: normalizeName(table.name),
   rows: table.rows || 0,
-  columns: (table.columns || []).map(normalizeColumn),
+  columns: (Array.isArray(table.columns) ? table.columns : []).map(normalizeColumn),
   createdAt: table.createdAt || new Date().toISOString(),
   updatedAt: new Date().toISOString()
 });
@@ -30,7 +30,7 @@ const normalizeTable = (table) => ({
 const normalizeSchema = (schema = {}, projectId = 'default') => ({
   projectId,
   dbType: schema.dbType || 'postgresql',
-  tables: (schema.tables || []).map(normalizeTable)
+  tables: (Array.isArray(schema.tables) ? schema.tables : []).map(normalizeTable)
 });
 
 const getSchemaSync = (projectId = 'default') => normalizeSchema(readSchemas()[projectId] || { tables: [] }, projectId);
@@ -135,7 +135,7 @@ export function exportSql(schema, dbType = schema?.dbType || 'postgresql') {
 export async function applyAiGeneratedSchema(projectId = 'default', schema) {
   const normalized = normalizeSchema({
     dbType: schema.dbType || 'postgresql',
-    tables: (schema.tables || []).map((table) => normalizeTable(table))
+    tables: (Array.isArray(schema.tables) ? schema.tables : []).map((table) => normalizeTable(table))
   }, projectId);
   return mockDelay(persistSchema(projectId, normalized));
 }

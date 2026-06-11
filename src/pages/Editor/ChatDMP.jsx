@@ -14,7 +14,7 @@ import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 import { sendChatMessage } from '../../services/aiService';
-import { readStorage, writeStorage } from '../../utils/storage';
+import { readArrayStorage, readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -944,7 +944,7 @@ export default function ChatDMP() {
 
       {/* Add Project Picker Modal */}
       {showAddProject && (() => {
-        const myProjects = readStorage('my_dashboard_projects', []).filter(
+        const myProjects = readArrayStorage('my_dashboard_projects', []).filter(
           (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
         );
         const alreadyAdded = new Set(projects.map(p => p.mpId).filter(Boolean));

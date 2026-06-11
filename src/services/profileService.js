@@ -1,7 +1,7 @@
 import { mockDelay } from './api';
 import { getCurrentUser, getToken, getUsers, saveAuth, saveUsers } from './authService';
 import { addActivity } from './activityService';
-import { readStorage, removeStorage, writeStorage } from '../utils/storage';
+import { readArrayStorage, readObjectStorage, removeStorage, writeStorage } from '../utils/storage';
 import { PLANS, PLAN_LIMITS } from '../pages/Payment/paymentConstants';
 
 const SUBSCRIPTION_KEY = 'api_fe_subscription';
@@ -122,7 +122,7 @@ export async function updateSubscription(payload) {
 
 export function ensureDefaultSubscription() {
   const key = getSubscriptionKey();
-  const current = readStorage(key, null);
+  const current = readObjectStorage(key, null);
   const user = getCurrentUser();
 
   if (current?.planId) {
@@ -154,7 +154,7 @@ export function ensureDefaultSubscription() {
 
           // Record payment transaction
           try {
-            const history = readStorage('api_fe_payment_history', []);
+            const history = readArrayStorage('api_fe_payment_history', []);
             const orderCode = `API_FE_PRO_${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}_${Math.floor(100000 + Math.random() * 900000)}`;
             const newTransaction = {
               id: 'pay_' + Math.random().toString(36).substr(2, 9),
@@ -259,7 +259,7 @@ export function getPlanLimits(planId) {
 }
 
 export function getSelectedPlan() {
-  return readStorage(SELECTED_PLAN_KEY, null);
+  return readObjectStorage(SELECTED_PLAN_KEY, null);
 }
 
 export function saveSelectedPlan(plan) {
@@ -272,10 +272,10 @@ export function clearSelectedPlan() {
 }
 
 export async function getUsageStats() {
-  const apiHistory = readStorage('api_fe_api_test_history', []);
-  const conversations = readStorage('api_fe_ai_conversations', []);
-  const schemas = readStorage('api_fe_database_schemas', {});
-  const tableCount = Object.values(schemas).reduce((sum, schema) => sum + (schema.tables?.length || 0), 0);
+  const apiHistory = readArrayStorage('api_fe_api_test_history', []);
+  const conversations = readArrayStorage('api_fe_ai_conversations', []);
+  const schemas = readObjectStorage('api_fe_database_schemas', {});
+  const tableCount = Object.values(schemas).reduce((sum, schema) => sum + (schema?.tables?.length || 0), 0);
   return mockDelay({
     apiRequests: apiHistory.length,
     aiConversations: conversations.length,

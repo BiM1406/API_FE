@@ -10,6 +10,16 @@ export function readStorage(key, fallback = null) {
   return safeJsonParse(localStorage.getItem(key), fallback);
 }
 
+export function readArrayStorage(key, fallback = []) {
+  const value = readStorage(key, fallback);
+  return Array.isArray(value) ? value : fallback;
+}
+
+export function readObjectStorage(key, fallback = {}) {
+  const value = readStorage(key, fallback);
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+}
+
 export function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
   return value;

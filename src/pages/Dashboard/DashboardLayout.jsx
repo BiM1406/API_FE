@@ -144,7 +144,7 @@ export default function DashboardLayout() {
 
       {/* Sidebar - Desktop */}
       <aside 
-        className={`hidden md:flex flex-col border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl z-0 transition-[width] duration-300 cubic-bezier(0.4, 0, 0.2, 1) relative overflow-visible group/sidebar flex-none ${
+        className={`hidden md:flex flex-col border-r border-white/5 bg-slate-900/40 backdrop-blur-3xl z-30 transition-[width] duration-300 cubic-bezier(0.4, 0, 0.2, 1) relative overflow-visible group/sidebar flex-none ${
           collapsed ? 'w-20' : 'w-[260px]'
         }`}
       >

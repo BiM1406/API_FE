@@ -1,9 +1,9 @@
 import { mockDelay } from './api';
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, writeStorage } from '../utils/storage';
 
 const MOCK_KEY = 'api_fe_mock_endpoints';
 
-const readAll = () => readStorage(MOCK_KEY, []);
+const readAll = () => readArrayStorage(MOCK_KEY, []);
 const saveAll = (items) => writeStorage(MOCK_KEY, items);
 const now = () => new Date().toISOString();
 

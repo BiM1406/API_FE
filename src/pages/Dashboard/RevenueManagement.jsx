@@ -4,6 +4,7 @@ import { CreditCard, Download, ArrowUpRight, Loader2, Calendar as CalendarIcon, 
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getRevenue } from '../../services/adminService';
+import { readArrayStorage } from '../../utils/storage';
 
 function CustomDatePicker({ value, onChange, placeholder, t }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -261,14 +262,10 @@ const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(ne
 export default function RevenueManagement() {
   const { t } = useTranslation();
   const [revenue, setRevenue] = useState(() => {
-    try {
-      const tx = JSON.parse(localStorage.getItem('api_fe_payment_history') || '[]');
-      const paid = tx.filter(item => ['PAID', 'SUCCESS'].includes(item.status));
-      const total = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      return { total, transactions: tx };
-    } catch {
-      return { total: 0, transactions: [] };
-    }
+    const tx = readArrayStorage('api_fe_payment_history', []);
+    const paid = tx.filter(item => ['PAID', 'SUCCESS'].includes(item.status));
+    const total = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return { total, transactions: tx };
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

@@ -1,4 +1,4 @@
-import { createId, readStorage, writeStorage } from '../utils/storage';
+import { createId, readArrayStorage, readStorage, writeStorage } from '../utils/storage';
 
 const ACTIVITY_KEY = 'api_fe_activity_history';
 const LEGACY_ACTIVITY_KEY = 'activity_history';
@@ -22,8 +22,8 @@ const readAll = () => {
   const current = readStorage(ACTIVITY_KEY, null);
   if (Array.isArray(current)) return current.map(normalizeActivity);
 
-  const legacy = readStorage(LEGACY_ACTIVITY_KEY, []);
-  const normalized = Array.isArray(legacy) ? legacy.map(normalizeActivity) : [];
+  const legacy = readArrayStorage(LEGACY_ACTIVITY_KEY, []);
+  const normalized = legacy.map(normalizeActivity);
   writeStorage(ACTIVITY_KEY, normalized);
   return normalized;
 };

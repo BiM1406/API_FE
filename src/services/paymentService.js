@@ -10,7 +10,7 @@
  *   - calculateRevenue()   → tính từ data trả về GET /api/payments
  */
 import { mockDelay } from './api';
-import { readStorage, writeStorage } from '../utils/storage';
+import { readArrayStorage, writeStorage } from '../utils/storage';
 import { PLAN_PRICES } from '../pages/Payment/paymentConstants';
 import { OVERVIEW_REVENUE_WINDOW_HOURS } from '../config/adminConfig';
 
@@ -20,7 +20,7 @@ const PAYMENT_KEY = 'api_fe_payment_history';
  * Đọc toàn bộ lịch sử giao dịch.
  * @returns {Array} Mảng payment objects
  */
-export const readPaymentHistory = () => readStorage(PAYMENT_KEY, []);
+export const readPaymentHistory = () => readArrayStorage(PAYMENT_KEY, []);
 
 /**
  * Ghi lại toàn bộ lịch sử giao dịch (dùng nội bộ hoặc khi cần seed data).
