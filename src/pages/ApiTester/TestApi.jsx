@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { logActivity } from '../../utils/activityLogger';
-import { saveRequestHistory } from '../../services/testService';
+import { sendApiRequestViaBackend } from '../../services/testService';
 import { readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -58,35 +58,42 @@ export default function TestApi() {
 
     const startTime = Date.now();
     try {
-      const res = await fetch(finalUrl, {
-        method,
+      const payload = {
+        projectId: project.id,
+        name: `${method} ${url}`,
+        method: method,
+        url: finalUrl,
         headers: finalHeaders,
-        body: ['GET', 'HEAD'].includes(method) ? undefined : finalBody || undefined
-      });
-      const time = Date.now() - startTime;
-      const data = await res.text();
-      let jsonData;
-      try { jsonData = JSON.parse(data); } catch { jsonData = data; }
+        body: ['GET', 'HEAD'].includes(method) ? undefined : (finalBody || undefined),
+        saveHistory: true
+      };
 
-      const size = new Blob([data]).size;
-      const result = { status: res.status, statusText: res.statusText, time, size, data: jsonData, headers: Object.fromEntries(res.headers.entries()) };
+      const res = await sendApiRequestViaBackend(payload);
+
+      let jsonData;
+      try { 
+        jsonData = res.responseBody ? JSON.parse(res.responseBody) : null; 
+      } catch { 
+        jsonData = res.responseBody; 
+      }
+
+      const size = res.responseBody ? new Blob([res.responseBody]).size : 0;
+      const result = { 
+        status: res.statusCode, 
+        statusText: res.statusText, 
+        time: res.durationMs, 
+        size, 
+        data: jsonData, 
+        headers: res.responseHeaders ? JSON.parse(res.responseHeaders) : {} 
+      };
       setResponse(result);
 
-      const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: res.status };
+      const historyItem = { id: res.historyId, method, url: finalUrl, timestamp: Date.now(), status: res.statusCode };
       updateProject(project.id, { apiHistory: [historyItem, ...project.apiHistory] });
-      logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: res.status }));
-
-      saveRequestHistory({
-        id: historyItem.id,
-        method,
-        url: finalUrl,
-        responseStatus: res.status,
-        durationMs: time,
-        responseSizeBytes: size,
-        projectId: project.id
-      });
+      logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: res.statusCode }));
     } catch (err) {
-      setResponse({ status: 'Error', statusText: err.message, time: Date.now() - startTime, size: 0, data: err.message, headers: {} });
+      const errTime = Date.now() - startTime;
+      setResponse({ status: 'Error', statusText: err.message, time: errTime, size: 0, data: err.message, headers: {} });
     }
     setLoading(false);
   };

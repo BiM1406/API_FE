@@ -1,4 +1,6 @@
 import { createId, readStorage, writeStorage } from '../utils/storage';
+import { post, get, del } from './api';
+import { getCurrentUser } from './authService';
 
 const HISTORY_KEY = 'api_fe_api_test_history';
 
@@ -85,7 +87,6 @@ export function getRequestHistory() {
   return readStorage(HISTORY_KEY, []);
 }
 
-import { getCurrentUser } from './authService';
 
 export function saveRequestHistory(item) {
   const currentUser = getCurrentUser();
@@ -112,5 +113,45 @@ export function deleteRequestHistoryItem(id) {
   const next = getRequestHistory().filter((item) => item.id !== id);
   writeStorage(HISTORY_KEY, next);
   return next;
+}
+
+// ─── Backend API (T040 / T041 / T042) ────────────────────────────────────────
+
+/**
+ * T040 – Send a request via backend server-side proxy.
+ * POST /api/api-tester/send
+ * @param {object} config - { projectId, name, method, url, headers, params, body, timeoutMs, saveHistory }
+ */
+export async function sendApiRequestViaBackend(config) {
+  const response = await post('/api-tester/send', config);
+  return response?.data ?? response;
+}
+
+/**
+ * T041 – Fetch paginated API test history for a project.
+ * GET /api/projects/{projectId}/api-test-history
+ * @param {string} projectId
+ * @param {{ method?: string, keyword?: string, page?: number, size?: number, sort?: string }} params
+ */
+export async function getProjectTestHistory(projectId, params = {}) {
+  const query = new URLSearchParams();
+  if (params.method)  query.set('method',  params.method);
+  if (params.keyword) query.set('keyword', params.keyword);
+  if (params.page  !== undefined) query.set('page', params.page);
+  if (params.size  !== undefined) query.set('size', params.size);
+  if (params.sort)    query.set('sort',    params.sort);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const response = await get(`/projects/${projectId}/api-test-history${qs}`);
+  return response?.data ?? response;
+}
+
+/**
+ * T042 – Delete a single API test history record.
+ * DELETE /api/test-history/{historyId}
+ * @param {string} historyId
+ */
+export async function deleteTestHistory(historyId) {
+  const response = await del(`/test-history/${historyId}`);
+  return response?.data ?? response;
 }
 
