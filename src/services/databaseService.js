@@ -1,108 +1,97 @@
-import { mockDelay } from './api';
-import { createId, readObjectStorage, writeStorage } from '../utils/storage';
+import { api } from './api';
 
-const SCHEMA_KEY = 'api_fe_database_schemas';
+const DEFAULT_PROJECT_UUID = '00000000-0000-0000-0000-000000000000';
 
-const readSchemas = () => readObjectStorage(SCHEMA_KEY, {});
-const saveSchemas = (schemas) => writeStorage(SCHEMA_KEY, schemas);
-const normalizeName = (value) => String(value || '').trim();
-
-const normalizeColumn = (column) => ({
-  id: column.id || createId('column'),
-  name: normalizeName(column.name),
-  type: column.type || 'VARCHAR(255)',
-  length: column.length || '',
-  primaryKey: Boolean(column.primaryKey),
-  nullable: column.primaryKey ? false : column.nullable !== false,
-  unique: column.primaryKey ? true : Boolean(column.unique),
-  defaultValue: column.defaultValue || ''
-});
-
-const normalizeTable = (table) => ({
-  id: table.id || createId('table'),
-  name: normalizeName(table.name),
-  rows: table.rows || 0,
-  columns: (Array.isArray(table.columns) ? table.columns : []).map(normalizeColumn),
-  createdAt: table.createdAt || new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-});
-
-const normalizeSchema = (schema = {}, projectId = 'default') => ({
-  projectId,
-  dbType: schema.dbType || 'postgresql',
-  tables: (Array.isArray(schema.tables) ? schema.tables : []).map(normalizeTable)
-});
-
-const getSchemaSync = (projectId = 'default') => normalizeSchema(readSchemas()[projectId] || { tables: [] }, projectId);
-
-const persistSchema = (projectId, schema) => {
-  const schemas = readSchemas();
-  const normalized = normalizeSchema(schema, projectId);
-  schemas[projectId] = normalized;
-  saveSchemas(schemas);
-  return normalized;
+const ensureUuid = (id) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    return id;
+  }
+  return DEFAULT_PROJECT_UUID;
 };
 
 export async function getSchema(projectId = 'default') {
-  return mockDelay(getSchemaSync(projectId));
+  return api.get(`/projects/${ensureUuid(projectId)}/database-schema`);
 }
 
 export async function saveSchema(projectId = 'default', schema) {
-  return mockDelay(persistSchema(projectId, schema));
+  const payload = {
+    dbType: schema.dbType || 'postgresql',
+    name: schema.name || 'default_schema',
+    tables: (schema.tables || []).map((t) => ({
+      name: t.name,
+      positionX: t.positionX || 100,
+      positionY: t.positionY || 150,
+      columns: (t.columns || []).map((c) => ({
+        name: c.name,
+        type: c.type || 'VARCHAR(255)',
+        primaryKey: Boolean(c.primaryKey),
+        nullable: Boolean(c.nullable),
+        unique: Boolean(c.unique),
+        defaultValue: c.defaultValue || ''
+      }))
+    }))
+  };
+  return api.put(`/projects/${ensureUuid(projectId)}/database-schema`, payload);
 }
 
 export async function createTable(projectId = 'default', table) {
-  const schema = getSchemaSync(projectId);
-  const name = normalizeName(table.name);
-  if (!name) throw new Error('Tên bảng không được để trống');
-  if (schema.tables.some((item) => item.name.toLowerCase() === name.toLowerCase())) throw new Error('Tên bảng đã tồn tại');
-  const nextTable = normalizeTable({ ...table, name });
-  return mockDelay(persistSchema(projectId, { ...schema, tables: [...schema.tables, nextTable] }));
+  const payload = {
+    name: table.name,
+    positionX: table.positionX || 100,
+    positionY: table.positionY || 150,
+    columns: (table.columns || []).map((c) => ({
+      name: c.name,
+      type: c.type || 'VARCHAR(255)',
+      primaryKey: Boolean(c.primaryKey),
+      nullable: Boolean(c.nullable),
+      unique: Boolean(c.unique),
+      defaultValue: c.defaultValue || ''
+    }))
+  };
+  return api.post(`/projects/${ensureUuid(projectId)}/database-schema/tables`, payload);
 }
 
 export async function updateTable(projectId = 'default', tableId, payload) {
-  const schema = getSchemaSync(projectId);
-  const name = payload.name === undefined ? undefined : normalizeName(payload.name);
-  if (name === '') throw new Error('Tên bảng không được để trống');
-  if (name && schema.tables.some((item) => item.id !== tableId && item.name.toLowerCase() === name.toLowerCase())) throw new Error('Tên bảng đã tồn tại');
-  return mockDelay(persistSchema(projectId, {
-    ...schema,
-    tables: schema.tables.map((table) => table.id === tableId ? normalizeTable({ ...table, ...payload, name: name || table.name }) : table)
-  }));
+  const body = {
+    name: payload.name,
+    positionX: payload.positionX,
+    positionY: payload.positionY,
+    rowCount: payload.rowCount
+  };
+  return api.patch(`/database/tables/${tableId}`, body);
 }
 
 export async function deleteTable(projectId = 'default', tableId) {
-  const schema = getSchemaSync(projectId);
-  return mockDelay(persistSchema(projectId, { ...schema, tables: schema.tables.filter((table) => table.id !== tableId) }));
+  return api.delete(`/database/tables/${tableId}`);
 }
 
 export async function addColumn(projectId = 'default', tableId, column) {
-  const schema = getSchemaSync(projectId);
-  const table = schema.tables.find((item) => item.id === tableId);
-  if (!table) throw new Error('Không tìm thấy bảng');
-  const nextColumn = normalizeColumn(column);
-  if (!nextColumn.name) throw new Error('Tên cột không được để trống');
-  if (table.columns.some((item) => item.name.toLowerCase() === nextColumn.name.toLowerCase())) throw new Error('Tên cột đã tồn tại trong bảng');
-  return updateTable(projectId, tableId, { columns: [...table.columns, nextColumn] });
+  const payload = {
+    name: column.name,
+    type: column.type || 'VARCHAR(255)',
+    primaryKey: Boolean(column.primaryKey),
+    nullable: Boolean(column.nullable),
+    unique: Boolean(column.unique),
+    defaultValue: column.defaultValue || ''
+  };
+  return api.post(`/database/tables/${tableId}/columns`, payload);
 }
 
 export async function updateColumn(projectId = 'default', tableId, columnId, payload) {
-  const schema = getSchemaSync(projectId);
-  const table = schema.tables.find((item) => item.id === tableId);
-  if (!table) throw new Error('Không tìm thấy bảng');
-  const name = payload.name === undefined ? undefined : normalizeName(payload.name);
-  if (name === '') throw new Error('Tên cột không được để trống');
-  if (name && table.columns.some((item) => item.id !== columnId && item.name.toLowerCase() === name.toLowerCase())) throw new Error('Tên cột đã tồn tại trong bảng');
-  return updateTable(projectId, tableId, {
-    columns: table.columns.map((column) => column.id === columnId ? normalizeColumn({ ...column, ...payload, name: name || column.name }) : column)
-  });
+  const body = {
+    name: payload.name,
+    type: payload.type,
+    primaryKey: payload.primaryKey !== undefined ? Boolean(payload.primaryKey) : undefined,
+    nullable: payload.nullable !== undefined ? Boolean(payload.nullable) : undefined,
+    unique: payload.unique !== undefined ? Boolean(payload.unique) : undefined,
+    defaultValue: payload.defaultValue
+  };
+  return api.patch(`/database/columns/${columnId}`, body);
 }
 
 export async function deleteColumn(projectId = 'default', tableId, columnId) {
-  const schema = getSchemaSync(projectId);
-  const table = schema.tables.find((item) => item.id === tableId);
-  if (!table) throw new Error('Không tìm thấy bảng');
-  return updateTable(projectId, tableId, { columns: table.columns.filter((column) => column.id !== columnId) });
+  return api.delete(`/database/columns/${columnId}`);
 }
 
 const quoteIdentifier = (name, dbType) => {
@@ -133,10 +122,9 @@ export function exportSql(schema, dbType = schema?.dbType || 'postgresql') {
 }
 
 export async function applyAiGeneratedSchema(projectId = 'default', schema) {
-  const normalized = normalizeSchema({
-    dbType: schema.dbType || 'postgresql',
-    tables: (Array.isArray(schema.tables) ? schema.tables : []).map((table) => normalizeTable(table))
-  }, projectId);
-  return mockDelay(persistSchema(projectId, normalized));
+  return saveSchema(projectId, schema);
 }
 
+export async function getSqlPreview(projectId = 'default') {
+  return api.get(`/projects/${ensureUuid(projectId)}/database-schema/sql`);
+}
