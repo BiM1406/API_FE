@@ -89,7 +89,7 @@ export default function Environments() {
                   return (
                     <button
                       key={env.id}
-                      onClick={() => { setActiveEnvironment(projectId(), env.id); load(); }}
+                      onClick={async () => { await setActiveEnvironment(projectId(), env.id); load(); }}
                       className={`w-full group relative flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
                         isActive
                           ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
