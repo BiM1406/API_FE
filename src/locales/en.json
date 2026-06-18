@@ -468,7 +468,6 @@
     "confirm_warning": "This action cannot be undone.",
     "btn_cancel": "Cancel",
     "btn_delete": "Delete",
-    "toast_deleted": "Project deleted successfully",
     "stats": {
       "total": "Total Projects",
       "active": "Active APIs",
