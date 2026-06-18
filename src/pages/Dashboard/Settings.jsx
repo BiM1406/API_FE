@@ -711,7 +711,10 @@ export default function Settings() {
                     setSubscription(updated);
                     toast.success(t('settings.subscription_section.renew_modal.toast_success'));
                   } catch (e) {
-                    toast.error(e.message || 'Error');
+                    const isNetworkError = e.message?.includes('fetch') || e.message?.includes('NetworkError') || e.message?.includes('Failed to fetch');
+                    if (!isNetworkError) {
+                      toast.error(e.message || 'Error');
+                    }
                   }
                 }}
                 className="px-5 py-2 rounded-full text-xs font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg active:scale-95"

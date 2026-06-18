@@ -100,7 +100,10 @@ export default function UserManagement() {
       const statusLabel = status === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
       toast.success(t('user_mgmt.toast_status_updated', { status: statusLabel }));
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_update_error'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('user_mgmt.toast_update_error'));
+      }
     }
   };
 
@@ -110,7 +113,10 @@ export default function UserManagement() {
       setUsers((current) => current.filter((item) => item.id !== user.id));
       toast.success(t('user_mgmt.toast_delete_success'));
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_delete_error'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('user_mgmt.toast_delete_error'));
+      }
     }
   };
 
@@ -119,7 +125,10 @@ export default function UserManagement() {
       const res = await resetUserPassword(user.id);
       toast.success(t('user_mgmt.toast_reset_success', { password: res.password }), { duration: 8000 });
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_reset_error'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('user_mgmt.toast_reset_error'));
+      }
     }
   };
 
@@ -136,7 +145,10 @@ export default function UserManagement() {
       toast.success(t('user_mgmt.toast_update_success'));
       setEditingUser(null);
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_update_error'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('user_mgmt.toast_update_error'));
+      }
     }
   };
 

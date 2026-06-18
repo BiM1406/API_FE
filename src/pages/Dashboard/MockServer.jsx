@@ -41,7 +41,10 @@ export default function MockServer() {
       toast.success(t('mock_server.toast_created'));
       load();
     } catch (error) {
-      toast.error(error.message);
+      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(error.message);
+      }
     }
   };
 
@@ -51,8 +54,11 @@ export default function MockServer() {
       const generated = await generateMockResponse(draft);
       setDraft((current) => ({ ...current, ...generated }));
       toast.success(t('mock_server.toast_ai_done'));
-    } catch {
-      toast.error(t('mock_server.toast_ai_error'));
+    } catch (error) {
+      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(t('mock_server.toast_ai_error'));
+      }
     } finally {
       setIsGenerating(false);
     }

@@ -193,7 +193,10 @@ export default function MyProject() {
       });
       toast.success(t('projects.toast_deleted') || 'Đã xóa dự án');
     } catch (err) {
-      toast.error(err.message || 'Không thể xóa dự án');
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || 'Không thể xóa dự án');
+      }
     } finally {
       setDeleteConfirm({ isOpen: false, project: null });
     }
