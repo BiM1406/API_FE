@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Plus,
   Activity,
@@ -10,7 +10,6 @@ import {
   Code2,
   MoreHorizontal,
   FolderPlus,
-  UploadCloud,
   Trash2,
   ExternalLink,
   Loader2,
@@ -44,7 +43,6 @@ const formatUpdated = (value, t) => {
 export default function MyProject() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const fileInputRef = useRef(null);
 
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
@@ -157,21 +155,6 @@ export default function MyProject() {
     }
   };
 
-  const handleImportLocalClick = () => {
-    setIsNewMenuOpen(false);
-    if (fileInputRef.current) fileInputRef.current.click();
-  };
-
-  const handleFileSelect = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const pathParts = files[0].webkitRelativePath.split('/');
-    const folderName = pathParts[0] || t('projects.local_project');
-    
-    await handleCreateProject('IMPORT', folderName, t('projects.local_project_desc', { count: files.length }), ['Local']);
-    e.target.value = null;
-  };
 
   const handleDeleteProjectClick = (event, project) => {
     event.stopPropagation();
@@ -253,16 +236,6 @@ export default function MyProject() {
     <div className="w-full min-h-full p-6 lg:p-10 relative">
       <div className="max-w-7xl mx-auto space-y-10">
         
-        {/* Hidden Directory Input */}
-        <input 
-          type="file" 
-          ref={fileInputRef}
-          webkitdirectory="true" 
-          directory="true" 
-          multiple 
-          onChange={handleFileSelect}
-          style={{ display: 'none' }} 
-        />
 
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -297,15 +270,6 @@ export default function MyProject() {
                       <div>
                         <p className="text-sm font-bold text-white tracking-tight">{t('projects.create_blank')}</p>
                         <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">{t('projects.start_from_scratch')}</p>
-                      </div>
-                    </button>
-                    <button onClick={handleImportLocalClick} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-colors text-left group">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
-                        <UploadCloud size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white tracking-tight">{t('projects.import_local')}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 uppercase tracking-wide">{t('projects.upload_folder')}</p>
                       </div>
                     </button>
                   </div>
