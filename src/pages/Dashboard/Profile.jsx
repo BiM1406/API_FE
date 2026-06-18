@@ -49,7 +49,6 @@ export default function Profile() {
       toast.error(t('profile.toast_invalid_email'));
       return;
     }
-    toast.success(t('profile.toast_invite_success', { email: inviteEmail }));
     setIsInviteOpen(false);
     setInviteEmail('');
   };

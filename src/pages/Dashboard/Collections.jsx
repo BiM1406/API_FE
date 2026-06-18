@@ -36,14 +36,12 @@ export default function Collections() {
   const handleCreate = async () => {
     if (!name.trim()) return toast.error(t('collections.toast_name_required'));
     await createCollection(projectId(), { name });
-    toast.success(t('collections.toast_created'));
     setName('');
     load();
   };
 
   const handleSaveSample = async (collectionId) => {
     await saveRequest(collectionId, null, { method: 'GET', url: '{{baseUrl}}/users', headers: [{ key: 'Authorization', value: 'Bearer {{token}}' }], body: '' });
-    toast.success(t('collections.toast_sample_saved'));
     load();
   };
 
@@ -135,7 +133,7 @@ export default function Collections() {
                         </div>
                       </div>
                       <button
-                        onClick={() => { deleteCollection(item.id).then(load); toast.success(t('collections.toast_deleted')); }}
+                        onClick={() => { deleteCollection(item.id).then(load); }}
                         className="text-slate-500 hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={14} />

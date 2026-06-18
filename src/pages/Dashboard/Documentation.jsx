@@ -32,7 +32,6 @@ export default function Documentation() {
         return;
       }
       setDocs(generated);
-      toast.success(t('documentation.toast_generated'));
     } catch {
       toast.error(t('documentation.toast_error'));
     }
@@ -45,7 +44,6 @@ export default function Documentation() {
     }
     const markdown = await exportMarkdown(projectId());
     await navigator.clipboard.writeText(markdown);
-    toast.success(t('documentation.toast_exported'));
   };
 
   const filteredEndpoints = (docs.endpoints || []).filter(ep =>

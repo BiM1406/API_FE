@@ -50,7 +50,6 @@ export default function OtpVerification({ email, onBack, onVerified }) {
     setIsLoading(true);
     try {
       await verifyOtp({ email, otp: otpCode });
-      toast.success(t('auth.otp_toast_success'));
       onVerified();
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
@@ -106,7 +105,7 @@ export default function OtpVerification({ email, onBack, onVerified }) {
       <div className="mt-8 text-center">
         <p className="text-sm text-slate-400 mb-2">
           {t('auth.otp_not_received')}{' '}
-          <button type="button" onClick={() => toast.success(t('auth.otp_resend_success_toast'))} className="text-violet-400 font-medium hover:text-violet-300 transition-colors">
+          <button type="button" onClick={() => {}} className="text-violet-400 font-medium hover:text-violet-300 transition-colors">
             {t('auth.otp_resend')}
           </button>
         </p>

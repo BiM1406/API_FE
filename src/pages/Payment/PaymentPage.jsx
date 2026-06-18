@@ -76,7 +76,6 @@ function CopyRow({ value, copyValue, translationKey }) {
   const handleCopy = async () => {
     const copied = await copyToClipboard(copyValue ?? value);
     if (copied) {
-      toast.success(t('payment.toasts.copied_success', { label: t(translationKey).toLowerCase() }));
     } else {
       toast.error(t('payment.toasts.copied_error'));
     }
@@ -256,7 +255,6 @@ export default function PaymentPage() {
     try {
       const paidPayment = await markPaymentPaid(payment.orderCode);
       setPayment(paidPayment);
-      toast.success(t('payment.toasts.confirmed'));
       navigate('/payment/success');
     } catch (err) {
       console.error('Confirm error:', err);

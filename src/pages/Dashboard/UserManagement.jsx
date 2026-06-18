@@ -98,7 +98,6 @@ export default function UserManagement() {
       const updated = await updateUserStatus(user.id, status);
       setUsers((current) => current.map((item) => item.id === user.id ? updated : item));
       const statusLabel = status === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
-      toast.success(t('user_mgmt.toast_status_updated', { status: statusLabel }));
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -111,7 +110,6 @@ export default function UserManagement() {
     try {
       await deleteUser(user.id);
       setUsers((current) => current.filter((item) => item.id !== user.id));
-      toast.success(t('user_mgmt.toast_delete_success'));
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -123,7 +121,6 @@ export default function UserManagement() {
   const handleResetPassword = async (user) => {
     try {
       const res = await resetUserPassword(user.id);
-      toast.success(t('user_mgmt.toast_reset_success', { password: res.password }), { duration: 8000 });
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -142,7 +139,6 @@ export default function UserManagement() {
         plan: editingUser.plan
       });
       setUsers((current) => current.map((item) => item.id === editingUser.id ? updated : item));
-      toast.success(t('user_mgmt.toast_update_success'));
       setEditingUser(null);
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
@@ -321,7 +317,6 @@ export default function UserManagement() {
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(user.id);
-                              toast.success(t('chat_dmp.chat_tab.copied_toast') || 'Copied!');
                             }}
                             className="p-1 hover:bg-white/10 text-slate-500 hover:text-white rounded transition-all"
                             title="Copy ID"

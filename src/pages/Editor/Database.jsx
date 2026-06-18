@@ -119,7 +119,6 @@ export default function Database() {
         const nextSchema = pending || (data.tables?.length ? data : { tables: [] });
         if (pending) {
           removeStorage('api_fe_pending_database_schema');
-          toast.success(t('db.toast_schema_imported'));
         }
         setSchema(nextSchema);
         setActiveTableId(nextSchema.tables?.[0]?.id || '');
@@ -235,7 +234,6 @@ export default function Database() {
 
       syncSchema(current);
       setManuallyEdited(false);
-      toast.success(t('db.toast_saved', { name: pendingTable.name }));
       addActivity('database', `Saved table: ${pendingTable.name}`);
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
@@ -255,7 +253,6 @@ export default function Database() {
       syncSchema(next);
       const newTable = next.tables[next.tables.length - 1];
       setActiveTableId(newTable?.id || '');
-      toast.success(t('db.toast_created', { name }));
       addActivity('database', `Created table: ${name}`);
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
@@ -278,7 +275,6 @@ export default function Database() {
     try {
       const next = await deleteTable(projectId(), activeTable.id);
       syncSchema(next);
-      toast.success(t('db.toast_deleted', { name: activeTable.name }));
       addActivity('database', `Deleted table: ${activeTable.name}`);
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
@@ -299,7 +295,6 @@ export default function Database() {
     try {
       const next = await createTable(projectId(), { name: tData.name || 'bookings', columns: tData.columns });
       syncSchema(next);
-      toast.success(t('db.toast_ai_suggested'));
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -310,13 +305,12 @@ export default function Database() {
     }
   };
 
-  const handleCopySql = () => { navigator.clipboard.writeText(editorSql); toast.success(t('db.toast_copied')); };
+  const handleCopySql = () => { navigator.clipboard.writeText(editorSql); };
   const handleExportSql = () => {
     const blob = new Blob([editorSql], { type: 'text/sql;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'schema.sql'; a.click();
     URL.revokeObjectURL(url);
-    toast.success(t('db.toast_exported'));
   };
 
   const hasUnsaved = pendingTable && activeTable && (

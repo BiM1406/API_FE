@@ -467,6 +467,7 @@
     "confirm_warning": "Hành động này không thể hoàn tác.",
     "btn_cancel": "Hủy",
     "btn_delete": "Xóa",
+    "toast_deleted": "Đã xóa dự án thành công",
     "stats": {
       "total": "Tổng dự án",
       "active": "API hoạt động",

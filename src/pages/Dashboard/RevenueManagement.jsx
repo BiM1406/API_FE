@@ -381,7 +381,6 @@ export default function RevenueManagement() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(t('revenue.csv_exported'));
   };
 
   return (

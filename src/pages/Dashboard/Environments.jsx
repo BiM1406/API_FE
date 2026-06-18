@@ -43,7 +43,6 @@ export default function Environments() {
   const handleCreate = async () => {
     if (!name.trim()) return toast.error(t('environments.toast_name_required'));
     await createEnvironment(projectId(), { name });
-    toast.success(t('environments.toast_created'));
     setName('');
     load();
   };
@@ -51,7 +50,6 @@ export default function Environments() {
   const handleAddVar = async () => {
     if (!active) return;
     await addVariable(active.id, { key: 'new_variable', currentValue: 'value', type: 'text' });
-    toast.success(t('environments.toast_variable_added'));
     load();
   };
 

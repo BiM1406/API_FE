@@ -191,7 +191,6 @@ export default function MyProject() {
         description: t('projects.add_activity_delete_desc', { name: project.name }),
         status: 'warning'
       });
-      toast.success(t('projects.toast_deleted') || 'Đã xóa dự án');
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {

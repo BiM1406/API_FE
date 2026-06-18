@@ -39,7 +39,6 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
     setIsLoading(true);
     try {
       await register({ name, email, password });
-      toast.success(t('auth.toast_register_success'));
       onRegisterSuccess(email);
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');

@@ -387,7 +387,7 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
           <div className="flex items-center justify-between mb-1 h-6">
             <div />
             <button
-              onClick={() => { navigator.clipboard.writeText(msg.content); toast.success(t('chat_dmp.chat_tab.copied_toast')); }}
+              onClick={() => { navigator.clipboard.writeText(msg.content); }}
               className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 hover:bg-white/5 text-slate-500 hover:text-white rounded"
               title={isVi ? 'Sao chép tin nhắn' : 'Copy message'}
             >
@@ -404,7 +404,7 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                   <div key={i} className="my-4 bg-slate-950 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                     <div className="flex justify-between items-center px-4 py-2 bg-[#181824] border-b border-white/5 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
                       <span>{lang}</span>
-                      <button onClick={() => { navigator.clipboard.writeText(code); toast.success(t('chat_dmp.chat_tab.copied_code_toast')); }} className="hover:text-white flex items-center gap-1 transition-colors"><Copy size={12} /> {isVi ? 'Sao chép' : 'Copy'}</button>
+                      <button onClick={() => { navigator.clipboard.writeText(code); }} className="hover:text-white flex items-center gap-1 transition-colors"><Copy size={12} /> {isVi ? 'Sao chép' : 'Copy'}</button>
                     </div>
                     <SyntaxHighlighter
                       language={lang === 'text' ? 'javascript' : lang}
@@ -431,7 +431,6 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                     headers: [{ key: 'Content-Type', value: 'application/json' }],
                     body: '{\n  "email": "user@example.com",\n  "password": "123456"\n}'
                   }));
-                  toast.success(t('chat_dmp.chat_tab.sent_to_tester_toast'));
                 }} className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/20">
                   {t('chat_dmp.chat_tab.use_tester_btn')}
                 </button>
@@ -450,7 +449,6 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                       }
                     ]
                   }));
-                  toast.success(t('chat_dmp.chat_tab.applied_schema_toast'));
                 }} className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-3.5 py-2 text-xs font-bold text-violet-300 transition hover:bg-violet-500/20">
                   {t('chat_dmp.chat_tab.apply_db_btn')}
                 </button>

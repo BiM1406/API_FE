@@ -38,7 +38,6 @@ export default function MockServer() {
         return;
       }
       await createMockEndpoint(projectId(), draft);
-      toast.success(t('mock_server.toast_created'));
       load();
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
@@ -53,7 +52,6 @@ export default function MockServer() {
     try {
       const generated = await generateMockResponse(draft);
       setDraft((current) => ({ ...current, ...generated }));
-      toast.success(t('mock_server.toast_ai_done'));
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -207,7 +205,7 @@ export default function MockServer() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { navigator.clipboard.writeText(getMockUrl(item.path)); toast.success(t('mock_server.toast_url_copied')); }}
+                            onClick={() => { navigator.clipboard.writeText(getMockUrl(item.path)); }}
                             className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
                           >
                             {t('mock_server.btn_copy_url')}
@@ -229,7 +227,7 @@ export default function MockServer() {
                           spellCheck={false}
                         />
                         <button
-                          onClick={() => { navigator.clipboard.writeText(item.responseBody); toast.success(t('mock_server.toast_json_copied')); }}
+                          onClick={() => { navigator.clipboard.writeText(item.responseBody); }}
                           className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 border border-white/10 rounded-md p-1.5 hover:bg-white/10 text-slate-300"
                         >
                           <Copy size={12} />

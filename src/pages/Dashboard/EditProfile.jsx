@@ -53,7 +53,6 @@ export default function EditProfile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
-        toast.success(t('edit_profile.avatar_preview_toast'));
       };
       reader.readAsDataURL(file);
     }
@@ -104,7 +103,6 @@ export default function EditProfile() {
       saveUsers(users);
       saveAuth(currentUser, localStorage.getItem('token') || 'mock-token');
     }
-    toast.success(t('edit_profile.toast_saved'));
     navigate('/profile');
   };
 
@@ -132,7 +130,6 @@ export default function EditProfile() {
         newPassword: passwords.newPassword,
         confirmPassword: passwords.confirmPassword
       });
-      toast.success(t('edit_profile.toast_pwd_changed'));
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');

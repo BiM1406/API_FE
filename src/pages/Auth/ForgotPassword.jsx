@@ -23,7 +23,6 @@ export function ForgotPasswordView({ onBack }) {
     try {
       await forgotPassword(email);
       setIsSent(true);
-      toast.success(t('auth.forgot_pwd_toast_request_sent'));
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -109,7 +108,6 @@ export function ResetPasswordView() {
     try {
       await resetPassword({ token, password, confirmPassword });
       setIsSuccess(true);
-      toast.success(t('auth.reset_pwd_toast_success'));
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
