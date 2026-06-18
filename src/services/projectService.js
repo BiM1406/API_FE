@@ -1,4 +1,4 @@
-import { mockDelay } from './api';
+import { api, mockDelay } from './api';
 import { getCurrentUser } from './authService';
 import { createId, readArrayStorage, readObjectStorage, readStorage, writeStorage } from '../utils/storage';
 
@@ -40,9 +40,9 @@ const normalizeProject = (project) => {
     status: project.status || 'ACTIVE',
     tags,
     tech: project.tech || tags,
-    apiCount,
-    databaseTableCount,
-    aiChatCount,
+    apiCount: project.apiCount !== undefined ? project.apiCount : apiCount,
+    databaseTableCount: project.databaseTableCount !== undefined ? project.databaseTableCount : databaseTableCount,
+    aiChatCount: project.aiChatCount !== undefined ? project.aiChatCount : aiChatCount,
     color: project.color || 'from-indigo-500 to-violet-500',
     ownerId: project.ownerId || getCurrentUser()?.id || 'user-1',
     createdAt: project.createdAt || new Date().toISOString(),
@@ -53,7 +53,6 @@ const normalizeProject = (project) => {
 export function readProjects() {
   let current = readStorage(PROJECTS_KEY, null);
   if (Array.isArray(current)) {
-    // Filter out the lifeless default projects by ID
     const filtered = current.filter(
       (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
     );
@@ -91,16 +90,62 @@ export function saveProjects(projects) {
 }
 
 export async function getProjects() {
+  try {
+    const response = await api.get('/projects');
+    if (response) {
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.items)
+            ? response.items
+            : Array.isArray(response.content)
+              ? response.content
+              : [];
+      return items.map(normalizeProject);
+    }
+  } catch (err) {
+    console.error('Failed to get projects from backend, falling back to local:', err);
+  }
   return mockDelay(readProjects());
 }
 
 export async function getProjectById(id) {
+  try {
+    const response = await api.get(`/projects/${id}`);
+    if (response) {
+      return normalizeProject(response);
+    }
+  } catch (err) {
+    console.error(`Failed to get project ${id} from backend, falling back to local:`, err);
+  }
   const project = readProjects().find((item) => item.id === id);
   if (!project) throw new Error('Không tìm thấy dự án');
   return mockDelay(project);
 }
 
 export async function createProject(payload) {
+  try {
+    const response = await api.post('/projects', {
+      name: payload.name?.trim() || 'Dự án mới',
+      description: payload.description?.trim() || 'Dự án API mới',
+      type: payload.type || 'API',
+      color: payload.color || 'from-indigo-500 to-violet-500'
+    });
+    if (response) {
+      const created = normalizeProject(response);
+      saveProjects([created, ...readProjects()]);
+      return created;
+    }
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.error('Failed to create project in backend, falling back to local:', err);
+  }
+
+  // --- Fallback ---
   const now = new Date().toISOString();
   const tags = payload.tags || payload.tech || ['API'];
   const project = normalizeProject({
@@ -124,6 +169,30 @@ export async function createProject(payload) {
 }
 
 export async function updateProject(id, payload) {
+  try {
+    const response = await api.patch(`/projects/${id}`, {
+      name: payload.name,
+      description: payload.description,
+      type: payload.type,
+      color: payload.color,
+      status: payload.status
+    });
+    if (response) {
+      const updated = normalizeProject(response);
+      const projects = readProjects();
+      const nextProjects = projects.map((project) => (project.id === id ? updated : project));
+      saveProjects(nextProjects);
+      return updated;
+    }
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.error(`Failed to update project ${id} in backend, falling back to local:`, err);
+  }
+
+  // --- Fallback ---
   const projects = readProjects();
   const nextProjects = projects.map((project) => (
     project.id === id ? normalizeProject({ ...project, ...payload, updatedAt: new Date().toISOString() }) : project
@@ -135,12 +204,44 @@ export async function updateProject(id, payload) {
 }
 
 export async function deleteProject(id) {
+  try {
+    await api.delete(`/projects/${id}`);
+    saveProjects(readProjects().filter((project) => project.id !== id));
+    return { success: true };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.error(`Failed to delete project ${id} in backend, falling back to local:`, err);
+  }
+
+  // --- Fallback ---
   saveProjects(readProjects().filter((project) => project.id !== id));
   return mockDelay({ success: true });
 }
 
 export async function searchProjects(keyword) {
   const value = String(keyword || '').trim().toLowerCase();
+  try {
+    const response = await api.get('/projects', { keyword: value });
+    if (response) {
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.items)
+            ? response.items
+            : Array.isArray(response.content)
+              ? response.content
+              : [];
+      return items.map(normalizeProject);
+    }
+  } catch (err) {
+    console.error('Failed to search projects from backend, falling back to local:', err);
+  }
+
+  // --- Fallback ---
   const projects = readProjects();
   if (!value) return mockDelay(projects);
   return mockDelay(projects.filter((project) => (
@@ -152,6 +253,22 @@ export async function searchProjects(keyword) {
 }
 
 export async function duplicateProject(id) {
+  try {
+    const response = await api.post(`/projects/${id}/duplicate`);
+    if (response) {
+      const duplicated = normalizeProject(response);
+      saveProjects([duplicated, ...readProjects()]);
+      return duplicated;
+    }
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.error(`Failed to duplicate project ${id} in backend, falling back to local:`, err);
+  }
+
+  // --- Fallback ---
   const source = readProjects().find((project) => project.id === id);
   if (!source) throw new Error('Không tìm thấy dự án');
   const now = new Date().toISOString();
@@ -165,4 +282,3 @@ export async function duplicateProject(id) {
   saveProjects([clone, ...readProjects()]);
   return mockDelay(clone);
 }
-

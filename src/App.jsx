@@ -26,6 +26,7 @@ import RevenueManagement from './pages/Dashboard/RevenueManagement';
 const PaymentPage = lazy(() => import('./pages/Payment/PaymentPage'));
 const PaymentSuccess = lazy(() => import('./pages/Payment/PaymentSuccess'));
 const PaymentFailed = lazy(() => import('./pages/Payment/PaymentFailed'));
+const OAuthSuccess = lazy(() => import('./pages/Auth/OAuthSuccess'));
 const ResetPassword = lazy(() => import('./pages/Auth/ForgotPassword').then((module) => ({ default: module.ResetPasswordView })));
 
 function RouteLoader() {
@@ -53,6 +54,7 @@ function App() {
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/payment/failed" element={<PaymentFailed />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/oauth-success" element={<OAuthSuccess />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
@@ -82,6 +84,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
     </BrowserRouter>
   );
 }

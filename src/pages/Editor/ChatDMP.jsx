@@ -15,6 +15,13 @@ import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 import { sendChatMessage } from '../../services/aiService';
 import { readArrayStorage, readStorage, writeStorage } from '../../utils/storage';
+import {
+  getConversations,
+  getMessages,
+  createConversation,
+  deleteConversation,
+  renameConversation
+} from '../../services/workspaceService';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -239,7 +246,7 @@ const Sidebar = ({
   );
 };
 
-const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode }) => {
+const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId }) => {
   const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -333,9 +340,25 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode }) => {
     setTimeout(async () => {
       let aiMsg;
       try {
-        const aiResponse = await sendChatMessage({ message: newMsg.content, mode: activeMode });
-        aiMsg = { id: aiResponse.id || generateId(), role: 'assistant', content: aiResponse.content || buildAssistantReply(newMsg.content), timestamp: Date.now(), mode: activeMode, metadata: aiResponse.metadata || {} };
-      } catch {
+        const aiResponse = await sendChatMessage({
+          message: newMsg.content,
+          mode: activeMode,
+          conversationId: activeChat.id,
+          projectId: projectId
+        });
+        aiMsg = {
+          id: aiResponse.id || generateId(),
+          role: 'assistant',
+          content: aiResponse.content || buildAssistantReply(newMsg.content),
+          timestamp: Date.now(),
+          mode: activeMode,
+          metadata: aiResponse.metadata || {}
+        };
+        if (newTitle) {
+          await renameConversation(activeChat.id, newTitle).catch(() => {});
+        }
+      } catch (err) {
+        console.error('Error sending message:', err);
         aiMsg = { id: generateId(), role: 'assistant', content: buildAssistantReply(newMsg.content), timestamp: Date.now(), mode: activeMode };
       }
       updateChat({ messages: [...updatedMessages, aiMsg] });
@@ -769,6 +792,102 @@ export default function ChatDMP() {
     setProjects(projs => projs.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
+  // Tự động đồng bộ hóa các cuộc hội thoại và tin nhắn từ Backend khi activeId thay đổi
+  useEffect(() => {
+    if (!activeId) return;
+    let isMounted = true;
+
+    async function syncWithBackend() {
+      try {
+        const backendConversations = await getConversations(activeId);
+        if (backendConversations.length === 0) {
+          const defaultChat = await createConversation(activeId, {
+            title: t('chat_dmp.sidebar.default_chat_title'),
+            mode: 'chat'
+          });
+          backendConversations.push({
+            ...defaultChat,
+            messages: []
+          });
+        }
+
+        const conversationsWithMessages = await Promise.all(
+          backendConversations.map(async (conv) => {
+            try {
+              const msgs = await getMessages(conv.id);
+              return {
+                ...conv,
+                messages: msgs || []
+              };
+            } catch (err) {
+              console.error(`Failed to load messages for conversation ${conv.id}:`, err);
+              return {
+                ...conv,
+                messages: []
+              };
+            }
+          })
+        );
+
+        if (!isMounted) return;
+
+        setProjects((prev) =>
+          prev.map((p) => {
+            if (p.id === activeId) {
+              // 1. Tìm các cuộc trò chuyện chỉ tồn tại cục bộ ở local (chưa đồng bộ lên backend)
+              const localChats = p.chats || [];
+              const backendIds = new Set(conversationsWithMessages.map((c) => c.id));
+              const unsyncedChats = localChats.filter((lc) => !backendIds.has(lc.id));
+
+              // 2. Gộp các cuộc trò chuyện backend với các cuộc trò chuyện local chưa đồng bộ
+              // Dữ liệu từ backend là mới nhất đối với các chat đã đồng bộ.
+              const mergedConversations = [...conversationsWithMessages];
+              
+              // Đối với mỗi cuộc trò chuyện backend, nếu ở local cũng có và có tin nhắn mới offline,
+              // ta có thể gộp tin nhắn offline chưa có trên backend.
+              const mergedConversationsFinal = mergedConversations.map((bc) => {
+                const lc = localChats.find((x) => x.id === bc.id);
+                if (lc && lc.messages && lc.messages.length > bc.messages.length) {
+                  // Gộp tin nhắn theo ID
+                  const bcMsgIds = new Set(bc.messages.map((m) => m.id));
+                  const unsyncedMsgs = lc.messages.filter((m) => !bcMsgIds.has(m.id));
+                  return {
+                    ...bc,
+                    messages: [...bc.messages, ...unsyncedMsgs]
+                  };
+                }
+                return bc;
+              });
+
+              // Bổ sung các chat offline hoàn toàn
+              const finalChats = [...mergedConversationsFinal, ...unsyncedChats];
+
+              const activeChatId =
+                p.activeChatId && finalChats.some((c) => c.id === p.activeChatId)
+                  ? p.activeChatId
+                  : finalChats[0]?.id || null;
+
+              return {
+                ...p,
+                chats: finalChats,
+                activeChatId
+              };
+            }
+            return p;
+          })
+        );
+      } catch (err) {
+        console.error('Failed to sync conversations/messages with Backend:', err);
+      }
+    }
+
+    syncWithBackend();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeId, t]);
+
   // Automatically select a chat if none is selected
   useEffect(() => {
     if (activeProject && !activeProject.activeChatId && activeProject.chats && activeProject.chats.length > 0) {
@@ -789,12 +908,27 @@ export default function ChatDMP() {
       }
       return p;
     }));
+    if (updates.title) {
+      renameConversation(chatId, updates.title).catch((err) => {
+        console.error('Failed to rename conversation on Backend:', err);
+      });
+    }
   };
 
   const updateCurrentChat = (updates) => {
     setProjects(projs => projs.map(p => {
       if (p.id === activeId) {
-        const updatedChats = p.chats.map(chat => chat.id === p.activeChatId ? { ...chat, ...updates } : chat);
+        const updatedChats = p.chats.map(chat => {
+          if (chat.id === p.activeChatId) {
+            if (updates.title) {
+              renameConversation(chat.id, updates.title).catch((err) => {
+                console.error('Failed to rename conversation on Backend:', err);
+              });
+            }
+            return { ...chat, ...updates };
+          }
+          return chat;
+        });
         return { ...p, chats: updatedChats };
       }
       return p;
@@ -836,20 +970,55 @@ export default function ChatDMP() {
     setActiveId(cloneId);
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     if (!activeProject) return;
-    const newChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
-    const updatedChats = [newChat, ...(activeProject.chats || [])];
-    updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
-    logActivity('chatDmp', 'Created new chat thread');
+    try {
+      const newChatRes = await createConversation(activeProject.id, {
+        title: t('chat_dmp.sidebar.default_chat_title'),
+        mode: activeMode
+      });
+      const newChat = {
+        id: newChatRes.id,
+        title: newChatRes.title,
+        messages: [],
+        createdAt: new Date(newChatRes.createdAt).getTime()
+      };
+      const updatedChats = [newChat, ...(activeProject.chats || [])];
+      updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
+      logActivity('chatDmp', 'Created new chat thread on Backend');
+    } catch (err) {
+      console.error('Failed to create chat on Backend, creating locally:', err);
+      const newChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
+      const updatedChats = [newChat, ...(activeProject.chats || [])];
+      updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
+    }
   };
 
-  const handleDeleteChat = (chatId) => {
+  const handleDeleteChat = async (chatId) => {
     if (!activeProject) return;
+    try {
+      await deleteConversation(chatId);
+    } catch (err) {
+      console.error('Failed to delete chat on Backend:', err);
+    }
     const updatedChats = (activeProject.chats || []).filter(c => c.id !== chatId);
     if (updatedChats.length === 0) {
-      const freshChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
-      updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
+      try {
+        const freshChatRes = await createConversation(activeProject.id, {
+          title: t('chat_dmp.sidebar.default_chat_title'),
+          mode: activeMode
+        });
+        const freshChat = {
+          id: freshChatRes.id,
+          title: freshChatRes.title,
+          messages: [],
+          createdAt: new Date(freshChatRes.createdAt).getTime()
+        };
+        updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
+      } catch {
+        const freshChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
+        updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
+      }
     } else {
       updateProject(activeProject.id, { chats: updatedChats, activeChatId: updatedChats[0].id });
     }
@@ -929,6 +1098,7 @@ export default function ChatDMP() {
               updateChat={updateCurrentChat}
               activeMode={activeMode}
               setActiveMode={setActiveMode}
+              projectId={activeProject?.id}
               onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: t('chat_dmp.modals.clear_chat_confirm') })}
             />
           )}

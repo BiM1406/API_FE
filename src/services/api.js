@@ -54,11 +54,16 @@ export async function request(method, url, data, options = {}) {
   const payload = await parseResponse(response);
 
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload?.message
-      ? payload.message
-      : typeof payload === 'string' && payload
-        ? payload
-        : `Request failed with HTTP ${response.status}`;
+    let message = `Request failed with HTTP ${response.status}`;
+    if (typeof payload === 'object' && payload !== null) {
+      if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+        message = payload.errors.join('\n');
+      } else if (payload.message) {
+        message = payload.message;
+      }
+    } else if (typeof payload === 'string' && payload) {
+      message = payload;
+    }
     const error = new Error(message);
     error.status = response.status;
     error.payload = payload;

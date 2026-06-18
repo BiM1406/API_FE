@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 import { getSubscription, updateSubscription, PLANS } from '../../services/profileService';
-import { getPaymentHistory } from '../Payment/paymentService';
+import { getPaymentHistory } from '../../services/paymentService';
 import { getCurrentUser } from '../../services/authService';
 import { readArrayStorage } from '../../utils/storage';
 
@@ -47,11 +47,12 @@ export default function Settings() {
   useEffect(() => {
     const user = getCurrentUser();
     getSubscription().then(sub => setSubscription(sub));
-    const allHistory = getPaymentHistory();
-    const myHistory = user
-      ? allHistory.filter(item => item.userId === user.id || item.userId === null || !item.userId)
-      : allHistory;
-    setPaymentHistory(myHistory);
+    Promise.resolve(getPaymentHistory()).then(allHistory => {
+      const myHistory = user
+        ? allHistory.filter(item => item.userId === user.id || item.userId === null || !item.userId)
+        : allHistory;
+      setPaymentHistory(myHistory);
+    }).catch(err => console.error('Failed to get payment history:', err));
   }, [activeSection]);
 
   const [editingId, setEditingId] = useState(null);

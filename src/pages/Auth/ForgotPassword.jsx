@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, ArrowLeft, Loader2, Send, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { forgotPassword, resetPassword } from '../../services/authService';
 
 // ─── COMPONENT 1: YÊU CẦU KHÔI PHỤC (Gửi email) ──────────────────────────
 export function ForgotPasswordView({ onBack }) {
@@ -19,11 +20,15 @@ export function ForgotPasswordView({ onBack }) {
       return;
     }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await forgotPassword(email);
       setIsSent(true);
       toast.success(t('auth.forgot_pwd_toast_request_sent'));
-    }, 1500);
+    } catch (err) {
+      toast.error(err.message || t('auth.forgot_pwd_toast_failed'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSent) {
@@ -82,17 +87,31 @@ export function ResetPasswordView() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      setToken(urlToken);
+    }
+  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) { toast.error(t('auth.reset_pwd_toast_mismatch')); return; }
-    if (password.length < 6) { toast.error(t('auth.reset_pwd_toast_min')); return; }
+    if (password.length < 8) { toast.error('Mật khẩu tối thiểu 8 ký tự'); return; }
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await resetPassword({ token, password, confirmPassword });
       setIsSuccess(true);
       toast.success(t('auth.reset_pwd_toast_success'));
-    }, 1500);
+    } catch (err) {
+      toast.error(err.message || 'Đặt lại mật khẩu thất bại');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import { mockDelay } from './api';
 import { addActivity } from './activityService';
+import { sendMessage } from './workspaceService';
 
 const normalize = (value) => String(value || '').toLowerCase();
 
@@ -81,6 +82,21 @@ function inferResponse(prompt, mode = 'chat') {
 }
 
 export async function sendChatMessage(payload) {
+  if (payload.conversationId) {
+    try {
+      const res = await sendMessage(payload.conversationId, payload.message);
+      addActivity({ module: 'chatDmp', action: 'Send AI message (Backend)', description: payload.message, status: 'success' });
+      return {
+        id: res.assistantMessage.id,
+        role: 'assistant',
+        content: res.assistantMessage.content,
+        metadata: res.assistantMessage.metadata || {},
+        createdAt: new Date(res.assistantMessage.timestamp || Date.now()).toISOString()
+      };
+    } catch (err) {
+      console.error('Failed to send message via Backend, falling back to mock:', err);
+    }
+  }
   const response = inferResponse(payload.message, payload.mode);
   addActivity({ module: 'chatDmp', action: 'Send AI message', description: payload.message, status: 'success' });
   return mockDelay(response, 650);

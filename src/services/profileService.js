@@ -1,4 +1,4 @@
-import { mockDelay } from './api';
+import { api, mockDelay } from './api';
 import { getCurrentUser, getToken, getUsers, saveAuth, saveUsers } from './authService';
 import { addActivity } from './activityService';
 import { readArrayStorage, readObjectStorage, removeStorage, writeStorage } from '../utils/storage';
@@ -51,10 +51,65 @@ const syncUserPlan = (subscription) => {
 };
 
 export async function getProfile() {
+  try {
+    const response = await api.get('/profile');
+    if (response) {
+      const user = {
+        id: response.id,
+        username: response.username,
+        name: response.name || response.username,
+        email: response.email,
+        role: String(response.role || 'USER').toUpperCase(),
+        plan: response.plan || 'Free',
+        status: String(response.status || 'ACTIVE').toUpperCase(),
+        avatar: response.avatarUrl || null,
+        phone: response.phone || null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt,
+        lastLoginAt: response.lastLoginAt
+      };
+      syncUserPlan({ planName: user.plan, planId: user.plan.toLowerCase() });
+      return user;
+    }
+  } catch (err) {
+    console.error('Failed to get profile from backend, falling back to local:', err);
+  }
   return mockDelay(requireUser());
 }
 
 export async function updateProfile(payload) {
+  try {
+    const response = await api.patch('/profile', {
+      name: payload.name,
+      phone: payload.phone,
+      avatarUrl: payload.avatar || payload.avatarUrl
+    });
+    if (response) {
+      const user = {
+        id: response.id,
+        username: response.username,
+        name: response.name || response.username,
+        email: response.email,
+        role: String(response.role || 'USER').toUpperCase(),
+        plan: response.plan || 'Free',
+        status: String(response.status || 'ACTIVE').toUpperCase(),
+        avatar: response.avatarUrl || null,
+        phone: response.phone || null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt,
+        lastLoginAt: response.lastLoginAt
+      };
+      const currentUser = requireUser();
+      saveUsers(getUsers().map((u) => (u.id === currentUser.id ? { ...u, ...user } : u)));
+      saveAuth(user, getToken() || 'mock-token');
+      addActivity({ module: 'profile', action: 'Update profile', description: `${user.email} cập nhật hồ sơ (BE)`, status: 'success' });
+      return user;
+    }
+  } catch (err) {
+    console.error('Failed to update profile in backend, falling back to local:', err);
+  }
+
+  // --- Fallback ---
   const currentUser = requireUser();
   const email = payload.email?.trim() || currentUser.email;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email không hợp lệ');
@@ -76,6 +131,23 @@ export async function updateProfile(payload) {
 }
 
 export async function changePassword(payload) {
+  try {
+    await api.patch('/profile/password', {
+      oldPassword: payload.currentPassword,
+      newPassword: payload.newPassword,
+      confirmPassword: payload.confirmPassword
+    });
+    addActivity({ module: 'profile', action: 'Change password', description: `Đổi mật khẩu (BE)`, status: 'success' });
+    return { success: true };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.error('Failed to change password in backend, falling back to local:', err);
+  }
+
+  // --- Fallback ---
   const currentUser = requireUser();
   if (!payload.currentPassword) throw new Error('Vui lòng nhập mật khẩu hiện tại');
   if (payload.newPassword !== payload.confirmPassword) throw new Error('Mật khẩu xác nhận không khớp');
@@ -91,10 +163,44 @@ export async function changePassword(payload) {
 }
 
 export async function getSubscription() {
-  return mockDelay(ensureDefaultSubscription());
+  try {
+    const response = await api.get('/subscription');
+    if (response && response.success && response.data) {
+      const plan = response.data;
+      syncUserPlan(plan);
+      writeStorage(getSubscriptionKey(), plan);
+      return plan;
+    }
+  } catch (err) {
+    console.error('Failed to fetch subscription from backend, falling back to local:', err);
+  }
+  return ensureDefaultSubscription();
 }
 
 export async function updateSubscription(payload) {
+  try {
+    const response = await api.post('/subscription', {
+      planId: payload.planId,
+      planName: payload.planName || payload.plan,
+      price: Number(payload.price || 0),
+      cycle: payload.cycle || 'tháng',
+      status: payload.status || 'ACTIVE',
+      startedAt: payload.startedAt,
+      expiredAt: payload.expiredAt,
+      paymentOrderCode: payload.paymentOrderCode
+    });
+
+    if (response && response.success && response.data) {
+      const plan = response.data;
+      writeStorage(getSubscriptionKey(), plan);
+      syncUserPlan(plan);
+      addActivity({ module: 'profile', action: 'Update subscription', description: `Kích hoạt gói ${plan.planName}`, status: 'success' });
+      return plan;
+    }
+  } catch (err) {
+    console.error('Failed to update subscription in backend, falling back to local:', err);
+  }
+
   const started = payload.startedAt || new Date().toISOString();
   let expired = payload.expiredAt;
   if (!expired) {
@@ -217,9 +323,9 @@ export async function activateSubscription(plan, payment) {
     throw new Error('Gói thanh toán không hợp lệ');
   }
 
-  const current = ensureDefaultSubscription();
+  const current = await getSubscription();
   if (payment?.orderCode && current?.paymentOrderCode === payment.orderCode) {
-    return mockDelay(current);
+    return current;
   }
 
   const activatedAt = new Date().toISOString();
@@ -247,7 +353,7 @@ export async function activateSubscription(plan, payment) {
     metadata: { orderCode: payment?.orderCode, planId: subscription.planId }
   });
 
-  return mockDelay(subscription);
+  return await updateSubscription(subscription);
 }
 
 export function isPlanActive(planId) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Network, Trash2, Plus, Sliders, ShieldAlert, Key, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -14,12 +14,29 @@ export default function Environments() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const load = async () => {
-    const data = await getEnvironments(projectId());
-    const activeEnv = await getActiveEnvironment(projectId());
-    setEnvs(data);
-    setActive(activeEnv);
-    setLoading(false);
+    try {
+      const data = await getEnvironments(projectId());
+      const activeEnv = await getActiveEnvironment(projectId());
+      if (isMountedRef.current) {
+        setEnvs(data);
+        setActive(activeEnv);
+      }
+    } catch (e) {
+      console.error('Failed to load environments:', e);
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
   };
   useEffect(() => { load(); }, []);
 

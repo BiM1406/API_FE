@@ -4,8 +4,14 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createMockEndpoint, deleteMockEndpoint, generateMockResponse, getMockEndpoints, updateMockEndpoint } from '../../services/mockServerService';
+import { API_BASE_URL } from '../../services/api';
 
 const projectId = () => localStorage.getItem('api_fe_active_project_id') || 'default';
+
+const getMockUrl = (path) => {
+  const host = API_BASE_URL.replace('/api', '');
+  return `${host}/mock/${projectId()}${path}`;
+};
 
 const METHOD_COLORS = {
   GET: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -195,7 +201,7 @@ export default function MockServer() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { navigator.clipboard.writeText(`http://localhost:3000${item.path}`); toast.success(t('mock_server.toast_url_copied')); }}
+                            onClick={() => { navigator.clipboard.writeText(getMockUrl(item.path)); toast.success(t('mock_server.toast_url_copied')); }}
                             className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
                           >
                             {t('mock_server.btn_copy_url')}

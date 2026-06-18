@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, CreditCard, RotateCcw, XCircle } from 'lucide-react';
 import { PAYMENT_STATUS } from './paymentConstants';
-import { clearCurrentPayment, getCurrentPayment } from './paymentService';
+import { clearCurrentPayment, getCurrentPayment } from '../../services/paymentService';
 import { formatCurrency, formatDateTime } from './paymentUtils';
 
 const MotionDiv = motion.div;

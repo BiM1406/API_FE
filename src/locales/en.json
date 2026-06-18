@@ -944,6 +944,7 @@
     "via": "via",
     "status_pending": "Pending",
     "status_paid": "Paid",
+    "status_success": "Success",
     "status_failed": "Failed",
     "status_cancelled": "Cancelled",
     "status_expired": "Expired",

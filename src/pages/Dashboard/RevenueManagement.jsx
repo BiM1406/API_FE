@@ -267,7 +267,7 @@ export default function RevenueManagement() {
     const total = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     return { total, transactions: tx };
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [timeRange, setTimeRange] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -277,6 +277,7 @@ export default function RevenueManagement() {
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     getRevenue()
       .then((data) => { if (mounted) { setRevenue(data); setError(''); } })
       .catch((err) => { if (mounted) setError(err.message || t('revenue.error_loading')); })
@@ -384,7 +385,7 @@ export default function RevenueManagement() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('revenue.title')}</h1>

@@ -192,6 +192,54 @@ export async function login(credentials) {
   const password = String(credentials.password || '');
   if (!identifier || !password) throw new Error('Vui lòng nhập tài khoản và mật khẩu');
 
+  // --- Try real Backend first (only if identifier looks like an email) ---
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+  if (isEmail) {
+    try {
+      const { api } = await import('./api');
+      const beResponse = await api.post('/auth/login', { email: identifier, password });
+
+      if (beResponse && beResponse.success && beResponse.data) {
+        const { accessToken, refreshToken } = beResponse.data;
+
+        // Fetch user profile from BE
+        const profileResp = await api.get('/auth/me', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const beUser = profileResp?.data || {};
+
+        const user = {
+          id: beUser.id || `be_${Date.now()}`,
+          username: beUser.username || beUser.email,
+          name: beUser.name || beUser.username || beUser.email,
+          email: beUser.email || identifier,
+          role: String(beUser.role || 'USER').toUpperCase(),
+          plan: beUser.planName || 'Free',
+          status: String(beUser.status || 'ACTIVE').toUpperCase(),
+          avatarUrl: beUser.avatarUrl || null,
+          phone: beUser.phone || null,
+          createdAt: beUser.createdAt || new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        };
+
+        // Persist real JWT so api.js sends correct Authorization header
+        saveAuth(user, accessToken);
+        if (refreshToken) localStorage.setItem('api_fe_refresh_token', refreshToken);
+
+        addActivity({ module: 'auth', action: 'Login', description: `${user.email} đăng nhập (BE)`, status: 'success' });
+        return mockDelay({ user, token: accessToken });
+      }
+    } catch (beErr) {
+      // BE unreachable → fallback to mock; real auth errors (401) → propagate
+      const isNetworkError = beErr?.message?.includes('fetch') || beErr?.message?.includes('NetworkError') || beErr?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        throw new Error(beErr?.payload?.message || beErr.message || 'Đăng nhập thất bại');
+      }
+      console.warn('[Auth] BE unreachable, falling back to mock login');
+    }
+  } // end if (isEmail)
+
+  // --- Mock fallback (offline / dev without BE, or username-based login) ---
   const users = getUsers();
   const user = users.find((item) => (
     item.username.toLowerCase() === identifier || item.email.toLowerCase() === identifier
@@ -200,7 +248,6 @@ export async function login(credentials) {
   if (!user || user.password !== password) throw new Error('Tài khoản hoặc mật khẩu không chính xác');
   if (user.status && user.status !== 'ACTIVE') throw new Error('Tài khoản đang bị khóa hoặc chưa xác thực');
 
-  // Ghi nhận thời gian đăng nhập cuối vào bản ghi user
   const now = new Date().toISOString();
   const updatedUser = { ...user, lastLoginAt: now };
   saveUsers(users.map((u) => u.id === user.id ? updatedUser : u));
@@ -218,6 +265,25 @@ export async function register(payload) {
   const username = String(payload.name || payload.username || '').trim();
   const password = String(payload.password || '');
 
+  try {
+    const { api } = await import('./api');
+    await api.post('/auth/register', {
+      username,
+      email,
+      password,
+      confirmPassword: payload.confirmPassword || password
+    });
+    addActivity({ module: 'auth', action: 'Register', description: `${email} đăng ký tài khoản (BE)`, status: 'success' });
+    return { success: true, requiresOtp: true, email };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.warn('[Auth] BE unreachable, falling back to mock register');
+  }
+
+  // --- Fallback ---
   if (!username) throw new Error('Tên không được để trống');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Email không hợp lệ');
   if (password.length < 6) throw new Error('Mật khẩu tối thiểu 6 ký tự');
@@ -246,6 +312,20 @@ export async function verifyOtp(payload) {
   const email = String(payload.email || pending?.email || '').trim().toLowerCase();
   const otp = String(payload.otp || '').trim();
 
+  try {
+    const { api } = await import('./api');
+    await api.post('/auth/verify-otp', { email, otp });
+    addActivity({ module: 'auth', action: 'Verify OTP', description: `${email} xác thực OTP (BE)`, status: 'success' });
+    return { success: true };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.warn('[Auth] BE unreachable, falling back to mock verifyOtp');
+  }
+
+  // --- Fallback ---
   if (!pending || pending.email !== email || otp !== pending.otp) throw new Error('Mã OTP không hợp lệ. Mã mock là 123456');
   if (Date.now() > pending.expiresAt) throw new Error('Mã OTP đã hết hạn. Vui lòng gửi lại mã');
 
@@ -268,6 +348,21 @@ export async function resendOtp(payload = {}) {
 export async function forgotPassword(email) {
   const normalized = String(email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw new Error('Email không hợp lệ');
+
+  try {
+    const { api } = await import('./api');
+    await api.post('/auth/forgot-password', { email: normalized });
+    addActivity({ module: 'auth', action: 'Forgot password', description: `${normalized} yêu cầu đặt lại mật khẩu (BE)`, status: 'success' });
+    return { success: true };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.warn('[Auth] BE unreachable, falling back to mock forgotPassword');
+  }
+
+  // --- Fallback ---
   if (!getUsers().some((user) => user.email.toLowerCase() === normalized)) throw new Error('Email không tồn tại trong hệ thống');
   localStorage.setItem(AUTH_KEYS.RESET_EMAIL, normalized);
   addActivity({ module: 'auth', action: 'Forgot password', description: `${normalized} yêu cầu đặt lại mật khẩu`, status: 'success' });
@@ -277,6 +372,27 @@ export async function forgotPassword(email) {
 export async function resetPassword(payload) {
   const email = String(payload.email || localStorage.getItem(AUTH_KEYS.RESET_EMAIL) || '').trim().toLowerCase();
   const password = String(payload.password || payload.newPassword || '');
+  const confirmPassword = String(payload.confirmPassword || password);
+  const token = String(payload.token || '');
+
+  try {
+    const { api } = await import('./api');
+    await api.post('/auth/reset-password', {
+      token,
+      newPassword: password,
+      confirmPassword
+    });
+    addActivity({ module: 'auth', action: 'Reset password', description: `Đặt lại mật khẩu (BE)`, status: 'success' });
+    return { success: true };
+  } catch (err) {
+    const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+    if (!isNetworkError) {
+      throw err;
+    }
+    console.warn('[Auth] BE unreachable, falling back to mock resetPassword');
+  }
+
+  // --- Fallback ---
   if (!email) throw new Error('Không tìm thấy yêu cầu đặt lại mật khẩu');
   if (password.length < 6) throw new Error('Mật khẩu mới tối thiểu 6 ký tự');
 

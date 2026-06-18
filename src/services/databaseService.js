@@ -52,7 +52,7 @@ export async function createTable(projectId = 'default', table) {
   return api.post(`/projects/${ensureUuid(projectId)}/database-schema/tables`, payload);
 }
 
-export async function updateTable(projectId = 'default', tableId, payload) {
+export async function updateTable(_projectId = 'default', tableId, payload) {
   const body = {
     name: payload.name,
     positionX: payload.positionX,
@@ -62,11 +62,11 @@ export async function updateTable(projectId = 'default', tableId, payload) {
   return api.patch(`/database/tables/${tableId}`, body);
 }
 
-export async function deleteTable(projectId = 'default', tableId) {
+export async function deleteTable(_projectId = 'default', tableId) {
   return api.delete(`/database/tables/${tableId}`);
 }
 
-export async function addColumn(projectId = 'default', tableId, column) {
+export async function addColumn(_projectId = 'default', tableId, column) {
   const payload = {
     name: column.name,
     type: column.type || 'VARCHAR(255)',
@@ -78,7 +78,7 @@ export async function addColumn(projectId = 'default', tableId, column) {
   return api.post(`/database/tables/${tableId}/columns`, payload);
 }
 
-export async function updateColumn(projectId = 'default', tableId, columnId, payload) {
+export async function updateColumn(_projectId = 'default', tableId, columnId, payload) {
   const body = {
     name: payload.name,
     type: payload.type,
@@ -90,7 +90,7 @@ export async function updateColumn(projectId = 'default', tableId, columnId, pay
   return api.patch(`/database/columns/${columnId}`, body);
 }
 
-export async function deleteColumn(projectId = 'default', tableId, columnId) {
+export async function deleteColumn(_projectId = 'default', tableId, columnId) {
   return api.delete(`/database/columns/${columnId}`);
 }
 

@@ -23,6 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Agent skills (local only)
+AGENTS.md
+CONTEXT.md
+docs/agents/
+docs/adr/
+
 # Env files
 .env
 .env.*

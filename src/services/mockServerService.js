@@ -1,58 +1,40 @@
-import { mockDelay } from './api';
-import { createId, readArrayStorage, writeStorage } from '../utils/storage';
+import { api } from './api';
 
-const MOCK_KEY = 'api_fe_mock_endpoints';
+const DEFAULT_PROJECT_UUID = '00000000-0000-0000-0000-000000000000';
 
-const readAll = () => readArrayStorage(MOCK_KEY, []);
-const saveAll = (items) => writeStorage(MOCK_KEY, items);
-const now = () => new Date().toISOString();
-
-const validateEndpoint = (endpoint) => {
-  if (!endpoint.path?.trim()) throw new Error('Path không được để trống');
-  if (!endpoint.path.startsWith('/')) throw new Error('Path phải bắt đầu bằng /');
-  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(endpoint.method)) throw new Error('Method không hợp lệ');
-  const status = Number(endpoint.statusCode);
-  if (status < 100 || status > 599) throw new Error('Status code không hợp lệ');
+const ensureUuid = (id) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    return id;
+  }
+  return DEFAULT_PROJECT_UUID;
 };
 
 export async function getMockEndpoints(projectId = 'default') {
-  return mockDelay(readAll().filter((endpoint) => endpoint.projectId === projectId));
+  const response = await api.get(`/projects/${ensureUuid(projectId)}/mock-endpoints`);
+  return response?.data || [];
 }
 
 export async function createMockEndpoint(projectId = 'default', payload = {}) {
-  const endpoint = {
-    id: createId('mock'),
-    projectId,
+  const response = await api.post(`/projects/${ensureUuid(projectId)}/mock-endpoints`, {
     method: payload.method || 'GET',
     path: payload.path || '/api/mock',
     statusCode: Number(payload.statusCode || 200),
-    delay: Number(payload.delay || 0),
-    responseHeaders: payload.responseHeaders || [{ key: 'Content-Type', value: 'application/json' }],
-    responseBody: payload.responseBody || '{\n  "success": true\n}',
-    enabled: payload.enabled !== false,
-    createdAt: now(),
-    updatedAt: now()
-  };
-  validateEndpoint(endpoint);
-  saveAll([endpoint, ...readAll()]);
-  return mockDelay(endpoint);
+    responseBody: payload.responseBody || '{\n  "success": true\n}'
+  });
+  return response?.data;
 }
 
 export async function updateMockEndpoint(endpointId, payload) {
-  let updated;
-  const next = readAll().map((endpoint) => {
-    if (endpoint.id !== endpointId) return endpoint;
-    updated = { ...endpoint, ...payload, updatedAt: now() };
-    validateEndpoint(updated);
-    return updated;
+  const response = await api.patch(`/mock-endpoints/${endpointId}`, {
+    responseBody: payload.responseBody
   });
-  saveAll(next);
-  return mockDelay(updated);
+  return response?.data;
 }
 
 export async function deleteMockEndpoint(endpointId) {
-  saveAll(readAll().filter((endpoint) => endpoint.id !== endpointId));
-  return mockDelay({ success: true });
+  const response = await api.delete(`/mock-endpoints/${endpointId}`);
+  return response;
 }
 
 export async function generateMockResponse(payload = {}) {
@@ -65,11 +47,10 @@ export async function generateMockResponse(payload = {}) {
       generatedAt: new Date().toISOString()
     }, null, 2)
   };
-  return mockDelay(response);
+  return response;
 }
 
 export async function exportMockEndpoints(projectId = 'default') {
   const endpoints = await getMockEndpoints(projectId);
-  return mockDelay(JSON.stringify(endpoints, null, 2));
+  return JSON.stringify(endpoints, null, 2);
 }
-

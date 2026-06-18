@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Plus, Trash2, Search, Zap, Layers, FolderOpen, Boxes } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -14,7 +14,23 @@ export default function Collections() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const load = () => getCollections(projectId()).then(setItems).finally(() => setLoading(false));
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const load = () => {
+    getCollections(projectId())
+      .then(data => {
+        if (isMountedRef.current) setItems(data);
+      })
+      .finally(() => {
+        if (isMountedRef.current) setLoading(false);
+      });
+  };
   useEffect(() => { load(); }, []);
 
   const handleCreate = async () => {

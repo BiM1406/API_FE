@@ -3,6 +3,7 @@ import { Trash2, Plus, RefreshCw, Play, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 import { saveRequestHistory } from '../../services/testService';
 import { readArrayStorage, writeStorage } from '../../utils/storage';
@@ -16,9 +17,10 @@ export default function TestApi() {
   });
   const [activeId, setActiveId] = useState(projects[0]?.id);
 
-  const project = projects.find(p => p.id === activeId) || projects[0];
+  const project = projects.find(p => p.id === activeId) || projects[0] || null;
 
   const updateProject = (id, updates) => {
+    if (!id) return;
     const newProjects = projects.map(p => p.id === id ? { ...p, ...updates } : p);
     setProjects(newProjects);
     writeStorage('ai_projects', newProjects);
@@ -34,12 +36,17 @@ export default function TestApi() {
 
   const handleSend = async () => {
     if (!url) return;
+    if (!project) {
+      toast.error(t('test_api.no_project_selected') || 'Vui lòng chọn hoặc tạo một dự án trước khi kiểm thử API');
+      return;
+    }
     setLoading(true);
     let finalUrl = url;
     let finalHeaders = {};
     let finalBody = body;
 
-    project.envs.forEach(env => {
+    const envs = project.envs || [];
+    envs.forEach(env => {
       if (!env.key) return;
       const regex = new RegExp(`{{${env.key}}}`, 'g');
       finalUrl = finalUrl.replace(regex, env.value);
@@ -49,7 +56,7 @@ export default function TestApi() {
     headers.forEach(h => {
       if (h.key) {
         let val = h.value;
-        project.envs.forEach(env => {
+        envs.forEach(env => {
           if (env.key) val = val.replace(new RegExp(`{{${env.key}}}`, 'g'), env.value);
         });
         finalHeaders[h.key] = val;
@@ -73,7 +80,7 @@ export default function TestApi() {
       setResponse(result);
 
       const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: res.status };
-      updateProject(project.id, { apiHistory: [historyItem, ...project.apiHistory] });
+      updateProject(project.id, { apiHistory: [historyItem, ...(project.apiHistory || [])] });
       logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: res.status }));
 
       saveRequestHistory({

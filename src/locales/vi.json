@@ -943,6 +943,7 @@
     "via": "qua",
     "status_pending": "Chờ thanh toán",
     "status_paid": "Đã thanh toán",
+    "status_success": "Thành công",
     "status_failed": "Thất bại",
     "status_cancelled": "Đã hủy",
     "status_expired": "Hết hạn",

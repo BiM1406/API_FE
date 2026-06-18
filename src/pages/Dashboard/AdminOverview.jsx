@@ -14,11 +14,12 @@ export default function AdminOverview() {
       return null;
     }
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
     getOverviewStats()
       .then((data) => { if (mounted) { setStats(data); setError(''); } })
       .catch((err) => { if (mounted) setError(err.message || t('admin.error_loading')); })
@@ -46,7 +47,7 @@ export default function AdminOverview() {
   })() : [];
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-2xl font-bold text-white">{t('admin.overview_title')}</h1>
         <p className="text-slate-400">{t('admin.overview_desc')}</p>
