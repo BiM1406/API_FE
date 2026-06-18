@@ -124,7 +124,12 @@ export default function Database() {
         setSchema(nextSchema);
         setActiveTableId(nextSchema.tables?.[0]?.id || '');
       })
-      .catch(err => toast.error(err.message || t('db.toast_load_failed')))
+      .catch(err => {
+        const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+        if (!isNetworkError) {
+          toast.error(err.message || t('db.toast_load_failed'));
+        }
+      })
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
   }, [t]);
@@ -233,7 +238,10 @@ export default function Database() {
       toast.success(t('db.toast_saved', { name: pendingTable.name }));
       addActivity('database', `Saved table: ${pendingTable.name}`);
     } catch (err) {
-      toast.error(err.message || t('db.toast_save_failed'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('db.toast_save_failed'));
+      }
     } finally {
       setSaving(false);
     }
@@ -250,7 +258,10 @@ export default function Database() {
       toast.success(t('db.toast_created', { name }));
       addActivity('database', `Created table: ${name}`);
     } catch (err) {
-      toast.error(err.message || t('db.toast_create_failed'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('db.toast_create_failed'));
+      }
     } finally {
       setSaving(false);
     }
@@ -270,7 +281,10 @@ export default function Database() {
       toast.success(t('db.toast_deleted', { name: activeTable.name }));
       addActivity('database', `Deleted table: ${activeTable.name}`);
     } catch (err) {
-      toast.error(err.message || t('db.toast_delete_failed'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('db.toast_delete_failed'));
+      }
     } finally {
       setSaving(false);
       setDeleteConfirmOpen(false);
@@ -287,7 +301,10 @@ export default function Database() {
       syncSchema(next);
       toast.success(t('db.toast_ai_suggested'));
     } catch (err) {
-      toast.error(err.message);
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message);
+      }
     } finally {
       setSaving(false);
     }

@@ -25,7 +25,10 @@ export function ForgotPasswordView({ onBack }) {
       setIsSent(true);
       toast.success(t('auth.forgot_pwd_toast_request_sent'));
     } catch (err) {
-      toast.error(err.message || t('auth.forgot_pwd_toast_failed'));
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || t('auth.forgot_pwd_toast_failed'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +111,10 @@ export function ResetPasswordView() {
       setIsSuccess(true);
       toast.success(t('auth.reset_pwd_toast_success'));
     } catch (err) {
-      toast.error(err.message || 'Đặt lại mật khẩu thất bại');
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(err.message || 'Đặt lại mật khẩu thất bại');
+      }
     } finally {
       setIsLoading(false);
     }

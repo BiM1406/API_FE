@@ -42,7 +42,10 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
       toast.success(t('auth.toast_register_success'));
       onRegisterSuccess(email);
     } catch (error) {
-      toast.error(error.message || t('auth.toast_register_failed'));
+      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(error.message || t('auth.toast_register_failed'));
+      }
     } finally {
       setIsLoading(false);
     }

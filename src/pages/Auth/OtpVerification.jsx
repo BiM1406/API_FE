@@ -53,7 +53,10 @@ export default function OtpVerification({ email, onBack, onVerified }) {
       toast.success(t('auth.otp_toast_success'));
       onVerified();
     } catch (error) {
-      toast.error(error.message || t('auth.otp_toast_failed'));
+      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(error.message || t('auth.otp_toast_failed'));
+      }
     } finally {
       setIsLoading(false);
     }

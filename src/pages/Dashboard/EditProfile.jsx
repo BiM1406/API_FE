@@ -135,10 +135,13 @@ export default function EditProfile() {
       toast.success(t('edit_profile.toast_pwd_changed'));
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
-        toast.error(t('edit_profile.toast_current_pwd_incorrect'));
-      } else {
-        toast.error(err.message || 'Error');
+      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
+          toast.error(t('edit_profile.toast_current_pwd_incorrect'));
+        } else {
+          toast.error(err.message || 'Error');
+        }
       }
     }
   };

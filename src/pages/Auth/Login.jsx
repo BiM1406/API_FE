@@ -41,11 +41,6 @@ export default function Login({ onSwitch, onForgot }) {
         status: 'success'
       });
 
-      const successMessage = user.role === 'ADMIN'
-        ? t('auth.toast_login_success_admin')
-        : t('auth.toast_login_success');
-      toast.success(successMessage);
-
       // Chuyển hướng
       if (user.role === 'ADMIN') {
         navigate('/admin/overview');
@@ -53,7 +48,10 @@ export default function Login({ onSwitch, onForgot }) {
         navigate('/dashboard');
       }
     } catch (error) {
-      toast.error(error.message || t('auth.toast_login_failed'));
+      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
+        toast.error(error.message || t('auth.toast_login_failed'));
+      }
       setErrors({ email: error.message || t('auth.toast_login_incorrect_credential') });
     } finally {
       setIsLoading(false);
