@@ -1,119 +1,90 @@
-# API_FE
+# API Management & Database Designer Platform (Frontend) 🚀
 
-Frontend React cho nền tảng quản lý dự án API, thiết kế cơ sở dữ liệu, kiểm thử API và làm việc với không gian ChatDMP. Dự án hiện chạy độc lập ở phía client, dùng dữ liệu mock và `localStorage` cho các luồng đăng nhập, dự án, lịch sử hoạt động và cấu hình workspace.
+This is the React frontend for the API Management, Database Design, and API Testing Platform. It is designed to work seamlessly with the ChatDMP workspace. The frontend runs independently on the client side using mocked data and `localStorage` to persist session flows, project histories, and workspaces.
 
-## Công Nghệ
+---
 
-- React 19
-- Vite
-- Tailwind CSS
-- React Router DOM
-- Lucide React
-- Framer Motion
-- React Hot Toast
-- Monaco Editor
-- React Syntax Highlighter
+## 🛠️ Tech Stack
 
-## Tính Năng Chính
+- **Framework:** React 19 & Vite
+- **Styling:** Tailwind CSS & Lucide React (Icons)
+- **State & Routing:** React Router DOM
+- **Animation:** Framer Motion
+- **Toasts & Feedback:** React Hot Toast
+- **Rich Components:** Monaco Editor (JSON & SQL editing) & React Syntax Highlighter
 
-- Landing page giới thiệu sản phẩm và trang pricing.
-- Đăng nhập, đăng ký, xác thực OTP và quên/đặt lại mật khẩu ở mức giao diện mock.
-- Dashboard cho người dùng với sidebar responsive.
-- Quản lý dự án cá nhân bằng dữ liệu lưu trong `localStorage`.
-- Workspace ChatDMP để quản lý project, chat, biến môi trường và cài đặt project.
-- Thiết kế cơ sở dữ liệu với bảng, cột, khóa và SQL preview.
-- Công cụ kiểm thử API hỗ trợ method, headers, body, biến môi trường và hiển thị response.
-- Lịch sử hoạt động local cho các thao tác chính.
-- Giao diện admin gồm tổng quan hệ thống, quản lý người dùng và doanh thu.
+---
 
-## Cấu Trúc Thư Mục
+## ✨ Key Features
+
+- **Marketing Landing Page:** Product introduction, features overview, and pricing plans page.
+- **Mock Authentication Flow:** Registration, login, OTP verification, and password reset flows.
+- **User Dashboard:** A fully responsive user panel with collapsible sidebar navigation.
+- **Local Project Management:** Create and edit personal projects, persistent via `localStorage`.
+- **ChatDMP Workspace:** Integrated workspace containing project variables, Chat UI, environment configurations, and project settings.
+- **Database Designer:** Visual table schema designer (add/edit tables, columns, primary/foreign keys) with dynamic SQL export preview.
+- **API Testing Client:** Interactive API client supporting HTTP methods, custom headers, request body editing, environment variables, and clean JSON response displays.
+- **Activity Logger:** Local history tracking for user actions.
+- **Admin Panel:** High-level system overview, user management, and revenue analytics dashboard.
+
+---
+
+## 📁 Folder Structure
 
 ```text
 src/
-  App.jsx                    # Khai báo routes chính
-  main.jsx                   # Entry point React
-  index.css                  # Tailwind và global styles
-  assets/                    # Ảnh và asset tĩnh
-  contexts/                  # Context placeholders
-  services/                  # Service placeholders cho API/backend
-  utils/
-    activityLogger.js        # Lưu và đọc lịch sử hoạt động từ localStorage
-  pages/
-    Auth/                    # Login, Register, OTP, Forgot/Reset password
-    Dashboard/               # Dashboard layout và các màn hình nội bộ
-    HomePage/                # Landing page, header, footer, pricing
-    ApiTester/               # Placeholder
-    Editor/                  # Placeholder
-    Projects/                # Placeholder
+├── assets/             # Static images and icons
+├── components/         # Reusable UI components (Buttons, Modals, Inputs)
+├── contexts/           # React context placeholders (Auth, Theme)
+├── pages/              # Application pages (Landing, Dashboard, Auth, Designer)
+│   ├── Admin/          # Admin panel pages
+│   ├── Workspace/      # ChatDMP and Workspace pages
+│   └── Designer/       # Database designer and API testing pages
+├── services/           # Service layer placeholders for API integration
+├── utils/              # Utility helpers
+│   └── activityLogger.js # Helper to log and retrieve user actions
+├── App.jsx             # Root router and layout declarations
+├── main.jsx            # React application entry point
+└── index.css           # Tailwind directives and global styles
 ```
 
-## Routes Chính
+---
 
-- `/` - Landing page
-- `/auth` - Đăng nhập / đăng ký
-- `/pricing` - Bảng giá
-- `/reset-password` - Đặt lại mật khẩu
-- `/dashboard` - Dự án của tôi
-- `/workspace` - ChatDMP workspace
-- `/database` - Thiết kế cơ sở dữ liệu
-- `/history` - Lịch sử hoạt động
-- `/profile` - Hồ sơ
-- `/profile/edit` - Chỉnh sửa hồ sơ
-- `/test-api` - Kiểm thử API
-- `/admin/overview` - Tổng quan admin
-- `/admin/users` - Quản lý người dùng
-- `/admin/revenue` - Quản lý doanh thu
+## ⚙️ Installation & Development Setup
 
-## Tài Khoản Mock
+Follow these steps to set up the project locally:
 
-```text
-Admin:
-  username: admin
-  email: admin@example.com
-  password: 123456
+### Prerequisites
+Make sure you have **Node.js** (v18 or higher) and **npm** installed.
 
-User:
-  username: user
-  email: user@example.com
-  password: 123456
-```
+### Steps
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/BiM1406/API_FE.git
+   cd API_FE
+   ```
 
-## Cài Đặt Và Chạy
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm install
-npm run dev
-```
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-Trên PowerShell Windows, nếu `npm` bị chặn bởi Execution Policy, có thể dùng:
+4. Open `http://localhost:5173` in your browser to view the application.
 
-```bash
-npm.cmd run dev
-```
-
-## Build
-
+### Production Build
+To compile the project for production:
 ```bash
 npm run build
 ```
+The optimized files will be output to the `dist/` folder, ready to be deployed to Vercel, Netlify, or any static host.
 
-Hoặc trên PowerShell:
+---
 
-```bash
-npm.cmd run build
-```
+## 📝 License
 
-## Kiểm Tra Lint
-
-```bash
-npm run lint
-```
-
-Lưu ý: tại thời điểm hiện tại lint còn một số lỗi chưa xử lý, chủ yếu là unused imports/vars và một số cảnh báo luật React hooks trong các page dashboard.
-
-## Ghi Chú Phát Triển
-
-- Dự án chưa kết nối backend thật.
-- Các file trong `src/services/` và một số context hiện vẫn là placeholder.
-- Nhiều dữ liệu đang được lưu trong trình duyệt bằng `localStorage`.
-- Khi tích hợp backend, nên bắt đầu từ các service: `api.js`, `authService.js`, `projectService.js`, `testService.js`, `aiService.js`.
+This project is licensed under the MIT License - see the LICENSE file for details.
