@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bot, Check, Copy, Database as DatabaseIcon, Download, Key,
-  Loader2, Plus, Search, Table2, Trash2
+  Loader2, Play, Plus, Search, Table2, Trash2
 } from 'lucide-react';
-import Editor from '@monaco-editor/react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 import toast from 'react-hot-toast';
 import {
   addColumn, createTable, deleteColumn, deleteTable,
@@ -70,6 +70,32 @@ function tableToSql(table) {
 
 export default function Database() {
   const { t } = useTranslation();
+  const monaco = useMonaco();
+
+  useEffect(() => {
+    if (monaco) {
+      monaco.editor.defineTheme('slate-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+          { token: 'keyword', foreground: '#569CD6', fontStyle: 'bold' },
+          { token: 'identifier', foreground: '#9CDCFE' },
+          { token: 'string', foreground: '#CE9178' },
+          { token: 'number', foreground: '#B5CEA8' },
+          { token: 'operator', foreground: '#D4D4D4' },
+          { token: 'type', foreground: '#4EC9B0' },
+          { token: 'comment', foreground: '#6A9955', fontStyle: 'italic' },
+          { token: 'predefined', foreground: '#C678DD' }
+        ],
+        colors: {
+          'editor.background': '#020617',
+          'editor.lineHighlightBackground': '#0f172a'
+        }
+      });
+      // Delay setting theme slightly to ensure editor is ready
+      setTimeout(() => monaco.editor.setTheme('slate-dark'), 0);
+    }
+  }, [monaco]);
   const [schema, setSchema] = useState({ tables: [] });
   const [activeTableId, setActiveTableId] = useState('');
   const [searchTable, setSearchTable] = useState('');
@@ -124,8 +150,8 @@ export default function Database() {
         setActiveTableId(nextSchema.tables?.[0]?.id || '');
       })
       .catch(err => {
-        const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
-        if (!isNetworkError) {
+      const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
+      if (!isNetworkError) {
           toast.error(err.message || t('db.toast_load_failed'));
         }
       })
@@ -236,7 +262,7 @@ export default function Database() {
       setManuallyEdited(false);
       addActivity('database', `Saved table: ${pendingTable.name}`);
     } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
         toast.error(err.message || t('db.toast_save_failed'));
       }
@@ -255,7 +281,7 @@ export default function Database() {
       setActiveTableId(newTable?.id || '');
       addActivity('database', `Created table: ${name}`);
     } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
         toast.error(err.message || t('db.toast_create_failed'));
       }
@@ -277,7 +303,7 @@ export default function Database() {
       syncSchema(next);
       addActivity('database', `Deleted table: ${activeTable.name}`);
     } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
         toast.error(err.message || t('db.toast_delete_failed'));
       }
@@ -296,7 +322,7 @@ export default function Database() {
       const next = await createTable(projectId(), { name: tData.name || 'bookings', columns: tData.columns });
       syncSchema(next);
     } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
+      const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
         toast.error(err.message);
       }
@@ -419,15 +445,25 @@ export default function Database() {
                   : t('db.auto_update_label')}
               </p>
             </div>
-            <button onClick={handleCopySql} className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white" title="Copy">
-              <Copy size={15} />
+            <button 
+              onClick={handleSave}
+              disabled={!manuallyEdited}
+              className={`flex items-center gap-1 rounded-lg px-2 py-1.5 transition ${
+                manuallyEdited
+                  ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                  : 'text-slate-600 cursor-not-allowed'
+              }`} 
+              title="Run Code"
+            >
+              <Play size={13} fill="currentColor" />
+              <span className="text-[11px] font-bold">Run</span>
             </button>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 bg-slate-950">
             <Editor
               height="100%"
               defaultLanguage="sql"
-              theme="vs-dark"
+              theme="slate-dark"
               value={editorSql}
               onChange={handleEditorChange}
               options={{
@@ -436,7 +472,10 @@ export default function Database() {
                 wordWrap: 'on',
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
-                padding: { top: 12 }
+                padding: { top: 12 },
+                renderLineHighlight: 'all',
+                overviewRulerBorder: false,
+                hideCursorInOverviewRuler: true
               }}
             />
           </div>

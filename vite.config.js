@@ -13,5 +13,25 @@ export default defineConfig({
   },
   define: {
     'import.meta.env.VITE_BUILD_ID': JSON.stringify(Date.now()),
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@monaco-editor')) return 'editor';
+            if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('react/')) return 'react-vendor';
+            if (id.includes('framer-motion') || id.includes('lucide-react')) return 'ui-vendor';
+            return 'vendor';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
   }
 })

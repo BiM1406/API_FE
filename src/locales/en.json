@@ -466,7 +466,6 @@
     "delete_title": "Delete project?",
     "confirm_delete": "Are you sure you want to delete project \"{{name}}\"?",
     "confirm_warning": "This action cannot be undone.",
-    "btn_cancel": "Cancel",
     "btn_delete": "Delete",
     "stats": {
       "total": "Total Projects",

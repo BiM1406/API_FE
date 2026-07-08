@@ -137,6 +137,11 @@ export default function DashboardLayout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isProfileMenuOpen]);
 
+  // Đóng profile popup khi mở/đóng sidebar
+  useEffect(() => {
+    setIsProfileMenuOpen(false);
+  }, [collapsed]);
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-950 font-sans text-slate-300 selection:bg-indigo-500/30">
       <div className="pointer-events-none absolute left-[-10%] top-[-10%] z-0 h-[40%] w-[40%] rounded-full bg-indigo-600/10 blur-[120px]" />
@@ -217,12 +222,12 @@ export default function DashboardLayout() {
           
           {/* Profile Menu Popup */}
           {isProfileMenuOpen && (
-            <div className={`absolute bottom-full left-3 mb-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[60] transition-all ${collapsed ? 'w-56' : 'w-[calc(100%-24px)]'}`}>
-              <div className="p-4 border-b border-white/5 bg-slate-900/50">
+            <div className={`absolute bottom-full left-3 mb-2 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[60] transition-all flex flex-col max-h-[60vh] ${collapsed ? 'w-56' : 'w-[calc(100%-24px)]'}`}>
+              <div className="p-4 border-b border-white/5 bg-slate-900/50 shrink-0">
                 <p className="text-sm font-bold text-white whitespace-nowrap">{userName}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{planDisplay}</p>
               </div>
-              <div className="p-1.5">
+              <div className="p-1.5 overflow-y-auto custom-scrollbar">
                 <button onClick={() => { handleNavigate('/profile'); }} className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center gap-3">
                   <User size={16} className="text-indigo-400" />
                   {t('dashboard.sidebar.profile')}

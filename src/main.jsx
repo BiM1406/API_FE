@@ -5,6 +5,8 @@ import './i18n'
 import App from './App.jsx'
 import { clearAuth } from './services/authService'
 
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+
 // Kiểm tra xem dev server có vừa được khởi chạy lại hay không (chạy lại lệnh npm run dev)
 const lastBuildId = localStorage.getItem('api_fe_last_build_id')
 const currentBuildId = import.meta.env.VITE_BUILD_ID
@@ -36,6 +38,8 @@ if (currentBuildId && lastBuildId !== String(currentBuildId)) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

@@ -75,8 +75,7 @@ function CopyRow({ value, copyValue, translationKey }) {
   const { t } = useTranslation();
   const handleCopy = async () => {
     const copied = await copyToClipboard(copyValue ?? value);
-    if (copied) {
-    } else {
+    if (!copied) {
       toast.error(t('payment.toasts.copied_error'));
     }
   };

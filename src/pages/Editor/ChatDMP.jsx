@@ -11,7 +11,6 @@ import {
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
 import { sendChatMessage } from '../../services/aiService';
 import { readArrayStorage, readStorage, writeStorage } from '../../utils/storage';

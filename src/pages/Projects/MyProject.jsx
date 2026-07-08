@@ -477,8 +477,7 @@ export default function MyProject() {
       {renameState.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setRenameState({ isOpen: false, id: null, value: '' })} />
-          
-          <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
               <h3 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 <Edit2 size={18} className="text-indigo-400" />
@@ -489,7 +488,7 @@ export default function MyProject() {
               </button>
             </div>
 
-            <form onSubmit={submitRename} className="p-6 space-y-5">
+            <form onSubmit={submitRename} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('projects.new_name_label')}</label>
                 <input 
@@ -523,13 +522,13 @@ export default function MyProject() {
           onClick={() => setDeleteConfirm({ isOpen: false, project: null })}
         >
           <div 
-            className="relative w-full max-w-[360px] rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            className="relative w-full max-w-[360px] rounded-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200"
             onClick={e => e.stopPropagation()}
             style={{ background: 'linear-gradient(135deg, rgba(30,30,60,0.95) 0%, rgba(15,15,35,0.98) 100%)', boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 32px 64px rgba(0,0,0,0.6), 0 0 80px rgba(239,68,68,0.08)' }}
           >
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent shrink-0" />
             
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto custom-scrollbar">
               <div className="flex flex-col items-center text-center gap-4 mb-6">
                 <div className="relative">
                   <div className="absolute inset-0 rounded-full bg-red-500/20 blur-xl scale-150" />

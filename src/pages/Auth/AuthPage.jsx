@@ -18,7 +18,7 @@ export default function AuthPage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-indigo-600/30 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Glassmorphism Card */}
-      <div className="relative w-full max-w-md mx-4 p-8 bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden z-10">
+      <div className="relative w-full max-w-md mx-4 p-6 sm:p-8 bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl overflow-y-auto max-h-[95vh] custom-scrollbar z-10">
         
         <div className="relative">
           <div style={{ display: view === 'login' ? 'block' : 'none' }}>

@@ -97,7 +97,6 @@ export default function UserManagement() {
     try {
       const updated = await updateUserStatus(user.id, status);
       setUsers((current) => current.map((item) => item.id === user.id ? updated : item));
-      const statusLabel = status === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
@@ -120,7 +119,7 @@ export default function UserManagement() {
 
   const handleResetPassword = async (user) => {
     try {
-      const res = await resetUserPassword(user.id);
+      await resetUserPassword(user.id);
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
