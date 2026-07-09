@@ -18,14 +18,15 @@ import {
   XCircle,
   Zap
 } from 'lucide-react';
-import { MOCK_PAYMENT_PLAN, MOCK_PAYMENT_PLANS, PAYMENT_STATUS } from './paymentConstants';
+import { MOCK_PAYMENT_PLAN, MOCK_PAYMENT_PLANS, PAYMENT_STATUS, isPaidPaymentStatus } from './paymentConstants';
 import {
   cancelPayment,
   createOrGetCurrentPayment,
   expirePayment,
-  getPaymentByOrderCode,
+  fetchPaymentByOrderCode,
+  getCurrentPayment,
   markPaymentPaid
-} from '../../services/paymentService';
+} from './paymentService';
 import { copyToClipboard, formatCountdown, formatCurrency } from './paymentUtils';
 
 const MotionHeader = motion.header;
@@ -33,6 +34,7 @@ const MotionSection = motion.section;
 
 const finalStatuses = [
   PAYMENT_STATUS.PAID,
+  PAYMENT_STATUS.SUCCESS,
   PAYMENT_STATUS.FAILED,
   PAYMENT_STATUS.CANCELLED,
   PAYMENT_STATUS.EXPIRED
@@ -48,6 +50,7 @@ function StatusBadge({ status }) {
   const config = {
     [PAYMENT_STATUS.PENDING]: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
     [PAYMENT_STATUS.PAID]: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+    [PAYMENT_STATUS.SUCCESS]: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
     [PAYMENT_STATUS.FAILED]: 'border-red-400/30 bg-red-400/10 text-red-300',
     [PAYMENT_STATUS.CANCELLED]: 'border-slate-400/30 bg-slate-400/10 text-slate-300',
     [PAYMENT_STATUS.EXPIRED]: 'border-orange-400/30 bg-orange-400/10 text-orange-300'
@@ -75,7 +78,9 @@ function CopyRow({ value, copyValue, translationKey }) {
   const { t } = useTranslation();
   const handleCopy = async () => {
     const copied = await copyToClipboard(copyValue ?? value);
-    if (!copied) {
+    if (copied) {
+      toast.success(t('payment.toasts.copied_success', { label: t(translationKey).toLowerCase() }));
+    } else {
       toast.error(t('payment.toasts.copied_error'));
     }
   };
@@ -158,7 +163,7 @@ export default function PaymentPage() {
   useEffect(() => {
     mountedRef.current = true;
 
-    async function initPayment() {
+    const initPayment = async () => {
       try {
         const nextPayment = await createOrGetCurrentPayment(selectedPlan);
         if (!nextPayment) {
@@ -169,8 +174,7 @@ export default function PaymentPage() {
 
         setPayment(nextPayment);
         setCountdown(formatCountdown(nextPayment.expiredAt));
-      } catch (err) {
-        console.error('Failed to initialize payment:', err);
+      } catch {
         toast.error(t('payment.toasts.init_error'));
         navigate('/pricing');
       } finally {
@@ -178,7 +182,7 @@ export default function PaymentPage() {
           setLoading(false);
         }
       }
-    }
+    };
 
     initPayment();
 
@@ -193,24 +197,26 @@ export default function PaymentPage() {
     }
 
     const syncPayment = async () => {
+      let currentPayment = getCurrentPayment();
       try {
-        const currentPayment = await getPaymentByOrderCode(payment.orderCode);
-        if (!mountedRef.current || !currentPayment) {
-          return;
-        }
+        currentPayment = await fetchPaymentByOrderCode(payment.orderCode);
+      } catch (error) {
+        console.error('Failed to sync payment status:', error);
+      }
 
-        setPayment(currentPayment);
+      if (!mountedRef.current || !currentPayment) {
+        return;
+      }
 
-        if (currentPayment.status === PAYMENT_STATUS.PAID) {
-          navigate('/payment/success');
-          return;
-        }
+      setPayment(currentPayment);
 
-        if ([PAYMENT_STATUS.FAILED, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.EXPIRED].includes(currentPayment.status)) {
-          navigate('/payment/failed');
-        }
-      } catch (err) {
-        console.error('Error syncing payment status:', err);
+      if (isPaidPaymentStatus(currentPayment.status)) {
+        navigate('/payment/success');
+        return;
+      }
+
+      if ([PAYMENT_STATUS.FAILED, PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.EXPIRED].includes(currentPayment.status)) {
+        navigate('/payment/failed');
       }
     };
 
@@ -229,19 +235,19 @@ export default function PaymentPage() {
 
       if (nextCountdown === '00:00' && !expiredToastRef.current) {
         expiredToastRef.current = true;
-        try {
-          const expiredPayment = await expirePayment(payment.orderCode);
-          setPayment(expiredPayment);
-        } catch (err) {
-          console.error('Failed to expire payment:', err);
-        }
+        const expiredPayment = await expirePayment(payment.orderCode);
+        setPayment(expiredPayment);
         toast.error(t('payment.toasts.expired'));
         navigate('/payment/failed');
       }
     };
 
+    const tickInterval = () => {
+      tick();
+    };
+
     tick();
-    const intervalId = window.setInterval(tick, 1000);
+    const intervalId = window.setInterval(tickInterval, 1000);
     return () => window.clearInterval(intervalId);
   }, [navigate, payment?.expiredAt, payment?.orderCode, payment?.status, t]);
 
@@ -254,10 +260,10 @@ export default function PaymentPage() {
     try {
       const paidPayment = await markPaymentPaid(payment.orderCode);
       setPayment(paidPayment);
+      toast.success(t('payment.toasts.confirmed'));
       navigate('/payment/success');
-    } catch (err) {
-      console.error('Confirm error:', err);
-      toast.error(t('payment.toasts.confirm_error') || 'Xác nhận thất bại');
+    } catch (error) {
+      toast.error(error.message || t('payment.toasts.init_error'));
     } finally {
       setConfirming(false);
     }
@@ -274,9 +280,8 @@ export default function PaymentPage() {
       setPayment(cancelledPayment);
       toast.error(t('payment.toasts.cancelled'));
       navigate('/payment/failed');
-    } catch (err) {
-      console.error('Cancel error:', err);
-      navigate('/payment/failed');
+    } catch (error) {
+      toast.error(error.message || t('payment.toasts.init_error'));
     }
   };
 
@@ -285,7 +290,7 @@ export default function PaymentPage() {
       return;
     }
 
-    if (payment.status === PAYMENT_STATUS.PAID) {
+    if (isPaidPaymentStatus(payment.status)) {
       navigate('/payment/success');
     } else {
       navigate('/payment/failed');
@@ -320,7 +325,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-950 text-white selection:bg-violet-500/30">
+    <div className="min-h-screen overflow-hidden bg-slate-950 text-white selection:bg-violet-500/30">
       <div className="pointer-events-none absolute left-[-12%] top-[-16%] h-[42vw] w-[42vw] rounded-full bg-violet-600/20 blur-[130px]" />
       <div className="pointer-events-none absolute bottom-[-18%] right-[-12%] h-[42vw] w-[42vw] rounded-full bg-indigo-600/20 blur-[130px]" />
 
@@ -352,7 +357,7 @@ export default function PaymentPage() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-violet-300">
               <CreditCard size={14} />
-              Sepay Checkout
+              Sepay Mock Checkout
             </div>
             <h1 className="text-3xl font-black tracking-tight md:text-5xl">{t('payment.title')}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400 md:text-base">
@@ -389,15 +394,7 @@ export default function PaymentPage() {
               </div>
 
               <div className="flex flex-1 items-center justify-center">
-                {payment.qrCodeUrl ? (
-                  <img
-                    src={payment.qrCodeUrl}
-                    alt="VietQR Code"
-                    className="mx-auto w-full max-w-[260px] rounded-[2rem] border border-white/10 bg-white p-4 shadow-2xl"
-                  />
-                ) : (
-                  <MockQRCode orderCode={payment.orderCode} />
-                )}
+                <MockQRCode orderCode={payment.orderCode} />
               </div>
 
               <p className="mt-5 text-sm font-semibold text-slate-300">{t('payment.qr_scan_instruction')}</p>

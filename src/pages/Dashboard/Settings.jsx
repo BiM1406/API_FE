@@ -6,13 +6,39 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 import { getSubscription, updateSubscription, PLANS } from '../../services/profileService';
-import { getPaymentHistory } from '../../services/paymentService';
+import { getPaymentHistory } from '../Payment/paymentService';
 import { getCurrentUser } from '../../services/authService';
-import { readArrayStorage } from '../../utils/storage';
+
+const normalizePlan = (plan) => {
+  const value = String(plan || 'FREE').toUpperCase();
+  return ['FREE', 'PRO', 'ULTRA'].includes(value) ? value : 'FREE';
+};
+
+const AI_PLAN_CONFIG = {
+  FREE: {
+    label: 'FREE',
+    model: 'gemini-2.5-flash',
+    limitText: '5 req/phút',
+    description: 'model cơ bản, giới hạn thấp'
+  },
+  PRO: {
+    label: 'PRO',
+    model: 'gemini-2.5-flash',
+    limitText: '15 req/phút',
+    description: 'giới hạn cao hơn'
+  },
+  ULTRA: {
+    label: 'ULTRA',
+    model: 'gemini-2.5-flash',
+    limitText: '30 req/phút',
+    description: 'giới hạn cao nhất'
+  }
+};
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const currentUser = getCurrentUser();
   
   const [activeSection, setActiveSection] = useState('language');
   const [lang, setLang] = useState(() => localStorage.getItem('api_fe_language') || (i18n && i18n.language) || 'vi');
@@ -36,23 +62,66 @@ export default function Settings() {
   });
 
   const [apiKeys, setApiKeys] = useState(() => {
-    return readArrayStorage('api_fe_settings_apikeys', [
-      { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
-    ]);
+    try {
+      const saved = localStorage.getItem('api_fe_settings_apikeys');
+      return saved ? JSON.parse(saved) : [
+        { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
+      ];
+    } catch {
+      return [
+        { id: 'key_1', name: 'Development Key', value: 'sk_live_51N_dev_key_8x9a7b2c', createdAt: Date.now() - 86400000 * 10 }
+      ];
+    }
   });
 
   const [subscription, setSubscription] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
+  const [remoteError, setRemoteError] = useState('');
+  const [remoteLoading, setRemoteLoading] = useState(true);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    getSubscription().then(sub => setSubscription(sub));
-    Promise.resolve(getPaymentHistory()).then(allHistory => {
+    let cancelled = false;
+
+    const loadRemoteState = async () => {
+      setRemoteLoading(true);
+      setRemoteError('');
+
+      const user = getCurrentUser();
+      const [subscriptionResult, historyResult] = await Promise.allSettled([
+        getSubscription(),
+        getPaymentHistory()
+      ]);
+
+      if (cancelled) return;
+
+      if (subscriptionResult.status === 'fulfilled') {
+        setSubscription(subscriptionResult.value || null);
+      } else {
+        setSubscription(null);
+      }
+
+      const history = historyResult.status === 'fulfilled' && Array.isArray(historyResult.value)
+        ? historyResult.value
+        : [];
+
       const myHistory = user
-        ? allHistory.filter(item => item.userId === user.id || item.userId === null || !item.userId)
-        : allHistory;
+        ? history.filter(item => item?.userId === user.id || item?.userId === null || !item?.userId)
+        : history;
+
       setPaymentHistory(myHistory);
-    }).catch(err => console.error('Failed to get payment history:', err));
+
+      if (subscriptionResult.status === 'rejected' || historyResult.status === 'rejected') {
+        setRemoteError('Không thể tải cài đặt. Vui lòng thử lại sau.');
+      }
+
+      setRemoteLoading(false);
+    };
+
+    loadRemoteState();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeSection]);
 
   const [editingId, setEditingId] = useState(null);
@@ -78,27 +147,37 @@ export default function Settings() {
     return new Intl.NumberFormat(lang === 'vi' ? 'vi-VN' : 'en-US', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  const currentPlan = normalizePlan(
+    currentUser?.plan ||
+    currentUser?.planCode ||
+    currentUser?.subscription?.plan?.code ||
+    currentUser?.currentPlan ||
+    subscription?.planId ||
+    subscription?.planCode
+  );
+  const aiPlan = AI_PLAN_CONFIG[currentPlan] || AI_PLAN_CONFIG.FREE;
+
   const handleLangChange = (newLang) => {
     setLang(newLang);
     if (i18n && i18n.changeLanguage) {
       i18n.changeLanguage(newLang);
     }
     localStorage.setItem('api_fe_language', newLang);
-    // );
+    // toast.success(t('settings.language_section.saved'));
   };
 
   const handleToggleNotif = (key) => {
     const updated = { ...notifs, [key]: !notifs[key] };
     setNotifs(updated);
     localStorage.setItem('api_fe_settings_notifs', JSON.stringify(updated));
-    // );
+    // toast.success(t('settings.notifications_section.saved'));
   };
 
   const handleTogglePrivacy = (key) => {
     const updated = { ...privacy, [key]: !privacy[key] };
     setPrivacy(updated);
     localStorage.setItem('api_fe_settings_privacy', JSON.stringify(updated));
-    // );
+    // toast.success(t('settings.privacy_section.saved'));
   };
 
   const handleGenerateKey = () => {
@@ -127,7 +206,7 @@ export default function Settings() {
     const updatedKeys = [...apiKeys, newKey];
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
-    // );
+    // toast.success(t('settings.api_keys_section.created'));
     
     // Automatically focus and edit the newly created key inline
     setEditingId(newKey.id);
@@ -144,14 +223,14 @@ export default function Settings() {
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
     setEditingId(null);
-    // );
+    // toast.success(t('settings.api_keys_section.saved_name'));
   };
 
   const handleDeleteKey = (id) => {
     const updatedKeys = apiKeys.filter(k => k.id !== id);
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
-    // );
+    // toast.success(t('settings.api_keys_section.deleted'));
   };
 
   const sections = [
@@ -365,6 +444,7 @@ export default function Settings() {
                               <button 
                                 onClick={() => {
                                   navigator.clipboard.writeText(key.value);
+                                  toast.success(t('settings.api_keys_section.copied'));
                                 }}
                                 className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                                 title={t('settings.api_keys_section.copy_key')}
@@ -388,13 +468,42 @@ export default function Settings() {
               </motion.div>
             )}
 
-            {activeSection === 'subscription' && subscription && (
+            {activeSection === 'subscription' && (
               <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15 }} className="space-y-6 relative z-10 flex-1 flex flex-col justify-between h-full">
+                {remoteLoading ? (
+                  <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-white/5 bg-slate-950/20 text-slate-400">
+                    <div className="flex items-center gap-3">
+                      <RefreshCw size={16} className="animate-spin text-indigo-400" />
+                      <span>Đang tải cài đặt...</span>
+                    </div>
+                  </div>
+                ) : (
                 <div className="space-y-6">
+                  {remoteError && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                      {remoteError}
+                    </div>
+                  )}
+
                   {/* Current Plan Information */}
                   <div>
                     <h3 className="text-lg font-bold text-white mb-1">{t('settings.subscription_section.title')}</h3>
                     <p className="text-sm text-slate-400">{t('settings.subscription_section.desc')}</p>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500">Gói hiện tại</p>
+                      <p className="mt-2 text-base font-bold text-white">{aiPlan.label}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500">Model AI</p>
+                      <p className="mt-2 text-base font-bold text-white">{aiPlan.model}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500">Giới hạn</p>
+                      <p className="mt-2 text-base font-bold text-white">{aiPlan.limitText}</p>
+                    </div>
                   </div>
 
                   <div className="p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-950/20 to-slate-900/40 relative overflow-hidden">
@@ -406,21 +515,21 @@ export default function Settings() {
                       <div>
                         <div className="flex items-center gap-3">
                           <h4 className="text-2xl font-black text-white">
-                            {t(`settings.plans.${subscription.planId?.toLowerCase()}.name`) || subscription.planName}
+                            {t(`settings.plans.${subscription?.planId?.toLowerCase()}.name`) || subscription?.planName || aiPlan.label}
                           </h4>
                           <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${
-                            subscription.status === 'ACTIVE' 
+                            subscription?.status === 'ACTIVE' 
                               ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' 
                               : 'border-rose-500/20 bg-rose-500/10 text-rose-400'
                           }`}>
-                            {subscription.status === 'ACTIVE' 
+                            {subscription?.status === 'ACTIVE' 
                               ? t('settings.subscription_section.status_active') 
                               : t('settings.subscription_section.status_cancelled')}
                           </span>
                         </div>
-                        {subscription.expiredAt && (
+                        {subscription?.expiredAt && (
                           <p className="text-xs text-slate-400 mt-2">
-                            {subscription.status === 'ACTIVE'
+                            {subscription?.status === 'ACTIVE'
                               ? t('settings.subscription_section.renew_at', { 
                                   date: new Intl.DateTimeFormat(lang === 'vi' ? 'vi-VN' : 'en-US', { dateStyle: 'long' }).format(new Date(subscription.expiredAt)) 
                                 })
@@ -433,7 +542,7 @@ export default function Settings() {
                       </div>
                       
                       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                        {subscription.planId !== 'free' && (
+                        {subscription?.planId !== 'free' && (
                           <>
                             <button 
                               onClick={() => setRenewConfirmSub(true)}
@@ -441,7 +550,7 @@ export default function Settings() {
                             >
                               <RefreshCw size={14} /> {t('settings.subscription_section.btn_renew')}
                             </button>
-                            {subscription.status === 'ACTIVE' && (
+                            {subscription?.status === 'ACTIVE' && (
                               <button 
                                 onClick={() => setCancelConfirmSub(true)}
                                 className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
@@ -506,6 +615,7 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
+                )}
               </motion.div>
             )}
 
@@ -623,7 +733,7 @@ export default function Settings() {
                         status: 'CANCELLED',
                       });
                       setSubscription(updated);
-                      // );
+                      // toast.success(t('settings.subscription_section.cancel_success'));
                     } catch {
                       // ignore
                     }
@@ -669,8 +779,8 @@ export default function Settings() {
             {/* Subtitle / Description */}
             <p className="text-slate-300 text-sm leading-relaxed mb-6">
               {t('settings.subscription_section.renew_modal.desc', {
-                plan: subscription.planName === 'Pro' ? 'Plus' : subscription.planName,
-                date: formatDateModal(subscription.expiredAt)
+                plan: subscription?.planName === 'Pro' ? 'Plus' : subscription?.planName,
+                date: formatDateModal(subscription?.expiredAt)
               })}
             </p>
 
@@ -678,15 +788,15 @@ export default function Settings() {
             <div className="bg-[#141416]/90 border border-white/5 rounded-xl p-4 mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-white font-bold text-sm">
-                  {subscription.planName === 'Pro' ? 'ChatDMP Pro' : subscription.planName}
+                  {subscription?.planName === 'Pro' ? 'ChatDMP Pro' : subscription?.planName}
                 </span>
                 <span className="text-slate-400 text-xs font-semibold">
-                  {formatPrice(subscription.price)}/{t('settings.subscription_section.renew_modal.cycle_unit')}
+                  {formatPrice(subscription?.price || 0)}/{t('settings.subscription_section.renew_modal.cycle_unit')}
                 </span>
               </div>
               <p className="text-slate-500 text-xs">
                 {t('settings.subscription_section.renew_modal.box_desc', {
-                  date: formatDateModal(subscription.expiredAt)
+                  date: formatDateModal(subscription?.expiredAt)
                 })}
               </p>
             </div>
@@ -708,11 +818,9 @@ export default function Settings() {
                       status: 'ACTIVE',
                     });
                     setSubscription(updated);
+                    toast.success(t('settings.subscription_section.renew_modal.toast_success'));
                   } catch (e) {
-                    const isNetworkError = e.message?.includes('fetch') || e.message?.includes('NetworkError') || e.message?.includes('Failed to fetch');
-                    if (!isNetworkError) {
-                      toast.error(e.message || 'Error');
-                    }
+                    toast.error(e.message || 'Error');
                   }
                 }}
                 className="px-5 py-2 rounded-full text-xs font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg active:scale-95"

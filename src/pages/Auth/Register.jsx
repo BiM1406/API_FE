@@ -9,7 +9,7 @@ const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 export default function Register({ onSwitch, onRegisterSuccess }) {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,7 +21,7 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
-    if (!name.trim()) newErrors.name = t('auth.toast_register_username_required');
+    if (!username.trim()) newErrors.username = t('auth.toast_register_username_required');
     if (!email.trim()) newErrors.email = t('auth.toast_register_email_required');
     else if (!isEmail(email)) newErrors.email = t('auth.toast_register_email_invalid');
     if (!password) newErrors.password = t('auth.toast_register_pwd_required');
@@ -38,13 +38,11 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
     setErrors({});
     setIsLoading(true);
     try {
-      await register({ name, email, password });
+      await register({ username, email, password, confirmPassword });
+      toast.success(t('auth.toast_register_success'));
       onRegisterSuccess(email);
     } catch (error) {
-      const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        toast.error(error.message || t('auth.toast_register_failed'));
-      }
+      toast.error(error.message || t('auth.toast_register_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -66,14 +64,15 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
             <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
+              name="username"
               autoComplete="off"
-              value={name}
-              onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: '' })); }}
-              className={`w-full bg-slate-800/50 border ${errors.name ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
+              value={username}
+              onChange={(e) => { setUsername(e.target.value); setErrors((prev) => ({ ...prev, username: '' })); }}
+              className={`w-full bg-slate-800/50 border ${errors.username ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder={t('auth.register_username_placeholder')}
             />
           </div>
-          {errors.name && <p className="text-red-400 text-xs">{errors.name}</p>}
+          {errors.username && <p className="text-red-400 text-xs">{errors.username}</p>}
         </div>
 
         <div className="space-y-2">

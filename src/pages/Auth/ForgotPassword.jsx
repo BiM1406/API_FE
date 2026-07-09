@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Mail, ArrowLeft, Loader2, Send, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { forgotPassword, resetPassword } from '../../services/authService';
+import { forgotPassword, resetPassword } from '../../services/auth.service';
 
 // ─── COMPONENT 1: YÊU CẦU KHÔI PHỤC (Gửi email) ──────────────────────────
 export function ForgotPasswordView({ onBack }) {
@@ -22,14 +22,12 @@ export function ForgotPasswordView({ onBack }) {
     setIsLoading(true);
     try {
       await forgotPassword(email);
-      setIsSent(true);
-    } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        toast.error(err.message || t('auth.forgot_pwd_toast_failed'));
-      }
-    } finally {
       setIsLoading(false);
+      setIsSent(true);
+      toast.success(t('auth.forgot_pwd_toast_request_sent'));
+    } catch (error) {
+      setIsLoading(false);
+      toast.error(error.message || t('auth.forgot_pwd_toast_request_failed'));
     }
   };
 
@@ -89,32 +87,27 @@ export function ResetPasswordView() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const [token, setToken] = useState('');
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const urlToken = params.get('token');
-    if (urlToken) {
-      setToken(urlToken);
-    }
-  }, [location.search]);
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) { toast.error(t('auth.reset_pwd_toast_mismatch')); return; }
-    if (password.length < 8) { toast.error('Mật khẩu tối thiểu 8 ký tự'); return; }
+    if (password.length < 8) { toast.error(t('auth.reset_pwd_toast_min')); return; }
+    if (!token) { toast.error(t('auth.reset_pwd_toast_token_missing')); return; }
     setIsLoading(true);
     try {
-      await resetPassword({ token, password, confirmPassword });
-      setIsSuccess(true);
-    } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        toast.error(err.message || 'Đặt lại mật khẩu thất bại');
-      }
-    } finally {
+      await resetPassword({
+        token,
+        newPassword: password,
+        confirmPassword
+      });
       setIsLoading(false);
+      setIsSuccess(true);
+      toast.success(t('auth.reset_pwd_toast_success'));
+    } catch (error) {
+      setIsLoading(false);
+      toast.error(error.message || t('auth.reset_pwd_toast_failed'));
     }
   };
 

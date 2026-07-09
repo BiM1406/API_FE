@@ -1,6 +1,6 @@
-import { createId, readArrayStorage, writeStorage } from '../utils/storage';
+import api, { normalizeApiError, unwrap } from './api';
 
-const HISTORY_KEY = 'api_fe_api_test_history';
+const listFrom = (payload, key) => Array.isArray(payload) ? payload : payload?.[key] || payload?.items || [];
 
 const normalizeVariables = (environment = []) => {
   if (Array.isArray(environment)) return environment;
@@ -27,90 +27,56 @@ export function parseHeaders(headers = []) {
 export function parseBody(body, bodyType = 'json') {
   if (!body) return undefined;
   if (bodyType === 'raw' || bodyType === 'text') return String(body);
-  if (bodyType === 'json') {
-    try {
-      return JSON.stringify(typeof body === 'string' ? JSON.parse(body) : body);
-    } catch {
-      throw new Error('Body JSON không hợp lệ');
-    }
-  }
+  if (bodyType === 'json') return typeof body === 'string' ? JSON.parse(body) : body;
   return body;
 }
 
 export function validateRequestConfig(config) {
-  if (!config?.url?.trim()) throw new Error('Vui lòng nhập URL');
+  if (!config?.url?.trim()) throw new Error('Vui long nhap URL');
   try {
     new URL(config.url);
   } catch {
-    throw new Error('URL không hợp lệ. Hãy nhập URL đầy đủ, ví dụ https://api.example.com/users hoặc cấu hình {{baseUrl}}');
+    throw new Error('URL khong hop le. Hay nhap URL day du, vi du https://api.example.com/users hoac cau hinh {{baseUrl}}');
   }
-  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].includes(config.method)) throw new Error('HTTP method không hợp lệ');
+  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'].includes(config.method)) {
+    throw new Error('HTTP method khong hop le');
+  }
   return true;
 }
 
 export async function sendApiRequest(config) {
   validateRequestConfig(config);
-  const startedAt = performance.now();
-  const headers = parseHeaders(config.headers);
-  const shouldSendBody = !['GET', 'HEAD'].includes(config.method);
-  const body = shouldSendBody ? parseBody(config.body, config.bodyType || 'json') : undefined;
-
   try {
-    const response = await fetch(config.url, { method: config.method, headers, body });
-    const text = await response.text();
-    let data;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text;
-    }
-
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      duration: Math.round(performance.now() - startedAt),
-      headers: Object.fromEntries(response.headers.entries()),
-      data,
-      size: new Blob([text]).size
-    };
+    return unwrap(await api.post('/api-tester/send', config));
   } catch (error) {
-    throw new Error(error.message?.includes('Failed to fetch')
-      ? 'Không thể gửi request. Có thể URL sai, server không chạy hoặc bị chặn CORS/network.'
-      : error.message || 'Request thất bại');
+    throw normalizeApiError(error, 'Khong the gui API test');
   }
 }
 
-export function getRequestHistory() {
-  return readArrayStorage(HISTORY_KEY, []);
+export async function getRequestHistory(projectId = 'default') {
+  try {
+    return listFrom(unwrap(await api.get(`/projects/${projectId}/api-test-history`)), 'history');
+  } catch (error) {
+    throw normalizeApiError(error, 'Khong the tai lich su API test');
+  }
 }
 
-import { getCurrentUser } from './authService';
-
-export function saveRequestHistory(item) {
-  const currentUser = getCurrentUser();
-  const userId = currentUser ? currentUser.id : null;
-  const history = [
-    { 
-      id: item.id || createId('request'), 
-      createdAt: new Date().toISOString(), 
-      userId, 
-      ...item 
-    }, 
-    ...getRequestHistory()
-  ].slice(0, 100);
-  writeStorage(HISTORY_KEY, history);
-  return history;
+export async function saveRequestHistory(item) {
+  return item;
 }
 
-export function clearRequestHistory() {
-  localStorage.removeItem(HISTORY_KEY);
-  return [];
+export async function clearRequestHistory(projectId = 'default') {
+  try {
+    return unwrap(await api.delete(`/projects/${projectId}/api-test-history`));
+  } catch (error) {
+    throw normalizeApiError(error, 'Khong the xoa lich su API test');
+  }
 }
 
-export function deleteRequestHistoryItem(id) {
-  const next = getRequestHistory().filter((item) => item.id !== id);
-  writeStorage(HISTORY_KEY, next);
-  return next;
+export async function deleteRequestHistoryItem(historyId) {
+  try {
+    return unwrap(await api.delete(`/test-history/${historyId}`));
+  } catch (error) {
+    throw normalizeApiError(error, 'Khong the xoa muc lich su API test');
+  }
 }
-

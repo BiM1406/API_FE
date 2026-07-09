@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Check, Zap, Bot, Crown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getCurrentUser, getUsers, saveUsers, saveAuth } from '../../services/authService';
+import { getCurrentUser } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getProfile, getSubscription, updateProfile, changePassword } from '../../services/profileService';
+import { getProfile, updateProfile, changePassword } from '../../services/profileService';
 
 export default function EditProfile() {
   const navigate = useNavigate();
@@ -34,8 +34,6 @@ export default function EditProfile() {
     confirm: false
   });
 
-  const savedPlan = user?.plan?.toLowerCase() || 'free';
-  const [currentPlan, setCurrentPlan] = useState(savedPlan);
   const [activeTab, setActiveTab] = useState('profile');
 
   const isNewSameAsCurrent = passwords.newPassword && passwords.newPassword === passwords.currentPassword;
@@ -53,6 +51,7 @@ export default function EditProfile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
+        toast.success(t('edit_profile.avatar_preview_toast'));
       };
       reader.readAsDataURL(file);
     }
@@ -60,7 +59,7 @@ export default function EditProfile() {
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([getProfile(), getSubscription()]).then(([profile, subscription]) => {
+    getProfile().then((profile) => {
       if (!mounted) return;
       setFormData({
         name: profile?.name || profile?.username || '',
@@ -69,7 +68,6 @@ export default function EditProfile() {
       if (profile?.avatar) {
         setAvatarPreview(profile.avatar);
       }
-      setCurrentPlan(String(subscription?.plan || profile?.plan || 'free').toLowerCase());
     });
 
     return () => {
@@ -95,14 +93,7 @@ export default function EditProfile() {
       avatar: avatarPreview
     });
 
-    const currentUser = getCurrentUser();
-    if (currentUser) {
-      currentUser.plan = currentPlan;
-      currentUser.avatar = avatarPreview;
-      const users = getUsers().map((u) => u.id === currentUser.id ? { ...u, plan: currentPlan, avatar: avatarPreview } : u);
-      saveUsers(users);
-      saveAuth(currentUser, localStorage.getItem('token') || 'mock-token');
-    }
+    toast.success(t('edit_profile.toast_saved'));
     navigate('/profile');
   };
 
@@ -130,15 +121,13 @@ export default function EditProfile() {
         newPassword: passwords.newPassword,
         confirmPassword: passwords.confirmPassword
       });
+      toast.success(t('edit_profile.toast_pwd_changed'));
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
-          toast.error(t('edit_profile.toast_current_pwd_incorrect'));
-        } else {
-          toast.error(err.message || 'Error');
-        }
+      if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
+        toast.error(t('edit_profile.toast_current_pwd_incorrect'));
+      } else {
+        toast.error(err.message || 'Error');
       }
     }
   };

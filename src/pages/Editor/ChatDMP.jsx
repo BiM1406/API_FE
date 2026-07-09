@@ -11,18 +11,53 @@ import {
 
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
-import { sendChatMessage } from '../../services/aiService';
-import { readArrayStorage, readStorage, writeStorage } from '../../utils/storage';
-import {
-  getConversations,
-  getMessages,
-  createConversation,
-  deleteConversation,
-  renameConversation
-} from '../../services/workspaceService';
+import { getFriendlyAiError, sendChatMessage } from '../../services/aiService';
+import { getCurrentUser } from '../../services/authService';
+import { readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const AI_PLAN_CONFIG = {
+  FREE: {
+    label: "FREE",
+    model: "gemini-2.5-flash",
+    limitText: "5 req/phút",
+  },
+  PRO: {
+    label: "PRO",
+    model: "gemini-3.0-flash",
+    limitText: "15 req/phút",
+  },
+  ULTRA: {
+    label: "ULTRA",
+    model: "gemini-3.5-flash",
+    limitText: "30 req/phút",
+  },
+};
+
+const AI_PLAN_DESCRIPTIONS = {
+  FREE: 'model cơ bản, giới hạn thấp',
+  PRO: 'model tốt hơn, giới hạn cao hơn',
+  ULTRA: 'model mạnh nhất, giới hạn cao nhất',
+};
+
+const normalizePlan = (plan) => {
+  const value = String(plan || "FREE").toUpperCase();
+  return ["FREE", "PRO", "ULTRA"].includes(value) ? value : "FREE";
+};
+
+const getUserAiPlan = (user) => {
+  const currentPlan = normalizePlan(
+    user?.plan ||
+    user?.planCode ||
+    user?.subscription?.plan?.code ||
+    user?.currentPlan
+  );
+
+  return AI_PLAN_CONFIG[currentPlan] || AI_PLAN_CONFIG.FREE;
+};
 
 // Sidebar component
 const Sidebar = ({
@@ -245,13 +280,18 @@ const Sidebar = ({
   );
 };
 
-const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId }) => {
+const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode }) => {
   const { t, i18n } = useTranslation();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [aiPlan, setAiPlan] = useState(() => getUserAiPlan(getCurrentUser()));
   const scrollContainerRef = useRef(null);
 
   const isVi = i18n.language.startsWith('vi');
+
+  useEffect(() => {
+    setAiPlan(getUserAiPlan(getCurrentUser()));
+  }, []);
 
   const aiModes = [
     { id: 'chat', label: isVi ? 'Chat thường' : 'General Chat', icon: MessageSquare },
@@ -289,40 +329,26 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
   }
 
   const buildAssistantReply = (message) => {
-    const modeLabel = aiModes.find((mode) => mode.id === activeMode)?.label || (isVi ? 'Chat thường' : 'General Chat');
     if (activeMode === 'api') {
-      return isVi
-        ? `Mình đề xuất API request sau cho yêu cầu: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse nên trả về accessToken, refreshToken và thông tin user tối giản.`
-        : `Here is a proposed API request for: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse should return accessToken, refreshToken, and basic user info.`;
+      return `De xuat API request cho: "${message}"\n\n\`\`\`http\nPOST {{baseUrl}}/auth/login\nContent-Type: application/json\n\n{\n  "email": "user@example.com",\n  "password": "secret123"\n}\n\`\`\`\n\nResponse nen tra ve accessToken, refreshToken va thong tin user toi gian.`;
     }
     if (activeMode === 'database') {
-      return isVi
-        ? `Schema gợi ý cho yêu cầu: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nBạn có thể áp dụng schema này vào Database Designer rồi tinh chỉnh cột/quan hệ.`
-        : `Suggested schema for: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\`\n\nYou can apply this schema in the Database Designer.`;
+      return `Schema goi y cho: "${message}"\n\n\`\`\`sql\nCREATE TABLE users (\n  id UUID PRIMARY KEY,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  full_name VARCHAR(160),\n  created_at TIMESTAMP NOT NULL\n);\n\nCREATE TABLE bookings (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  status VARCHAR(32) NOT NULL,\n  created_at TIMESTAMP NOT NULL\n);\n\`\`\``;
     }
     if (activeMode === 'code') {
-      return isVi
-        ? `Đây là mẫu code cho yêu cầu: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``
-        : `Sample code for: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``;
+      return `Code mau cho: "${message}"\n\n\`\`\`javascript\nexport async function requestApi(path, token) {\n  const response = await fetch(\`{{baseUrl}}\${path}\`, {\n    headers: { Authorization: \`Bearer \${token}\` }\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\`\`\``;
     }
     if (activeMode === 'debug') {
-      return isVi
-        ? `Mình sẽ debug theo các bước:\n\n1. Kiểm tra status code và response body.\n2. Đối chiếu headers, auth token và environment variables.\n3. Thử lại request trong API Tester.\n\n\`\`\`json\n{\n  "hint": "Dán response lỗi vào đây để phân tích chi tiết"\n}\n\`\`\``
-        : `Debugging steps:\n\n1. Check status code and response body.\n2. Verify headers, auth token, and environment variables.\n3. Retry request in API Tester.\n\n\`\`\`json\n{\n  "hint": "Paste the error response here for detailed analysis"\n}\n\`\`\``;
+      return `Nguyen nhan:\nCan them response loi de ket luan.\n\nCach sua:\nKiem tra status code, response body, headers va auth token.\n\nCode can sua:\n\`\`\`json\n{\n  "hint": "Dan response loi vao day"\n}\n\`\`\`\n\nKiem tra lai:\nThu lai request trong API Tester.`;
     }
     if (activeMode === 'docs') {
-      return isVi
-        ? `Tài liệu API nháp:\n\n### Endpoint\n\`${message}\`\n\n### Mục tiêu\nMô tả request, authentication, response mẫu và lỗi phổ biến để team frontend/backend dùng chung.`
-        : `Draft API Documentation:\n\n### Endpoint\n\`${message}\`\n\n### Objective\nDescribe requests, authentication, mock responses, and errors.`;
+      return `Tai lieu API nhap:\n\n### Endpoint\n\`${message}\`\n\n### Muc tieu\nMo ta request, authentication, response mau va loi chinh.`;
     }
-    return isVi
-      ? `Đang ở mode ${modeLabel}. Đây là phản hồi mẫu cho: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``
-      : `AI Mode: ${activeMode}. Echo: "${message}"\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``;
+    return `ChatDMP: ${message}\n\n\`\`\`javascript\nconsole.log("ChatDMP ready");\n\`\`\``;
   };
-
-  const handleSend = (preset) => {
+  const handleSend = async (preset) => {
     const content = (typeof preset === 'string' ? preset : input).trim();
-    if (!content) return;
+    if (!content || isTyping) return;
 
     const isFirstMsg = activeChat.messages.length === 0;
     const newTitle = isFirstMsg ? (content.length > 28 ? `${content.substring(0, 28)}...` : content) : undefined;
@@ -336,35 +362,37 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
 
     logActivity('chatDmp', 'Sent message in ChatDMP');
 
-    setTimeout(async () => {
-      let aiMsg;
-      try {
-        const aiResponse = await sendChatMessage({
-          message: newMsg.content,
-          mode: activeMode,
-          conversationId: activeChat.id,
-          projectId: projectId
-        });
-        aiMsg = {
-          id: aiResponse.id || generateId(),
-          role: 'assistant',
-          content: aiResponse.content || buildAssistantReply(newMsg.content),
-          timestamp: Date.now(),
-          mode: activeMode,
-          metadata: aiResponse.metadata || {}
-        };
-        if (newTitle) {
-          await renameConversation(activeChat.id, newTitle).catch(() => {});
-        }
-      } catch (err) {
-        console.error('Error sending message:', err);
-        aiMsg = { id: generateId(), role: 'assistant', content: buildAssistantReply(newMsg.content), timestamp: Date.now(), mode: activeMode };
-      }
+    try {
+      const history = activeChat.messages
+        .slice(-10)
+        .filter((msg) => msg.role && msg.content)
+        .map((msg) => ({ role: msg.role, content: msg.content }));
+      const aiResponse = await sendChatMessage({ message: newMsg.content, mode: activeMode, history });
+      const aiMsg = {
+        id: aiResponse.id || generateId(),
+        role: 'assistant',
+        content: aiResponse.content || buildAssistantReply(newMsg.content),
+        timestamp: Date.now(),
+        mode: activeMode,
+        metadata: aiResponse.metadata || {},
+        planCode: aiResponse.planCode,
+        model: aiResponse.model
+      };
       updateChat({ messages: [...updatedMessages, aiMsg] });
+      setAiPlan(getUserAiPlan(getCurrentUser()));
+    } catch (error) {
+      const message = getFriendlyAiError(error);
+      toast.error(message);
+      updateChat({
+        messages: [
+          ...updatedMessages,
+          { id: generateId(), role: 'assistant', content: message, timestamp: Date.now(), mode: activeMode, isError: true }
+        ]
+      });
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
-
   const renderMessage = (msg) => {
     const isUser = msg.role === 'user';
     const hasApiRequest = !isUser && /POST|GET|PUT|PATCH|DELETE|{{baseUrl}}|Content-Type/i.test(msg.content);
@@ -386,14 +414,14 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
           <div className="flex items-center justify-between mb-1 h-6">
             <div />
             <button
-              onClick={() => { navigator.clipboard.writeText(msg.content); }}
+              onClick={() => { navigator.clipboard.writeText(msg.content); toast.success(t('chat_dmp.chat_tab.copied_toast')); }}
               className="opacity-0 group-hover/msg:opacity-100 transition-opacity p-1.5 hover:bg-white/5 text-slate-500 hover:text-white rounded"
               title={isVi ? 'Sao chép tin nhắn' : 'Copy message'}
             >
               <Copy size={13} />
             </button>
           </div>
-          <div className="text-slate-300 text-sm leading-relaxed font-medium space-y-4">
+          <div className={`${msg.isError ? 'rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200' : 'text-slate-300'} text-sm leading-relaxed font-medium space-y-4`}>
             {msg.content.split('```').map((part, i) => {
               if (i % 2 === 1) {
                 const lines = part.split('\n');
@@ -403,7 +431,7 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                   <div key={i} className="my-4 bg-slate-950 border border-white/5 rounded-xl overflow-hidden shadow-2xl">
                     <div className="flex justify-between items-center px-4 py-2 bg-[#181824] border-b border-white/5 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
                       <span>{lang}</span>
-                      <button onClick={() => { navigator.clipboard.writeText(code); }} className="hover:text-white flex items-center gap-1 transition-colors"><Copy size={12} /> {isVi ? 'Sao chép' : 'Copy'}</button>
+                      <button onClick={() => { navigator.clipboard.writeText(code); toast.success(t('chat_dmp.chat_tab.copied_code_toast')); }} className="hover:text-white flex items-center gap-1 transition-colors"><Copy size={12} /> {isVi ? 'Sao chép' : 'Copy'}</button>
                     </div>
                     <SyntaxHighlighter
                       language={lang === 'text' ? 'javascript' : lang}
@@ -430,6 +458,7 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                     headers: [{ key: 'Content-Type', value: 'application/json' }],
                     body: '{\n  "email": "user@example.com",\n  "password": "123456"\n}'
                   }));
+                  toast.success(t('chat_dmp.chat_tab.sent_to_tester_toast'));
                 }} className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/20">
                   {t('chat_dmp.chat_tab.use_tester_btn')}
                 </button>
@@ -448,6 +477,7 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                       }
                     ]
                   }));
+                  toast.success(t('chat_dmp.chat_tab.applied_schema_toast'));
                 }} className="rounded-xl bg-violet-500/10 border border-violet-500/20 px-3.5 py-2 text-xs font-bold text-violet-300 transition hover:bg-violet-500/20">
                   {t('chat_dmp.chat_tab.apply_db_btn')}
                 </button>
@@ -474,7 +504,8 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                 <button
                   key={suggestion.label}
                   onClick={() => handleSend(suggestion.prompt)}
-                  className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 text-left transition hover:border-indigo-500/30 hover:bg-white/[0.02] group"
+                  disabled={isTyping}
+                  className="rounded-2xl border border-white/5 bg-slate-900/40 p-4 text-left transition hover:border-indigo-500/30 hover:bg-white/[0.02] disabled:cursor-not-allowed disabled:opacity-50 group"
                 >
                   <p className="text-xs font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">{suggestion.label}</p>
                   <p className="mt-1.5 line-clamp-2 text-[11px] font-medium text-slate-500 leading-relaxed">{suggestion.prompt}</p>
@@ -515,6 +546,12 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
             );
           })}
         </div>
+        <div className="mx-auto mb-3 flex max-w-4xl flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-400">
+          <span className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-indigo-200">{aiPlan.label}</span>
+          <span className="rounded-lg border border-white/5 bg-slate-950/50 px-2.5 py-1">{aiPlan.model}</span>
+          <span className="rounded-lg border border-white/5 bg-slate-950/50 px-2.5 py-1">{AI_PLAN_DESCRIPTIONS[aiPlan.label]}</span>
+          <span className="rounded-lg border border-white/5 bg-slate-950/50 px-2.5 py-1">{aiPlan.limitText}</span>
+        </div>
         <div className="relative max-w-4xl mx-auto flex items-end bg-slate-950/60 border border-white/10 rounded-2xl focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all pl-5 pr-2 py-2">
           <textarea
             value={input}
@@ -525,8 +562,9 @@ const ChatTab = ({ activeChat, updateChat, activeMode, setActiveMode, projectId 
                 handleSend();
               }
             }}
+            disabled={isTyping}
             placeholder={t('chat_dmp.chat_tab.placeholder')}
-            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 py-2.5 text-sm text-white placeholder-slate-500 resize-none custom-scrollbar"
+            className="flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 py-2.5 text-sm text-white placeholder-slate-500 resize-none custom-scrollbar disabled:opacity-60"
             rows={1}
             style={{ minHeight: '40px', maxHeight: '200px' }}
           />
@@ -789,102 +827,6 @@ export default function ChatDMP() {
     setProjects(projs => projs.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
-  // Tự động đồng bộ hóa các cuộc hội thoại và tin nhắn từ Backend khi activeId thay đổi
-  useEffect(() => {
-    if (!activeId) return;
-    let isMounted = true;
-
-    async function syncWithBackend() {
-      try {
-        const backendConversations = await getConversations(activeId);
-        if (backendConversations.length === 0) {
-          const defaultChat = await createConversation(activeId, {
-            title: t('chat_dmp.sidebar.default_chat_title'),
-            mode: 'chat'
-          });
-          backendConversations.push({
-            ...defaultChat,
-            messages: []
-          });
-        }
-
-        const conversationsWithMessages = await Promise.all(
-          backendConversations.map(async (conv) => {
-            try {
-              const msgs = await getMessages(conv.id);
-              return {
-                ...conv,
-                messages: msgs || []
-              };
-            } catch (err) {
-              console.error(`Failed to load messages for conversation ${conv.id}:`, err);
-              return {
-                ...conv,
-                messages: []
-              };
-            }
-          })
-        );
-
-        if (!isMounted) return;
-
-        setProjects((prev) =>
-          prev.map((p) => {
-            if (p.id === activeId) {
-              // 1. Tìm các cuộc trò chuyện chỉ tồn tại cục bộ ở local (chưa đồng bộ lên backend)
-              const localChats = p.chats || [];
-              const backendIds = new Set(conversationsWithMessages.map((c) => c.id));
-              const unsyncedChats = localChats.filter((lc) => !backendIds.has(lc.id));
-
-              // 2. Gộp các cuộc trò chuyện backend với các cuộc trò chuyện local chưa đồng bộ
-              // Dữ liệu từ backend là mới nhất đối với các chat đã đồng bộ.
-              const mergedConversations = [...conversationsWithMessages];
-              
-              // Đối với mỗi cuộc trò chuyện backend, nếu ở local cũng có và có tin nhắn mới offline,
-              // ta có thể gộp tin nhắn offline chưa có trên backend.
-              const mergedConversationsFinal = mergedConversations.map((bc) => {
-                const lc = localChats.find((x) => x.id === bc.id);
-                if (lc && lc.messages && lc.messages.length > bc.messages.length) {
-                  // Gộp tin nhắn theo ID
-                  const bcMsgIds = new Set(bc.messages.map((m) => m.id));
-                  const unsyncedMsgs = lc.messages.filter((m) => !bcMsgIds.has(m.id));
-                  return {
-                    ...bc,
-                    messages: [...bc.messages, ...unsyncedMsgs]
-                  };
-                }
-                return bc;
-              });
-
-              // Bổ sung các chat offline hoàn toàn
-              const finalChats = [...mergedConversationsFinal, ...unsyncedChats];
-
-              const activeChatId =
-                p.activeChatId && finalChats.some((c) => c.id === p.activeChatId)
-                  ? p.activeChatId
-                  : finalChats[0]?.id || null;
-
-              return {
-                ...p,
-                chats: finalChats,
-                activeChatId
-              };
-            }
-            return p;
-          })
-        );
-      } catch (err) {
-        console.error('Failed to sync conversations/messages with Backend:', err);
-      }
-    }
-
-    syncWithBackend();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeId, t]);
-
   // Automatically select a chat if none is selected
   useEffect(() => {
     if (activeProject && !activeProject.activeChatId && activeProject.chats && activeProject.chats.length > 0) {
@@ -905,27 +847,12 @@ export default function ChatDMP() {
       }
       return p;
     }));
-    if (updates.title) {
-      renameConversation(chatId, updates.title).catch((err) => {
-        console.error('Failed to rename conversation on Backend:', err);
-      });
-    }
   };
 
   const updateCurrentChat = (updates) => {
     setProjects(projs => projs.map(p => {
       if (p.id === activeId) {
-        const updatedChats = p.chats.map(chat => {
-          if (chat.id === p.activeChatId) {
-            if (updates.title) {
-              renameConversation(chat.id, updates.title).catch((err) => {
-                console.error('Failed to rename conversation on Backend:', err);
-              });
-            }
-            return { ...chat, ...updates };
-          }
-          return chat;
-        });
+        const updatedChats = p.chats.map(chat => chat.id === p.activeChatId ? { ...chat, ...updates } : chat);
         return { ...p, chats: updatedChats };
       }
       return p;
@@ -967,55 +894,20 @@ export default function ChatDMP() {
     setActiveId(cloneId);
   };
 
-  const handleNewChat = async () => {
+  const handleNewChat = () => {
     if (!activeProject) return;
-    try {
-      const newChatRes = await createConversation(activeProject.id, {
-        title: t('chat_dmp.sidebar.default_chat_title'),
-        mode: activeMode
-      });
-      const newChat = {
-        id: newChatRes.id,
-        title: newChatRes.title,
-        messages: [],
-        createdAt: new Date(newChatRes.createdAt).getTime()
-      };
-      const updatedChats = [newChat, ...(activeProject.chats || [])];
-      updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
-      logActivity('chatDmp', 'Created new chat thread on Backend');
-    } catch (err) {
-      console.error('Failed to create chat on Backend, creating locally:', err);
-      const newChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
-      const updatedChats = [newChat, ...(activeProject.chats || [])];
-      updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
-    }
+    const newChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
+    const updatedChats = [newChat, ...(activeProject.chats || [])];
+    updateProject(activeProject.id, { chats: updatedChats, activeChatId: newChat.id });
+    logActivity('chatDmp', 'Created new chat thread');
   };
 
-  const handleDeleteChat = async (chatId) => {
+  const handleDeleteChat = (chatId) => {
     if (!activeProject) return;
-    try {
-      await deleteConversation(chatId);
-    } catch (err) {
-      console.error('Failed to delete chat on Backend:', err);
-    }
     const updatedChats = (activeProject.chats || []).filter(c => c.id !== chatId);
     if (updatedChats.length === 0) {
-      try {
-        const freshChatRes = await createConversation(activeProject.id, {
-          title: t('chat_dmp.sidebar.default_chat_title'),
-          mode: activeMode
-        });
-        const freshChat = {
-          id: freshChatRes.id,
-          title: freshChatRes.title,
-          messages: [],
-          createdAt: new Date(freshChatRes.createdAt).getTime()
-        };
-        updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
-      } catch {
-        const freshChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
-        updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
-      }
+      const freshChat = { id: generateId(), title: t('chat_dmp.sidebar.default_chat_title'), messages: [], createdAt: Date.now() };
+      updateProject(activeProject.id, { chats: [freshChat], activeChatId: freshChat.id });
     } else {
       updateProject(activeProject.id, { chats: updatedChats, activeChatId: updatedChats[0].id });
     }
@@ -1095,7 +987,6 @@ export default function ChatDMP() {
               updateChat={updateCurrentChat}
               activeMode={activeMode}
               setActiveMode={setActiveMode}
-              projectId={activeProject?.id}
               onClear={() => setConfirmState({ type: 'clear_chat', id: activeChat?.id, message: t('chat_dmp.modals.clear_chat_confirm') })}
             />
           )}
@@ -1111,7 +1002,7 @@ export default function ChatDMP() {
 
       {/* Add Project Picker Modal */}
       {showAddProject && (() => {
-        const myProjects = readArrayStorage('my_dashboard_projects', []).filter(
+        const myProjects = readStorage('my_dashboard_projects', []).filter(
           (p) => p.id !== 'mp-1' && p.id !== 'mp-2'
         );
         const alreadyAdded = new Set(projects.map(p => p.mpId).filter(Boolean));

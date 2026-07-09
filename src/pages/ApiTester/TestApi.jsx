@@ -3,24 +3,22 @@ import { Trash2, Plus, RefreshCw, Play, Server } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import toast from 'react-hot-toast';
 import { logActivity } from '../../utils/activityLogger';
-import { saveRequestHistory } from '../../services/testService';
-import { readArrayStorage, writeStorage } from '../../utils/storage';
+import { saveRequestHistory, sendApiRequest } from '../../services/testService';
+import { readStorage, writeStorage } from '../../utils/storage';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function TestApi() {
   const { t } = useTranslation();
   const [projects, setProjects] = useState(() => {
-    return readArrayStorage('ai_projects', [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }]);
+    return readStorage('ai_projects', [{ id: generateId(), name: t('test_api.default_project_name'), envs: [], apiHistory: [] }]);
   });
   const [activeId, setActiveId] = useState(projects[0]?.id);
 
-  const project = projects.find(p => p.id === activeId) || projects[0] || null;
+  const project = projects.find(p => p.id === activeId) || projects[0];
 
   const updateProject = (id, updates) => {
-    if (!id) return;
     const newProjects = projects.map(p => p.id === id ? { ...p, ...updates } : p);
     setProjects(newProjects);
     writeStorage('ai_projects', newProjects);
@@ -36,17 +34,12 @@ export default function TestApi() {
 
   const handleSend = async () => {
     if (!url) return;
-    if (!project) {
-      toast.error(t('test_api.no_project_selected') || 'Vui lòng chọn hoặc tạo một dự án trước khi kiểm thử API');
-      return;
-    }
     setLoading(true);
     let finalUrl = url;
     let finalHeaders = {};
     let finalBody = body;
 
-    const envs = project.envs || [];
-    envs.forEach(env => {
+    project.envs.forEach(env => {
       if (!env.key) return;
       const regex = new RegExp(`{{${env.key}}}`, 'g');
       finalUrl = finalUrl.replace(regex, env.value);
@@ -56,7 +49,7 @@ export default function TestApi() {
     headers.forEach(h => {
       if (h.key) {
         let val = h.value;
-        envs.forEach(env => {
+        project.envs.forEach(env => {
           if (env.key) val = val.replace(new RegExp(`{{${env.key}}}`, 'g'), env.value);
         });
         finalHeaders[h.key] = val;
@@ -65,31 +58,33 @@ export default function TestApi() {
 
     const startTime = Date.now();
     try {
-      const res = await fetch(finalUrl, {
+      const result = await sendApiRequest({
+        url: finalUrl,
         method,
         headers: finalHeaders,
-        body: ['GET', 'HEAD'].includes(method) ? undefined : finalBody || undefined
+        body: finalBody || undefined,
+        bodyType: 'raw'
       });
       const time = Date.now() - startTime;
-      const data = await res.text();
-      let jsonData;
-      try { jsonData = JSON.parse(data); } catch { jsonData = data; }
 
-      const size = new Blob([data]).size;
-      const result = { status: res.status, statusText: res.statusText, time, size, data: jsonData, headers: Object.fromEntries(res.headers.entries()) };
-      setResponse(result);
+      setResponse({
+        ...result,
+        time: result.duration || time,
+        size: result.size || 0,
+        data: result.data
+      });
 
-      const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: res.status };
-      updateProject(project.id, { apiHistory: [historyItem, ...(project.apiHistory || [])] });
-      logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: res.status }));
+      const historyItem = { id: generateId(), method, url, timestamp: Date.now(), status: result.status };
+      updateProject(project.id, { apiHistory: [historyItem, ...project.apiHistory] });
+      logActivity('api', t('test_api.activity_log', { method, url: finalUrl, status: result.status }));
 
       saveRequestHistory({
         id: historyItem.id,
         method,
         url: finalUrl,
-        responseStatus: res.status,
+        responseStatus: result.status,
         durationMs: time,
-        responseSizeBytes: size,
+        responseSizeBytes: result.size || 0,
         projectId: project.id
       });
     } catch (err) {

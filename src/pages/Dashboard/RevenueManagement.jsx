@@ -4,7 +4,6 @@ import { CreditCard, Download, ArrowUpRight, Loader2, Calendar as CalendarIcon, 
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getRevenue } from '../../services/adminService';
-import { readArrayStorage } from '../../utils/storage';
 
 function CustomDatePicker({ value, onChange, placeholder, t }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -261,12 +260,7 @@ const formatDate = (value) => value ? new Intl.DateTimeFormat('vi-VN').format(ne
 
 export default function RevenueManagement() {
   const { t } = useTranslation();
-  const [revenue, setRevenue] = useState(() => {
-    const tx = readArrayStorage('api_fe_payment_history', []);
-    const paid = tx.filter(item => ['PAID', 'SUCCESS'].includes(item.status));
-    const total = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    return { total, transactions: tx };
-  });
+  const [revenue, setRevenue] = useState({ total: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [timeRange, setTimeRange] = useState('all');
@@ -277,7 +271,6 @@ export default function RevenueManagement() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
     getRevenue()
       .then((data) => { if (mounted) { setRevenue(data); setError(''); } })
       .catch((err) => { if (mounted) setError(err.message || t('revenue.error_loading')); })
@@ -381,10 +374,11 @@ export default function RevenueManagement() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success(t('revenue.csv_exported'));
   };
 
   return (
-    <div className="p-4 sm:p-8">
+    <div className="p-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('revenue.title')}</h1>

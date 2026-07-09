@@ -314,11 +314,11 @@ export default function Database() {
   };
 
   const handleAiSchema = async () => {
-    const generated = await generateDatabaseSchema({ prompt: 'booking database schema' });
-    if (!generated?.tables?.length) { toast.error(t('db.toast_ai_no_schema')); return; }
-    const tData = generated.tables[0];
     setSaving(true);
     try {
+      const generated = await generateDatabaseSchema({ prompt: 'booking database schema' });
+      if (!generated?.tables?.length) { toast.error(t('db.toast_ai_no_schema')); return; }
+      const tData = generated.tables[0];
       const next = await createTable(projectId(), { name: tData.name || 'bookings', columns: tData.columns });
       syncSchema(next);
     } catch (err) {

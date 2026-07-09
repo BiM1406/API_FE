@@ -1,10 +1,15 @@
 export const PAYMENT_STATUS = {
   PENDING: 'PENDING',
-  PAID: 'SUCCESS',
+  PAID: 'PAID',
+  SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
   CANCELLED: 'CANCELLED',
   EXPIRED: 'EXPIRED'
 };
+
+export const isPaidPaymentStatus = (status) => (
+  status === PAYMENT_STATUS.PAID || status === PAYMENT_STATUS.SUCCESS
+);
 
 export const PAYMENT_STORAGE_KEYS = {
   CURRENT_PAYMENT: 'api_fe_current_payment',

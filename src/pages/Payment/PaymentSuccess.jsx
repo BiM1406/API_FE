@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, CreditCard } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, CreditCard } from 'lucide-react';
 import { PAYMENT_STATUS } from './paymentConstants';
-import { getCurrentPayment } from '../../services/paymentService';
+import { fetchCurrentPayment, getCurrentPayment } from './paymentService';
 import { formatCurrency, formatDateTime } from './paymentUtils';
+import { activateSubscription } from '../../services/profileService';
 
 const MotionDiv = motion.div;
 
@@ -21,7 +22,13 @@ function DetailRow({ label, value }) {
 export default function PaymentSuccess() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [payment] = useState(() => getCurrentPayment());
+  const [payment, setPayment] = useState(() => getCurrentPayment());
+
+  useEffect(() => {
+    if (!payment) {
+      fetchCurrentPayment().then(setPayment).catch(() => setPayment(null));
+    }
+  }, [payment]);
 
   useEffect(() => {
     if (payment?.status === PAYMENT_STATUS.PENDING) {
@@ -36,9 +43,25 @@ export default function PaymentSuccess() {
       navigate('/payment/failed');
       return;
     }
-    // NOTE: Subscription activation is handled server-side when BE confirms payment
-    // via /payments/{orderCode}/confirm or the SePay webhook.
-    // No additional FE-side activation call needed.
+
+    if (payment?.status === PAYMENT_STATUS.PAID) {
+      const planNameLower = payment.planName?.toLowerCase() || '';
+      let planId = 'pro';
+      if (planNameLower.includes('ultra')) {
+        planId = 'ultra';
+      }
+      
+      const planObj = {
+        planId,
+        planName: planId === 'pro' ? 'Pro' : 'Ultra',
+        price: payment.amount,
+        cycle: 'tháng'
+      };
+      
+      activateSubscription(planObj, payment).catch(err => {
+        console.error('Failed to activate subscription:', err);
+      });
+    }
   }, [navigate, payment]);
 
   if (!payment) {
@@ -61,7 +84,7 @@ export default function PaymentSuccess() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-950 px-6 py-6 text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-hidden bg-slate-950 px-6 py-6 text-white selection:bg-emerald-500/30">
       <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[40vw] w-[40vw] rounded-full bg-emerald-600/20 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[40vw] w-[40vw] rounded-full bg-indigo-600/20 blur-[120px]" />
 
@@ -85,18 +108,11 @@ export default function PaymentSuccess() {
           <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
             <DetailRow label={t('payment.success.order_code')} value={payment.orderCode} />
             <DetailRow label={t('payment.success.plan_name')} value={payment.planName} />
-            <DetailRow
-              label={t('payment.success.cycle')}
-              value={
-                ['hàng tháng', 'tháng', 'month', 'monthly'].includes(String(payment.cycle || '').toLowerCase())
-                  ? t('payment.cycle_monthly')
-                  : payment.cycle
-              }
-            />
+            <DetailRow label={t('payment.success.cycle')} value={(payment.cycle === 'Hàng tháng' || payment.cycle === 'tháng' || payment.cycle === 'month' || payment.cycle === 'Monthly') ? t('payment.cycle_monthly') : payment.cycle} />
             <DetailRow label={t('payment.success.amount')} value={formatCurrency(payment.amount)} />
             <DetailRow label={t('payment.success.provider')} value={payment.provider} />
             <DetailRow label={t('payment.success.paid_time')} value={formatDateTime(payment.paidAt)} />
-            <DetailRow label={t('payment.success.status')} value={t('payment.status_success')} />
+            <DetailRow label={t('payment.success.status')} value={t('payment.status_paid')} />
           </div>
 
           <div className="mt-6">
