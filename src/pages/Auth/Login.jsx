@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../services/authService';
 import { addActivity } from '../../services/activityService';
@@ -24,7 +23,7 @@ export default function Login({ onSwitch, onForgot }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error(t('auth.toast_login_fields_required'));
+      console.error(t('auth.toast_login_fields_required'));
       return;
     }
 
@@ -49,10 +48,11 @@ export default function Login({ onSwitch, onForgot }) {
       }
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        toast.error(error.message || t('auth.toast_login_failed'));
+      if (isNetworkError) {
+        setErrors({ general: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' });
+      } else {
+        setErrors({ auth: t('auth.toast_login_incorrect_credential') });
       }
-      setErrors({ email: error.message || t('auth.toast_login_incorrect_credential') });
     } finally {
       setIsLoading(false);
     }
@@ -65,6 +65,11 @@ export default function Login({ onSwitch, onForgot }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+        {errors.general && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+            {errors.general}
+          </div>
+        )}
         {/* Hidden inputs to trick browser autofill */}
         <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
         <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
@@ -76,8 +81,8 @@ export default function Login({ onSwitch, onForgot }) {
                 type="text"
                 autoComplete="off"
                 value={email}
-              onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '' })); }}
-              className={`w-full bg-slate-800/50 border ${errors.email ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
+              onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: '', auth: '' })); }}
+              className={`w-full bg-slate-800/50 border ${errors.email || errors.auth ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder={t('auth.email_username_placeholder')}
             />
           </div>
@@ -92,8 +97,8 @@ export default function Login({ onSwitch, onForgot }) {
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '' })); }}
-              className={`w-full bg-slate-800/50 border ${errors.password ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-10 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
+              onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: '', auth: '' })); }}
+              className={`w-full bg-slate-800/50 border ${errors.password || errors.auth ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-10 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder={t('auth.password_placeholder')}
             />
             <button
@@ -105,6 +110,7 @@ export default function Login({ onSwitch, onForgot }) {
             </button>
           </div>
           {errors.password && <p className="text-red-400 text-xs">{errors.password}</p>}
+          {errors.auth && <p className="text-red-400 text-xs">{errors.auth}</p>}
         </div>
 
         <div className="flex items-center justify-between mt-2">

@@ -6,8 +6,6 @@ import Header from './Header';
 import Footer from './Footer';
 import { isAuthenticated, getCurrentUser } from '../../services/authService';
 import { updateSubscription } from '../../services/profileService';
-import toast from 'react-hot-toast';
-
 export default function PricingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -29,7 +27,7 @@ export default function PricingPage() {
       });
       setActivePlan(downgradeTarget.planKey);
     } catch {
-      toast.error(t('pricing.downgrade_error'));
+      console.error(t('pricing.downgrade_error'));
     } finally {
       setDowngradeTarget(null);
     }
@@ -94,7 +92,7 @@ export default function PricingPage() {
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30 relative">
       {!loggedIn && <Header />}
 
-      <main className={`${loggedIn ? 'pt-12 pb-12' : 'pt-32 pb-20'}`}>
+      <main className={`${loggedIn ? 'pt-12 pb-12' : 'pt-12 pb-20'}`}>
         <section className="max-w-6xl mx-auto px-6 relative">
           
           {/* Back Button for logged in users */}

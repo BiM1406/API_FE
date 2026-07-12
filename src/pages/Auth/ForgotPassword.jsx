@@ -3,7 +3,6 @@ import { Mail, ArrowLeft, Loader2, Send, Lock, CheckCircle2, ArrowRight } from '
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { forgotPassword, resetPassword } from '../../services/auth.service';
 
 // ─── COMPONENT 1: YÊU CẦU KHÔI PHỤC (Gửi email) ──────────────────────────
@@ -12,22 +11,23 @@ export function ForgotPasswordView({ onBack }) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
-      toast.error(t('auth.forgot_pwd_toast_email_required'));
+      setErrors({ email: t('auth.forgot_pwd_toast_email_required') });
       return;
     }
+    setErrors({});
     setIsLoading(true);
     try {
       await forgotPassword(email);
       setIsLoading(false);
       setIsSent(true);
-      toast.success(t('auth.forgot_pwd_toast_request_sent'));
     } catch (error) {
       setIsLoading(false);
-      toast.error(error.message || t('auth.forgot_pwd_toast_request_failed'));
+      setErrors({ general: error.message || t('auth.forgot_pwd_toast_request_failed') });
     }
   };
 
@@ -56,17 +56,23 @@ export function ForgotPasswordView({ onBack }) {
         <p className="text-slate-400">{t('auth.forgot_pwd_subtitle')}</p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {errors.general && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+            {errors.general}
+          </div>
+        )}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-300">{t('auth.forgot_pwd_email_label')}</label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="email" required value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500"
+              onChange={(e) => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: '' })); }}
+              className={`w-full bg-slate-800/50 border ${errors.email ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-500`}
               placeholder={t('auth.forgot_pwd_email_placeholder')}
             />
           </div>
+          {errors.email && <p className="text-red-400 text-xs">{errors.email}</p>}
         </div>
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={isLoading} type="submit" className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20">
           {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> {t('auth.forgot_pwd_title')}</>}
@@ -86,15 +92,17 @@ export function ResetPasswordView() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) { toast.error(t('auth.reset_pwd_toast_mismatch')); return; }
-    if (password.length < 8) { toast.error(t('auth.reset_pwd_toast_min')); return; }
-    if (!token) { toast.error(t('auth.reset_pwd_toast_token_missing')); return; }
+    if (password !== confirmPassword) { setErrors({ confirmPassword: t('auth.reset_pwd_toast_mismatch') }); return; }
+    if (password.length < 8) { setErrors({ password: t('auth.reset_pwd_toast_min') }); return; }
+    if (!token) { setErrors({ general: t('auth.reset_pwd_toast_token_missing') }); return; }
+    setErrors({});
     setIsLoading(true);
     try {
       await resetPassword({
@@ -104,10 +112,9 @@ export function ResetPasswordView() {
       });
       setIsLoading(false);
       setIsSuccess(true);
-      toast.success(t('auth.reset_pwd_toast_success'));
     } catch (error) {
       setIsLoading(false);
-      toast.error(error.message || t('auth.reset_pwd_toast_failed'));
+      setErrors({ general: error.message || t('auth.reset_pwd_toast_failed') });
     }
   };
 
@@ -142,19 +149,26 @@ export function ResetPasswordView() {
                 <p className="text-slate-400">{t('auth.reset_pwd_subtitle')}</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {errors.general && (
+                  <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+                    {errors.general}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">{t('auth.reset_pwd_new_pwd_label')}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 transition-all placeholder:text-slate-500" placeholder="••••••••" />
+                    <input type="password" required value={password} onChange={(e) => { setPassword(e.target.value); setErrors(prev => ({ ...prev, password: '' })); }} className={`w-full bg-slate-800/50 border ${errors.password ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 transition-all placeholder:text-slate-500`} placeholder="••••••••" />
                   </div>
+                  {errors.password && <p className="text-red-400 text-xs">{errors.password}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">{t('auth.reset_pwd_confirm_pwd_label')}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                    <input type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 transition-all placeholder:text-slate-500" placeholder="••••••••" />
+                    <input type="password" required value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setErrors(prev => ({ ...prev, confirmPassword: '' })); }} className={`w-full bg-slate-800/50 border ${errors.confirmPassword ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg py-2.5 pl-10 pr-4 outline-none focus:border-violet-500 transition-all placeholder:text-slate-500`} placeholder="••••••••" />
                   </div>
+                  {errors.confirmPassword && <p className="text-red-400 text-xs">{errors.confirmPassword}</p>}
                 </div>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={isLoading} type="submit" className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-violet-500/20">
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t('auth.reset_pwd_title')} <CheckCircle2 className="w-4 h-4" /></>}

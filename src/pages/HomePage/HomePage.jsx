@@ -113,7 +113,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-violet-500/30">
       <Header />
 
-      <main className="pt-32 pb-20">
+      <main className="pt-12 pb-20">
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-6 mb-32">
           <div className="text-center max-w-4xl mx-auto mb-16">

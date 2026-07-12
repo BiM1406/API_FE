@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Download, Wand2, Search, FileText, LayoutTemplate, Code2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { exportMarkdown, generateDocumentationFromCollections, getDocumentation, saveDocumentation } from '../../services/documentationService';
 
@@ -28,24 +27,24 @@ export default function Documentation() {
     try {
       const generated = await generateDocumentationFromCollections(projectId());
       if (!generated.endpoints || generated.endpoints.length === 0) {
-        toast.error(t('documentation.toast_no_collection'));
+        console.error(t('documentation.toast_no_collection'));
         return;
       }
       setDocs(generated);
-      toast.success(t('documentation.toast_generated'));
+      console.log(t('documentation.toast_generated'));
     } catch (error) {
-      toast.error(error.message || t('documentation.toast_error'));
+      console.error(error.message || t('documentation.toast_error'));
     }
   };
 
   const handleExport = async () => {
     if (!docs.endpoints || docs.endpoints.length === 0) {
-      toast.error(t('documentation.toast_no_docs'));
+      console.error(t('documentation.toast_no_docs'));
       return;
     }
     const markdown = await exportMarkdown(projectId());
     await navigator.clipboard.writeText(markdown);
-    toast.success(t('documentation.toast_exported'));
+    console.log(t('documentation.toast_exported'));
   };
 
   const filteredEndpoints = (docs.endpoints || []).filter(ep =>

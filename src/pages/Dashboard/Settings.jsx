@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Globe, Bell, Lock, Key, Copy, Trash2, Edit2, Zap, RefreshCw, XCircle, X, CreditCard, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
 import { getSubscription, updateSubscription, PLANS } from '../../services/profileService';
@@ -163,21 +162,21 @@ export default function Settings() {
       i18n.changeLanguage(newLang);
     }
     localStorage.setItem('api_fe_language', newLang);
-    // toast.success(t('settings.language_section.saved'));
+    // console.log(t('settings.language_section.saved'));
   };
 
   const handleToggleNotif = (key) => {
     const updated = { ...notifs, [key]: !notifs[key] };
     setNotifs(updated);
     localStorage.setItem('api_fe_settings_notifs', JSON.stringify(updated));
-    // toast.success(t('settings.notifications_section.saved'));
+    // console.log(t('settings.notifications_section.saved'));
   };
 
   const handleTogglePrivacy = (key) => {
     const updated = { ...privacy, [key]: !privacy[key] };
     setPrivacy(updated);
     localStorage.setItem('api_fe_settings_privacy', JSON.stringify(updated));
-    // toast.success(t('settings.privacy_section.saved'));
+    // console.log(t('settings.privacy_section.saved'));
   };
 
   const handleGenerateKey = () => {
@@ -206,7 +205,7 @@ export default function Settings() {
     const updatedKeys = [...apiKeys, newKey];
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
-    // toast.success(t('settings.api_keys_section.created'));
+    // console.log(t('settings.api_keys_section.created'));
     
     // Automatically focus and edit the newly created key inline
     setEditingId(newKey.id);
@@ -223,14 +222,14 @@ export default function Settings() {
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
     setEditingId(null);
-    // toast.success(t('settings.api_keys_section.saved_name'));
+    // console.log(t('settings.api_keys_section.saved_name'));
   };
 
   const handleDeleteKey = (id) => {
     const updatedKeys = apiKeys.filter(k => k.id !== id);
     setApiKeys(updatedKeys);
     localStorage.setItem('api_fe_settings_apikeys', JSON.stringify(updatedKeys));
-    // toast.success(t('settings.api_keys_section.deleted'));
+    // console.log(t('settings.api_keys_section.deleted'));
   };
 
   const sections = [
@@ -444,7 +443,7 @@ export default function Settings() {
                               <button 
                                 onClick={() => {
                                   navigator.clipboard.writeText(key.value);
-                                  toast.success(t('settings.api_keys_section.copied'));
+                                  console.log(t('settings.api_keys_section.copied'));
                                 }}
                                 className="p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-all"
                                 title={t('settings.api_keys_section.copy_key')}
@@ -733,7 +732,7 @@ export default function Settings() {
                         status: 'CANCELLED',
                       });
                       setSubscription(updated);
-                      // toast.success(t('settings.subscription_section.cancel_success'));
+                      // console.log(t('settings.subscription_section.cancel_success'));
                     } catch {
                       // ignore
                     }
@@ -818,9 +817,9 @@ export default function Settings() {
                       status: 'ACTIVE',
                     });
                     setSubscription(updated);
-                    toast.success(t('settings.subscription_section.renew_modal.toast_success'));
+                    console.log(t('settings.subscription_section.renew_modal.toast_success'));
                   } catch (e) {
-                    toast.error(e.message || 'Error');
+                    console.error(e.message || 'Error');
                   }
                 }}
                 className="px-5 py-2 rounded-full text-xs font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg active:scale-95"

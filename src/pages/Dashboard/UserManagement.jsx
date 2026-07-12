@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Edit, Trash2, X, Loader2, Copy, Key, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { deleteUser, getAdminUsers, updateUserStatus, updateAdminUser, resetUserPassword } from '../../services/adminService';
 import { getPlanLabel, getRoleBadgeClass, getStatusColor, getStatusDotClass, mapUserToTableRow } from './userManagement.helpers';
 import { USER_TABLE_PAGE_SIZE } from '../../config/adminConfig';
@@ -97,9 +96,9 @@ export default function UserManagement() {
       const updated = await updateUserStatus(user.id, status);
       setUsers((current) => current.map((item) => item.id === user.id ? updated : item));
       const statusLabel = status === 'ACTIVE' ? t('user_mgmt.status_active') : t('user_mgmt.status_suspended');
-      toast.success(t('user_mgmt.toast_status_updated', { status: statusLabel }));
+      console.log(t('user_mgmt.toast_status_updated', { status: statusLabel }));
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_update_error'));
+      console.error(err.message || t('user_mgmt.toast_update_error'));
     }
   };
 
@@ -107,18 +106,18 @@ export default function UserManagement() {
     try {
       await deleteUser(user.id);
       setUsers((current) => current.filter((item) => item.id !== user.id));
-      toast.success(t('user_mgmt.toast_delete_success'));
+      console.log(t('user_mgmt.toast_delete_success'));
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_delete_error'));
+      console.error(err.message || t('user_mgmt.toast_delete_error'));
     }
   };
 
   const handleResetPassword = async (user) => {
     try {
       const res = await resetUserPassword(user.id);
-      toast.success(t('user_mgmt.toast_reset_success', { password: res.password }), { duration: 8000 });
+      console.log(t('user_mgmt.toast_reset_success', { password: res.password }), { duration: 8000 });
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_reset_error'));
+      console.error(err.message || t('user_mgmt.toast_reset_error'));
     }
   };
 
@@ -132,10 +131,10 @@ export default function UserManagement() {
         plan: editingUser.plan
       });
       setUsers((current) => current.map((item) => item.id === editingUser.id ? updated : item));
-      toast.success(t('user_mgmt.toast_update_success'));
+      console.log(t('user_mgmt.toast_update_success'));
       setEditingUser(null);
     } catch (err) {
-      toast.error(err.message || t('user_mgmt.toast_update_error'));
+      console.error(err.message || t('user_mgmt.toast_update_error'));
     }
   };
 
@@ -306,7 +305,7 @@ export default function UserManagement() {
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(user.id);
-                              toast.success(t('chat_dmp.chat_tab.copied_toast') || 'Copied!');
+                              console.log(t('chat_dmp.chat_tab.copied_toast') || 'Copied!');
                             }}
                             className="p-1 hover:bg-white/10 text-slate-500 hover:text-white rounded transition-all"
                             title="Copy ID"

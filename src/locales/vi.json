@@ -775,7 +775,7 @@
     "toast_login_success_admin": "Đăng nhập thành công với quyền Quản trị viên!",
     "toast_login_success": "Đăng nhập thành công!",
     "toast_login_failed": "Đăng nhập thất bại!",
-    "toast_login_incorrect_credential": "Tài khoản hoặc mật khẩu không chính xác",
+    "toast_login_incorrect_credential": "Tài khoản hoặc mật khẩu của bạn không đúng",
     "register_username_label": "Tên tài khoản",
     "register_username_placeholder": "Tên của bạn",
     "register_email_label": "Địa chỉ email",

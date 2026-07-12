@@ -5,7 +5,6 @@ import {
   Loader2, Play, Plus, Search, Table2, Trash2
 } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
-import toast from 'react-hot-toast';
 import {
   addColumn, createTable, deleteColumn, deleteTable,
   getSchema, updateColumn, updateTable
@@ -152,7 +151,7 @@ export default function Database() {
       .catch(err => {
       const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-          toast.error(err.message || t('db.toast_load_failed'));
+          console.error(err.message || t('db.toast_load_failed'));
         }
       })
       .finally(() => mounted && setLoading(false));
@@ -264,7 +263,7 @@ export default function Database() {
     } catch (err) {
       const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-        toast.error(err.message || t('db.toast_save_failed'));
+        console.error(err.message || t('db.toast_save_failed'));
       }
     } finally {
       setSaving(false);
@@ -283,7 +282,7 @@ export default function Database() {
     } catch (err) {
       const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-        toast.error(err.message || t('db.toast_create_failed'));
+        console.error(err.message || t('db.toast_create_failed'));
       }
     } finally {
       setSaving(false);
@@ -305,7 +304,7 @@ export default function Database() {
     } catch (err) {
       const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-        toast.error(err.message || t('db.toast_delete_failed'));
+        console.error(err.message || t('db.toast_delete_failed'));
       }
     } finally {
       setSaving(false);
@@ -317,14 +316,14 @@ export default function Database() {
     setSaving(true);
     try {
       const generated = await generateDatabaseSchema({ prompt: 'booking database schema' });
-      if (!generated?.tables?.length) { toast.error(t('db.toast_ai_no_schema')); return; }
+      if (!generated?.tables?.length) { console.error(t('db.toast_ai_no_schema')); return; }
       const tData = generated.tables[0];
       const next = await createTable(projectId(), { name: tData.name || 'bookings', columns: tData.columns });
       syncSchema(next);
     } catch (err) {
       const isNetworkError = err?.message?.includes('fetch') || err?.message?.includes('NetworkError') || err?.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-        toast.error(err.message);
+        console.error(err.message);
       }
     } finally {
       setSaving(false);

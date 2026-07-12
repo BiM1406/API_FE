@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Plus, Trash2, Search, Zap, Layers, FolderOpen, Boxes } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createCollection, deleteCollection, getCollections, saveRequest } from '../../services/collectionService';
 
@@ -34,7 +33,7 @@ export default function Collections() {
   useEffect(() => { load(); }, []);
 
   const handleCreate = async () => {
-    if (!name.trim()) return toast.error(t('collections.toast_name_required'));
+    if (!name.trim()) return console.error(t('collections.toast_name_required'));
     await createCollection(projectId(), { name });
     setName('');
     load();

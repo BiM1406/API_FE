@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, Trash2, Server, Terminal, Sparkles, CheckCircle2, Code2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createMockEndpoint, deleteMockEndpoint, generateMockResponse, getMockEndpoints, updateMockEndpoint } from '../../services/mockServerService';
 
@@ -28,14 +27,14 @@ export default function MockServer() {
   const handleCreate = async () => {
     try {
       if (!draft.path.startsWith('/')) {
-        toast.error(t('mock_server.toast_path_error'));
+        console.error(t('mock_server.toast_path_error'));
         return;
       }
       await createMockEndpoint(projectId(), draft);
-      toast.success(t('mock_server.toast_created'));
+      console.log(t('mock_server.toast_created'));
       load();
     } catch (error) {
-      toast.error(error.message);
+      console.error(error.message);
     }
   };
 
@@ -44,9 +43,9 @@ export default function MockServer() {
     try {
       const generated = await generateMockResponse(draft);
       setDraft((current) => ({ ...current, ...generated }));
-      toast.success(t('mock_server.toast_ai_done'));
+      console.log(t('mock_server.toast_ai_done'));
     } catch (error) {
-      toast.error(error.message || t('mock_server.toast_ai_error'));
+      console.error(error.message || t('mock_server.toast_ai_error'));
     } finally {
       setIsGenerating(false);
     }
@@ -195,7 +194,7 @@ export default function MockServer() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { navigator.clipboard.writeText(`http://localhost:3000${item.path}`); toast.success(t('mock_server.toast_url_copied')); }}
+                            onClick={() => { navigator.clipboard.writeText(`http://localhost:3000${item.path}`); console.log(t('mock_server.toast_url_copied')); }}
                             className="rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
                           >
                             {t('mock_server.btn_copy_url')}
@@ -217,7 +216,7 @@ export default function MockServer() {
                           spellCheck={false}
                         />
                         <button
-                          onClick={() => { navigator.clipboard.writeText(item.responseBody); toast.success(t('mock_server.toast_json_copied')); }}
+                          onClick={() => { navigator.clipboard.writeText(item.responseBody); console.log(t('mock_server.toast_json_copied')); }}
                           className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 border border-white/10 rounded-md p-1.5 hover:bg-white/10 text-slate-300"
                         >
                           <Copy size={12} />

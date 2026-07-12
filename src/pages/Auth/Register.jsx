@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { register } from '../../services/authService';
 
 const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -31,7 +30,7 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error(t('auth.toast_register_check_info'));
+      console.error(t('auth.toast_register_check_info'));
       return;
     }
 
@@ -39,10 +38,18 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
     setIsLoading(true);
     try {
       await register({ username, email, password, confirmPassword });
-      toast.success(t('auth.toast_register_success'));
+      console.log(t('auth.toast_register_success'));
       onRegisterSuccess(email);
     } catch (error) {
-      toast.error(error.message || t('auth.toast_register_failed'));
+      const msg = error.message || t('auth.toast_register_failed');
+      const lowerMsg = msg.toLowerCase();
+      if (lowerMsg.includes('username') || lowerMsg.includes('tài khoản')) {
+        setErrors({ username: msg });
+      } else if (lowerMsg.includes('email')) {
+        setErrors({ email: msg });
+      } else {
+        setErrors({ general: msg });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +62,11 @@ export default function Register({ onSwitch, onRegisterSuccess }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
+        {errors.general && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+            {errors.general}
+          </div>
+        )}
         {/* Hidden inputs to trick browser autofill */}
         <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
         <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />

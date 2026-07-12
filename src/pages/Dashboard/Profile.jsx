@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Plus, User, Zap, ArrowLeft, X, Mail, Send, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { getProfile, getSubscription } from '../../services/profileService';
 
 const getInitials = (name = 'User') => {
@@ -46,7 +45,7 @@ export default function Profile() {
   const handleInvite = (e) => {
     e.preventDefault();
     if (!inviteEmail) {
-      toast.error(t('profile.toast_invalid_email'));
+      console.error(t('profile.toast_invalid_email'));
       return;
     }
     setIsInviteOpen(false);

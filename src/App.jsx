@@ -1,8 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-
 const HomePage = lazy(() => import('./pages/HomePage/HomePage'));
 const AuthPage = lazy(() => import('./pages/Auth/AuthPage'));
 const PricingPage = lazy(() => import('./pages/HomePage/PricingPage'));
@@ -84,7 +82,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+      
     </BrowserRouter>
   );
 }

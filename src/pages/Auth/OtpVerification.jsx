@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
 import { verifyOtp } from '../../services/authService';
 
 export default function OtpVerification({ email, onBack, onVerified }) {
@@ -39,22 +38,27 @@ export default function OtpVerification({ email, onBack, onVerified }) {
     inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
   };
 
+  const [errors, setErrors] = useState({});
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const otpCode = otp.join('');
     if (otpCode.length < 6) {
-      toast.error(t('auth.otp_toast_required'));
+      setErrors({ otp: t('auth.otp_toast_required') });
       return;
     }
 
+    setErrors({});
     setIsLoading(true);
     try {
       await verifyOtp({ email, otp: otpCode });
       onVerified();
     } catch (error) {
       const isNetworkError = error.message?.includes('fetch') || error.message?.includes('NetworkError') || error.message?.includes('Failed to fetch');
-      if (!isNetworkError) {
-        toast.error(error.message || t('auth.otp_toast_failed'));
+      if (isNetworkError) {
+        setErrors({ general: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' });
+      } else {
+        setErrors({ otp: error.message || t('auth.otp_toast_failed') });
       }
     } finally {
       setIsLoading(false);
@@ -72,23 +76,31 @@ export default function OtpVerification({ email, onBack, onVerified }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="flex justify-between gap-2 sm:gap-3">
-          {otp.map((data, index) => (
-            <input
-              key={index}
-              type="text"
-              name="otp"
-              maxLength="1"
-              ref={(el) => { inputRefs.current[index] = el; }}
-              value={data}
-              onChange={(e) => handleChange(index, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(index, e)}
-              onPaste={handlePaste}
-              onFocus={(e) => e.target.select()}
-              className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-slate-800/50 border border-slate-700 text-white rounded-lg outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-600"
-              placeholder="-"
-            />
-          ))}
+        {errors.general && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+            {errors.general}
+          </div>
+        )}
+        <div>
+          <div className="flex justify-between gap-2 sm:gap-3">
+            {otp.map((data, index) => (
+              <input
+                key={index}
+                type="text"
+                name="otp"
+                maxLength="1"
+                ref={(el) => { inputRefs.current[index] = el; }}
+                value={data}
+                onChange={(e) => { handleChange(index, e.target.value); setErrors({}); }}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={(e) => { handlePaste(e); setErrors({}); }}
+                onFocus={(e) => e.target.select()}
+                className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-slate-800/50 border ${errors.otp ? 'border-red-400' : 'border-slate-700'} text-white rounded-lg outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all placeholder:text-slate-600`}
+                placeholder="-"
+              />
+            ))}
+          </div>
+          {errors.otp && <p className="text-red-400 text-xs mt-2 text-center">{errors.otp}</p>}
         </div>
 
         <motion.button

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
@@ -79,9 +78,9 @@ function CopyRow({ value, copyValue, translationKey }) {
   const handleCopy = async () => {
     const copied = await copyToClipboard(copyValue ?? value);
     if (copied) {
-      toast.success(t('payment.toasts.copied_success', { label: t(translationKey).toLowerCase() }));
+      console.log(t('payment.toasts.copied_success', { label: t(translationKey).toLowerCase() }));
     } else {
-      toast.error(t('payment.toasts.copied_error'));
+      console.error(t('payment.toasts.copied_error'));
     }
   };
 
@@ -167,7 +166,7 @@ export default function PaymentPage() {
       try {
         const nextPayment = await createOrGetCurrentPayment(selectedPlan);
         if (!nextPayment) {
-          toast.error(t('payment.toasts.create_error'));
+          console.error(t('payment.toasts.create_error'));
           navigate('/pricing');
           return;
         }
@@ -175,7 +174,7 @@ export default function PaymentPage() {
         setPayment(nextPayment);
         setCountdown(formatCountdown(nextPayment.expiredAt));
       } catch {
-        toast.error(t('payment.toasts.init_error'));
+        console.error(t('payment.toasts.init_error'));
         navigate('/pricing');
       } finally {
         if (mountedRef.current) {
@@ -237,7 +236,7 @@ export default function PaymentPage() {
         expiredToastRef.current = true;
         const expiredPayment = await expirePayment(payment.orderCode);
         setPayment(expiredPayment);
-        toast.error(t('payment.toasts.expired'));
+        console.error(t('payment.toasts.expired'));
         navigate('/payment/failed');
       }
     };
@@ -260,10 +259,10 @@ export default function PaymentPage() {
     try {
       const paidPayment = await markPaymentPaid(payment.orderCode);
       setPayment(paidPayment);
-      toast.success(t('payment.toasts.confirmed'));
+      console.log(t('payment.toasts.confirmed'));
       navigate('/payment/success');
     } catch (error) {
-      toast.error(error.message || t('payment.toasts.init_error'));
+      console.error(error.message || t('payment.toasts.init_error'));
     } finally {
       setConfirming(false);
     }
@@ -278,10 +277,10 @@ export default function PaymentPage() {
     try {
       const cancelledPayment = await cancelPayment(payment.orderCode);
       setPayment(cancelledPayment);
-      toast.error(t('payment.toasts.cancelled'));
+      console.error(t('payment.toasts.cancelled'));
       navigate('/payment/failed');
     } catch (error) {
-      toast.error(error.message || t('payment.toasts.init_error'));
+      console.error(error.message || t('payment.toasts.init_error'));
     }
   };
 

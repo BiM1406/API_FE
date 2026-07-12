@@ -20,7 +20,6 @@ import {
   Save
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { createProject, deleteProject, getProjects, updateProject } from '../../services/projectService';
 import { addActivity } from '../../services/activityService';
@@ -55,6 +54,7 @@ export default function MyProject() {
   const [activeProjectMenu, setActiveProjectMenu] = useState(null);
   const [renameState, setRenameState] = useState({ isOpen: false, id: null, value: '' });
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, project: null });
+  const [errors, setErrors] = useState({});
 
   // Click outside to close dropdown action menu
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function MyProject() {
         status: 'success'
       });
     } catch {
-      // toast.error('Không thể tạo dự án');
+      // console.error('Không thể tạo dự án');
     } finally {
       setCreating(false);
     }
@@ -194,7 +194,7 @@ export default function MyProject() {
     } catch (err) {
       const isNetworkError = err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch');
       if (!isNetworkError) {
-        toast.error(err.message || 'Không thể xóa dự án');
+        console.error(err.message || 'Không thể xóa dự án');
       }
     } finally {
       setDeleteConfirm({ isOpen: false, project: null });
@@ -220,7 +220,7 @@ export default function MyProject() {
         status: 'success'
       });
     } catch {
-      // toast.error('Không thể nhân bản dự án');
+      // console.error('Không thể nhân bản dự án');
     } finally {
       setCreating(false);
     }
@@ -235,12 +235,13 @@ export default function MyProject() {
   const submitRename = async (e) => {
     e.preventDefault();
     if (!renameState.value.trim()) return;
+    setErrors({});
     try {
       await updateProject(renameState.id, { name: renameState.value });
       setProjects((current) => current.map((p) => p.id === renameState.id ? { ...p, name: renameState.value } : p));
       setRenameState({ isOpen: false, id: null, value: '' });
-    } catch {
-      // toast.error('Không thể đổi tên dự án');
+    } catch (err) {
+      setErrors({ rename: err.message || 'Không thể đổi tên dự án' });
     }
   };
 
@@ -489,6 +490,11 @@ export default function MyProject() {
             </div>
 
             <form onSubmit={submitRename} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+              {errors.rename && (
+                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+                  {errors.rename}
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('projects.new_name_label')}</label>
                 <input 
@@ -496,9 +502,9 @@ export default function MyProject() {
                   autoFocus
                   required
                   value={renameState.value}
-                  onChange={(e) => setRenameState({ ...renameState, value: e.target.value })}
+                  onChange={(e) => { setRenameState({ ...renameState, value: e.target.value }); setErrors({}); }}
                   placeholder={t('projects.rename_placeholder')}
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
+                  className={`w-full bg-slate-950/50 border ${errors.rename ? 'border-red-400' : 'border-slate-800'} rounded-xl py-3 px-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner`}
                 />
               </div>
 

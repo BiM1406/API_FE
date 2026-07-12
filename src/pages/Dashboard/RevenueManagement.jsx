@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Download, ArrowUpRight, Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { getRevenue } from '../../services/adminService';
 
 function CustomDatePicker({ value, onChange, placeholder, t }) {
@@ -350,7 +349,7 @@ export default function RevenueManagement() {
 
   const handleExportCSV = () => {
     if (!filteredTransactions || filteredTransactions.length === 0) {
-      toast.error(t('revenue.csv_no_data'));
+      console.error(t('revenue.csv_no_data'));
       return;
     }
     const headers = [t('revenue.col_code'), t('revenue.col_customer'), t('revenue.col_plan'), t('revenue.col_amount'), t('revenue.col_date'), t('revenue.col_status')];
@@ -374,7 +373,7 @@ export default function RevenueManagement() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(t('revenue.csv_exported'));
+    console.log(t('revenue.csv_exported'));
   };
 
   return (

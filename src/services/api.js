@@ -1,6 +1,4 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
-
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
@@ -30,7 +28,7 @@ api.interceptors.response.use(
         0
       );
       const suffix = retryAfterSeconds > 0 ? ` ${retryAfterSeconds} giây.` : '.';
-      toast.error(`Bạn thao tác quá nhanh. Vui lòng thử lại sau${suffix}`, {
+      console.error(`Bạn thao tác quá nhanh. Vui lòng thử lại sau${suffix}`, {
         id: 'rate-limit-429'
       });
     }

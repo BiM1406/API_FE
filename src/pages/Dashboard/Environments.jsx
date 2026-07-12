@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Network, Trash2, Plus, Sliders, ShieldAlert, Key, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addVariable, createEnvironment, deleteVariable, getActiveEnvironment, getEnvironments, setActiveEnvironment, updateVariable } from '../../services/environmentService';
 
@@ -41,7 +40,7 @@ export default function Environments() {
   useEffect(() => { load(); }, []);
 
   const handleCreate = async () => {
-    if (!name.trim()) return toast.error(t('environments.toast_name_required'));
+    if (!name.trim()) return console.error(t('environments.toast_name_required'));
     await createEnvironment(projectId(), { name });
     setName('');
     load();

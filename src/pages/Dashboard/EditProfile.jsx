@@ -3,7 +3,6 @@ import { User, Mail, Camera, Save, ArrowLeft, Lock, Eye, EyeOff, CreditCard, Che
 import { useTranslation } from 'react-i18next';
 import { getCurrentUser } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { getProfile, updateProfile, changePassword } from '../../services/profileService';
 
 export default function EditProfile() {
@@ -35,6 +34,7 @@ export default function EditProfile() {
   });
 
   const [activeTab, setActiveTab] = useState('profile');
+  const [errors, setErrors] = useState({});
 
   const isNewSameAsCurrent = passwords.newPassword && passwords.newPassword === passwords.currentPassword;
 
@@ -51,7 +51,7 @@ export default function EditProfile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
-        toast.success(t('edit_profile.avatar_preview_toast'));
+        console.log(t('edit_profile.avatar_preview_toast'));
       };
       reader.readAsDataURL(file);
     }
@@ -77,57 +77,63 @@ export default function EditProfile() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handlePasswordChange = (e) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
+    setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.email.trim()) {
-      toast.error(t('edit_profile.toast_fill_fields'));
+    if (!formData.name.trim()) {
+      setErrors({ name: t('edit_profile.toast_fill_fields') });
       return;
     }
+    if (!formData.email.trim()) {
+      setErrors({ email: t('edit_profile.toast_fill_fields') });
+      return;
+    }
+    setErrors({});
     await updateProfile({
       ...formData,
       avatar: avatarPreview
     });
 
-    toast.success(t('edit_profile.toast_saved'));
     navigate('/profile');
   };
 
   const handleChangePassword = async () => {
     if (!passwords.currentPassword) {
-      toast.error(t('edit_profile.toast_current_pwd_required'));
+      setErrors({ currentPassword: t('edit_profile.toast_current_pwd_required') });
       return;
     }
     if (!passwords.newPassword || passwords.newPassword.length < 6) {
-      toast.error(t('edit_profile.toast_new_pwd_min'));
+      setErrors({ newPassword: t('edit_profile.toast_new_pwd_min') });
       return;
     }
     if (passwords.newPassword === passwords.currentPassword) {
-      toast.error(t('edit_profile.toast_new_pwd_same_as_old'));
+      setErrors({ newPassword: t('edit_profile.toast_new_pwd_same_as_old') });
       return;
     }
     if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error(t('edit_profile.toast_confirm_pwd_mismatch'));
+      setErrors({ confirmPassword: t('edit_profile.toast_confirm_pwd_mismatch') });
       return;
     }
 
+    setErrors({});
     try {
       await changePassword({
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword,
         confirmPassword: passwords.confirmPassword
       });
-      toast.success(t('edit_profile.toast_pwd_changed'));
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
       if (err.message === 'Mật khẩu hiện tại không chính xác' || err.message?.includes('incorrect')) {
-        toast.error(t('edit_profile.toast_current_pwd_incorrect'));
+        setErrors({ currentPassword: t('edit_profile.toast_current_pwd_incorrect') });
       } else {
-        toast.error(err.message || 'Error');
+        setErrors({ general: err.message || 'Error' });
       }
     }
   };
@@ -222,9 +228,10 @@ export default function EditProfile() {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
+                    className={`w-full bg-slate-950/50 border ${errors.name ? 'border-red-400' : 'border-slate-800'} rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600`}
                   />
                 </div>
+                {errors.name && <p className="text-red-400 text-xs mt-1 ml-1">{errors.name}</p>}
               </div>
 
               <div>
@@ -238,9 +245,10 @@ export default function EditProfile() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
+                    className={`w-full bg-slate-950/50 border ${errors.email ? 'border-red-400' : 'border-slate-800'} rounded-xl py-3 pl-12 pr-4 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600`}
                   />
                 </div>
+                {errors.email && <p className="text-red-400 text-xs mt-1 ml-1">{errors.email}</p>}
               </div>
 
               <div className="pt-4 flex gap-4">
@@ -274,6 +282,12 @@ export default function EditProfile() {
               </div>
             </div>
 
+            {errors.general && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm flex items-center justify-center">
+                {errors.general}
+              </div>
+            )}
+
             <div className="space-y-5">
               {/* Current Password */}
               <div>
@@ -288,7 +302,7 @@ export default function EditProfile() {
                     value={passwords.currentPassword}
                     onChange={handlePasswordChange}
                     placeholder={t('edit_profile.current_pwd_placeholder')}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
+                    className={`w-full bg-slate-950/50 border ${errors.currentPassword ? 'border-red-400' : 'border-slate-800'} rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600`}
                   />
                   <button
                     type="button"
@@ -298,6 +312,7 @@ export default function EditProfile() {
                     {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.currentPassword && <p className="text-red-400 text-xs mt-1 ml-1">{errors.currentPassword}</p>}
               </div>
 
               {/* New Password */}
@@ -314,7 +329,7 @@ export default function EditProfile() {
                     onChange={handlePasswordChange}
                     placeholder={t('edit_profile.new_pwd_placeholder')}
                     className={`w-full bg-slate-950/50 border rounded-xl py-3 pl-12 pr-12 text-white font-medium outline-none transition-all placeholder:text-slate-600 ${
-                      isNewSameAsCurrent
+                      isNewSameAsCurrent || errors.newPassword
                         ? 'border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/50'
                         : 'border-slate-800 focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50'
                     }`}
@@ -327,6 +342,7 @@ export default function EditProfile() {
                     {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.newPassword && <p className="text-red-400 text-xs mt-1 ml-1">{errors.newPassword}</p>}
                 {isNewSameAsCurrent && (
                   <p className="text-red-500 text-[11px] font-semibold mt-2 ml-1 animate-in fade-in slide-in-from-top-1 duration-200">
                     {t('edit_profile.pwd_same_as_old_error')}
@@ -347,7 +363,7 @@ export default function EditProfile() {
                     value={passwords.confirmPassword}
                     onChange={handlePasswordChange}
                     placeholder={t('edit_profile.confirm_pwd_placeholder')}
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600"
+                    className={`w-full bg-slate-950/50 border ${errors.confirmPassword ? 'border-red-400' : 'border-slate-800'} rounded-xl py-3 pl-12 pr-12 text-white font-medium focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all placeholder:text-slate-600`}
                   />
                   <button
                     type="button"
@@ -357,6 +373,7 @@ export default function EditProfile() {
                     {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {errors.confirmPassword && <p className="text-red-400 text-xs mt-1 ml-1">{errors.confirmPassword}</p>}
               </div>
 
               <div className="pt-4">
